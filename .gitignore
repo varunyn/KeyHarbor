@@ -1,0 +1,7 @@
+/node_modules
+Icon
+/dist
+/backend-build/
+/src/renderer-build/
+.DS_Store
+/supabase/.temp/

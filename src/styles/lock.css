@@ -1,0 +1,16 @@
+.unlock-btn {
+  height: 28px;
+}
+
+.touch-id-actions {
+  margin-top: 14px;
+}
+
+.touch-id-btn {
+  width: 100%;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

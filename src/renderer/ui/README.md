@@ -1,0 +1,5 @@
+# Shared UI controls
+
+Editable shadcn/ui New York components, adapted from the official registry on October 2, 2026 (MIT): https://ui.shadcn.com/r/styles/new-york/ . Button, Input, Dialog, and Dropdown Menu use local theme tokens and Radix primitives. Dialog close labels come from the caller's translations. No external assets or runtime network requests are needed.
+
+The homepage, project secrets screen, Settings, Access Logs, and Vault reconciliation share these controls. The confirmation hook replaces blocking browser prompts with translated in-app decisions, starts focus on Cancel, and cancels pending requests when the Vault session changes or the page retires. Tailwind utilities omit Preflight so existing renderer defaults remain intact. Global shared styles live in `src/styles/common.css`, navy/cyan theme tokens in `theme.css`, and Tailwind theme mappings and utilities in `ui.css`. Load them in that order, followed by page composition in `dashboard.css` or `project.css`. Import individual components rather than a barrel.

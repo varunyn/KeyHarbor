@@ -1,0 +1,824 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "back": "Back",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "lock": {
+    "title": "KeyHarbor",
+    "subtitle": "Enter your master password to unlock",
+    "passwordPlaceholder": "Enter your password",
+    "invalidPassword": "Invalid password. Please try again.",
+    "touchIdButton": "Unlock with Touch ID",
+    "touchIdFailed": "Touch ID unlock failed. Try again or use your master password."
+  },
+  "dashboard": {
+    "title": "Projects",
+    "subtitle": "Manage encrypted environment secrets across your local projects.",
+    "crumbsVault": "Vault",
+    "addProject": "New Project",
+    "logs": "Logs",
+    "lock": "Lock Vault",
+    "settings": "Settings",
+    "installCli": "Install CLI",
+    "uninstallCli": "Uninstall CLI",
+    "installing": "Installing...",
+    "uninstalling": "Uninstalling...",
+    "searchPlaceholder": "Search projects...",
+    "sidebar": {
+      "unlocked": "Vault unlocked",
+      "synced": "Refreshed {{time}}",
+      "navProjects": "Projects",
+      "navActivity": "Activity",
+      "navSettings": "Settings"
+    },
+    "statistics": {
+      "totalProjects": "Total Projects",
+      "totalSecrets": "Total Secrets",
+      "expiringSecrets": "Expiring Soon",
+      "expiringAndExpired": "Expiring & Expired",
+      "recentAccess": "Recent Access",
+      "scopeLabel": "Counts include all Environments",
+      "overview": "Vault overview"
+    },
+    "addProjectModal": {
+      "title": "Add New Project",
+      "label": "Project Name",
+      "placeholder": "Enter project name",
+      "add": "Add Project"
+    },
+    "section": {
+      "title": "Your projects",
+      "count": "{{count}} projects",
+      "countOne": "1 project"
+    },
+    "vaultDefault": "System",
+    "viewToggle": {
+      "grid": "Grid view",
+      "list": "List view",
+      "label": "Project view"
+    },
+    "sort": {
+      "label": "Sort",
+      "recent": "Recently updated",
+      "name": "Name A\u2013Z",
+      "secrets": "Most secrets"
+    },
+    "overview": {
+      "healthOk": "No expiration alerts",
+      "healthOkSub": "No expiring or expired secrets",
+      "healthAttention": "{{count}} need attention",
+      "healthAttentionOne": "1 needs attention"
+    },
+    "card": {
+      "activeToday": "Active today",
+      "lastAccessed": "Most recently accessed {{time}}",
+      "openProject": "Open project {{name}}",
+      "localProject": "Local environment secrets",
+      "storedLocally": "Stored in this vault",
+      "environmentOne": "1 Environment",
+      "environments": "{{count}} Environments",
+      "open": "Open Project"
+    },
+    "emptyState": {
+      "title": "No projects found",
+      "descriptionEmpty": "Create your first project to start managing your secrets securely.",
+      "descriptionSearch": "No projects match your search criteria.",
+      "noResultsBody": "Try another name or clear your search.",
+      "clearSearch": "Clear search",
+      "emptyTitle": "Create your first project",
+      "emptyBody": "Organize environment secrets by application or service."
+    },
+    "a11y": {
+      "indexLabel": "Vault navigation",
+      "primaryNav": "Primary",
+      "searchLabel": "Search projects",
+      "menuLabel": "More actions",
+      "sortLabel": "Sort projects",
+      "sectionLabel": "Projects",
+      "crumbsLabel": "Breadcrumb"
+    },
+    "deleteProject": {
+      "confirm": "Are you sure you want to delete project \"{{name}}\"? This will also delete all secrets in this project.",
+      "deleteBtn": "Delete Project"
+    },
+    "time": {
+      "today": "today",
+      "yesterday": "yesterday",
+      "daysAgo": "{{count}} days ago",
+      "weeksAgo": "{{count}} weeks ago",
+      "justNow": "just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago"
+    },
+    "secretCount": "{{count}} secrets",
+    "secretCountOne": "1 secret",
+    "updated": "Updated {{time}}",
+    "confirmUninstallCli": "Are you sure you want to uninstall the KeyHarbor CLI?",
+    "notifications": {
+      "projectCreated": "Project \"{{name}}\" created successfully",
+      "projectDeleted": "Project \"{{name}}\" deleted successfully",
+      "failedToLoad": "Failed to load projects",
+      "failedToCreate": "Failed to create project",
+      "failedToDelete": "Failed to delete project",
+      "enterName": "Please enter a project name",
+      "projectExists": "A project with this name already exists",
+      "cliInstallFailed": "CLI {{action}} failed: {{error}}",
+      "lockError": "Error locking vault: {{error}}",
+      "favoriteAdded": "Added to favorites",
+      "favoriteRemoved": "Removed from favorites"
+    },
+    "filters": {
+      "label": "Filter projects",
+      "all": "All Projects ({{count}})",
+      "starred": "Starred ({{count}})"
+    },
+    "addTile": {
+      "title": "Create a new project",
+      "description": "Keep another application\u2019s environment secrets together in this vault."
+    }
+  },
+  "project": {
+    "environments": {
+      "label": "Environment",
+      "selectorLabel": "Select Environment",
+      "manage": "Manage",
+      "default": "default",
+      "loading": "Loading Environment\u2026",
+      "loadFailed": "Environment details could not be loaded",
+      "unknown": "unknown Environment",
+      "manageTitle": "Manage Environments",
+      "current": "Current Environment: {{name}}",
+      "nameLabel": "New or renamed Environment",
+      "namePlaceholder": "e.g. dev",
+      "create": "Create empty Environment",
+      "rename": "Rename current Environment",
+      "replacementLabel": "Replacement default Environment",
+      "replacementWarning": "Omitted CLI, HTTP, and MCP selectors will use {{name}}.",
+      "omittedSelectorWarning": "Omitted CLI, HTTP, and MCP selectors will use {{name}}.",
+      "deleteDetails": "Deleting {{name}} removes {{count}} secrets, its requirements, favorites, and history.",
+      "deleteConfirm": "Delete Environment \"{{name}}\" and its {{count}} secrets?{{defaultWarning}}",
+      "delete": "Delete Environment",
+      "lastEnvironment": "A Project must keep at least one Environment.",
+      "emptyState": "{{project}} has no secrets in {{environment}} yet. Add a secret or import one for this Environment.",
+      "created": "Environment {{name}} created empty",
+      "renamed": "Environment renamed to {{name}}",
+      "deleted": "Environment {{name}} deleted",
+      "saveFailed": "Environment could not be saved",
+      "deleteFailed": "Environment could not be deleted",
+      "context": "Project {{project}} \u00b7 Environment {{environment}}"
+    },
+    "addSecret": "Add Secret",
+    "newSecret": "New secret",
+    "importEnv": "Import",
+    "exportEnv": "Export",
+    "searchPlaceholder": "Search secrets...",
+    "filter": "Filter",
+    "edit": "Edit",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "sidebar": {
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "projectLabel": "Project",
+      "allProjects": "All projects",
+      "navSecrets": "Secrets",
+      "navActivity": "Activity",
+      "navSettings": "Settings",
+      "viewsLabel": "Views",
+      "viewAll": "All secrets",
+      "viewAttention": "Needs attention",
+      "viewRecent": "Recently changed",
+      "viewFavorites": "Favorites",
+      "synced": "Synced {{time}}"
+    },
+    "header": {
+      "localVault": "Local encrypted vault",
+      "breadcrumbSecrets": "Secrets",
+      "title": "Secrets",
+      "vaultSubtitle": "{{vault}} vault"
+    },
+    "summary": {
+      "secrets": "{{count}} secrets",
+      "secretsOne": "1 secret",
+      "needsAttention": "{{count}} needs attention",
+      "updated": "Updated {{time}}"
+    },
+    "configuration": {
+      "heading": "Required configuration",
+      "loading": "Loading configuration\u2026",
+      "unavailable": "Configuration is unavailable",
+      "retryHint": "The checklist could not be refreshed. Try again.",
+      "notConfigured": "Not configured",
+      "setAction": "Set required keys",
+      "updateAction": "Review configuration",
+      "readySummary": "{{ready}} of {{required}} required keys ready",
+      "breakdown": "Missing {{missing}} \u00b7 Empty {{empty}} \u00b7 Expired {{expired}}",
+      "showChecklist": "Show required keys",
+      "hideChecklist": "Hide required keys",
+      "status": {
+        "ready": "Ready",
+        "missing": "Missing",
+        "empty": "Empty",
+        "expired": "Expired"
+      },
+      "addSecret": "Add",
+      "editSecret": "Edit",
+      "addKey": "Add Secret for {{key}}",
+      "editKey": "Edit Secret {{key}}",
+      "modalTitle": "Required configuration",
+      "modalDescription": "Review key names from an environment template. Values are ignored. Ready means non-empty with no passed expiry; credentials and connectivity are not tested.",
+      "target": "Target: {{vault}} Vault / {{project}} Project / {{environment}} Environment",
+      "currentVault": "Current",
+      "sourceLabel": "Template source",
+      "pasteSource": "Paste",
+      "fileSource": "File",
+      "textLabel": "Environment template",
+      "textPlaceholder": "Paste KEY=value assignments here",
+      "formatHint": "Values and comments are discarded after names are parsed. Blank lines, comments, quoted values, and one enclosing env fence are supported.",
+      "fileHint": "Choose an environment template file. Only required key names are retained.",
+      "chooseFile": "Choose template file",
+      "reviewButton": "Review key names",
+      "back": "Back",
+      "saveButton": "Save required keys",
+      "saving": "Saving\u2026",
+      "clearAction": "Review clear",
+      "confirmClear": "Clear requirements",
+      "clearWarning": "This removes required-key tracking. Existing Secrets and their values remain unchanged.",
+      "reviewCounts": "{{required}} required \u00b7 {{added}} added \u00b7 {{removed}} removed \u00b7 {{unchanged}} unchanged",
+      "change": {
+        "added": "Added",
+        "removed": "Removed",
+        "unchanged": "Unchanged"
+      },
+      "duplicates": "{{count}} repeated key name(s) will count once.",
+      "none": "None",
+      "diagnosticLine": "Line {{line}}: {{message}}",
+      "previewFailed": "Could not prepare this review. Check the template and try again.",
+      "clearFailed": "Could not prepare the clear review. Try again.",
+      "saveFailed": "Configuration could not be saved. Review the target and try again.",
+      "clearCount": "{{count}} required key(s) will be removed.",
+      "saved": "Saved {{required}} required keys: {{added}} added, {{removed}} removed, {{unchanged}} unchanged.",
+      "cleared": "Required-key tracking cleared. Secrets remain unchanged."
+    },
+    "time": {
+      "justNow": "just now",
+      "ago": "{{time}} ago",
+      "minute": "{{count}}m",
+      "hour": "{{count}}h",
+      "day": "{{count}}d",
+      "week": "{{count}}w",
+      "month": "{{count}}mo"
+    },
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "value": "Value",
+      "status": "Status",
+      "updated": "Updated",
+      "actions": "Actions",
+      "typeSecret": "Secret",
+      "typeConfig": "Config",
+      "moreActions": "More actions for {{key}}",
+      "selectRow": "Select {{key}}",
+      "noResults": "No secrets match the current filters."
+    },
+    "status": {
+      "healthy": "Healthy",
+      "rotateSoon": "Rotate soon",
+      "expired": "Expired",
+      "config": "Config"
+    },
+    "filterMenu": {
+      "typeLabel": "Type",
+      "typeAll": "All types",
+      "typeSecret": "Secrets",
+      "typeConfig": "Config",
+      "statusLabel": "Status",
+      "statusAll": "All statuses",
+      "statusHealthy": "Healthy",
+      "statusAttention": "Needs attention",
+      "clear": "Clear filters"
+    },
+    "addSecretModal": {
+      "title": "Add New Secret",
+      "keyLabel": "Key",
+      "keyPlaceholder": "Enter secret key",
+      "valueLabel": "Value",
+      "valuePlaceholder": "Enter secret value",
+      "expiresLabel": "Expiration Date (Optional)",
+      "add": "Add Secret"
+    },
+    "secretForm": {
+      "titleNew": "New secret",
+      "titleEdit": "Edit secret",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. DATABASE_URL",
+      "valueLabel": "Secret value",
+      "valuePlaceholder": "Paste or generate a value",
+      "generate": "Generate secure value",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What is this secret used for?",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "production, database (comma-separated)",
+      "expiresLabel": "Expiration date (optional)",
+      "noExpiry": "No expiration",
+      "create": "Create secret",
+      "save": "Save changes",
+      "nameRequired": "Enter a name for the secret.",
+      "nameInvalid": "Use letters, numbers, dots, dashes and underscores only \u2014 no spaces or = signs.",
+      "valueRequired": "Enter a value or generate a secure one.",
+      "nameDuplicate": "A secret with this name already exists."
+    },
+    "editSecretModal": {
+      "title": "Edit Secret",
+      "keyLabel": "Key",
+      "valueLabel": "Value",
+      "expiresLabel": "Expiration Date (Optional)",
+      "save": "Save Changes"
+    },
+    "expiration": {
+      "expiresOn": "Expires on {{date}}",
+      "expiredOn": "Expired on {{date}}",
+      "expiresInDays": "Expires in {{count}} day ({{date}})",
+      "expiresInDaysPlural": "Expires in {{count}} days ({{date}})",
+      "expiresInHours": "Expires in {{count}} hours ({{date}})"
+    },
+    "deleteSecret": "Delete Secret",
+    "copyValue": "Copy value",
+    "copied": "Copied!",
+    "copiedToast": "\"{{key}}\" copied",
+    "copiedDetail": "Clipboard clears in 30 seconds",
+    "showAllSecrets": "Show all",
+    "hideAllSecrets": "Hide all",
+    "viewHistory": "View History",
+    "inspector": {
+      "maskedValue": "Masked value",
+      "visibleValue": "Value",
+      "secretIn": "Secret",
+      "configIn": "Config",
+      "close": "Close inspector",
+      "secretActions": "Secret actions",
+      "reveal": "Reveal",
+      "hidesIn": "Hides in {{count}}s",
+      "metadata": "Metadata",
+      "created": "Created",
+      "updated": "Updated",
+      "version": "Version",
+      "expires": "Expires",
+      "neverExpires": "Never",
+      "vault": "Vault",
+      "description": "Description",
+      "tags": "Tags",
+      "noTags": "No tags yet",
+      "usage": "Usage",
+      "noUsage": "No recorded access yet",
+      "usageApproved": "Access approved ({{action}})",
+      "audit": "Audit activity",
+      "valueUpdated": "Value updated",
+      "secretCreated": "Secret created",
+      "rotateSecret": "Rotate secret",
+      "duplicateToProject": "Duplicate to project",
+      "noSelection": "Select a secret to inspect it."
+    },
+    "deleteModal": {
+      "title": "Delete \"{{key}}\"?",
+      "body": "This permanently removes the secret and its version history. This cannot be undone.",
+      "confirm": "Delete secret"
+    },
+    "rotateModal": {
+      "title": "Rotate \"{{key}}\"?",
+      "body": "A new secure value will be generated and saved. The current value stays in version history. Update anything that uses this secret.",
+      "confirm": "Rotate secret",
+      "rotated": "\"{{key}}\" rotated \u2014 previous value kept in history"
+    },
+    "duplicateModal": {
+      "title": "Duplicate \"{{key}}\"",
+      "targetLabel": "Target project",
+      "environmentLabel": "Target Environment",
+      "confirm": "Duplicate",
+      "duplicated": "\"{{key}}\" duplicated to {{project}} / {{environment}}",
+      "targetExists": "Target project already has a secret with this name."
+    },
+    "importReview": {
+      "title": "Import secrets",
+      "subtitle": "Choose input, then review every change before importing.",
+      "inputHeading": "Input",
+      "reviewHeading": "Review changes",
+      "target": "Target: {{vault}} Vault / {{project}} Project / {{environment}} Environment",
+      "unknownVault": "Current",
+      "sourceLabel": "Import source",
+      "pasteSource": "Paste",
+      "fileSource": "File",
+      "textLabel": "Environment text",
+      "textPlaceholder": "Paste KEY=value assignments here",
+      "formatHint": "Blank lines, comments, quoted values, and one enclosing env code fence are supported. Nothing runs as shell code.",
+      "fileHint": "Choose a UTF-8 .env file. The same review and duplicate rules apply.",
+      "chooseFile": "Choose .env file",
+      "reviewButton": "Review secrets",
+      "back": "Back",
+      "cancelRequest": "Cancel",
+      "closeDuringCommit": "Close",
+      "reviewListLabel": "Secrets to review",
+      "columnKey": "Key",
+      "columnValue": "Incoming value",
+      "columnStatus": "Status",
+      "status": {
+        "new": "New",
+        "changed": "Existing value",
+        "identical": "Identical"
+      },
+      "duplicateOccurrences": "{{count}} occurrences \u2014 choose one",
+      "occurrenceLabel": "Choose occurrence on line {{line}}",
+      "lineNumber": "Line {{line}}",
+      "emptyValue": "Empty value",
+      "actionForKey": "Action for {{key}}",
+      "action": {
+        "add": "Add",
+        "replace": "Replace",
+        "keep": "Keep",
+        "skip": "Skip"
+      },
+      "excludeKey": "Exclude all occurrences of {{key}}",
+      "skipKey": "Skip this key",
+      "reveal": "Reveal",
+      "hide": "Hide",
+      "hideCountdown": "Hide \u00b7 {{seconds}}s",
+      "revealOccurrence": "Reveal incoming value for {{key}}, line {{line}}",
+      "hideOccurrence": "Hide incoming value for {{key}}",
+      "revealFailed": "This value is no longer available to reveal. Review the import again.",
+      "summary": "{{add}} to add \u00b7 {{replace}} to replace \u00b7 {{skip}} skipped \u00b7 {{pending}} need a choice",
+      "diagnosticSummary": "{{count}} issue(s) need attention",
+      "diagnosticLine": "Line {{line}}: {{message}}",
+      "importButton": "Import {{count}} secrets",
+      "importedSummary": "Import complete: {{added}} added, {{replaced}} replaced, {{skipped}} skipped.",
+      "previewFailed": "Could not prepare this import. Check the input and try again.",
+      "commitFailed": "Import could not be completed. Review the target and try again."
+    },
+    "exportMenu": {
+      "title": "Export",
+      "example": ".env.example (keys only)",
+      "exampleDesc": "Key names without values \u2014 safe to commit",
+      "references": "Secret references",
+      "referencesDesc": "Reference URIs instead of values",
+      "backup": "Encrypted backup",
+      "backupDesc": "Full project backup, encrypted with your vault key",
+      "raw": "Export raw values",
+      "rawDesc": "Plaintext values \u2014 needs confirmation",
+      "recommended": "Recommended",
+      "exported": "Exported to {{path}}"
+    },
+    "rawExportModal": {
+      "title": "Export raw secret values?",
+      "body": "This writes unencrypted secret values to disk. Anyone who can read the file can read your secrets. This action is recorded in the audit log.",
+      "passwordLabel": "Master password",
+      "passwordPlaceholder": "Confirm your master password",
+      "wrongPassword": "Incorrect password.",
+      "confirm": "Export raw values",
+      "exported": "Raw values exported \u2014 recorded in the audit log"
+    },
+    "history": {
+      "title": "Version History",
+      "currentVersion": "Current Version",
+      "versionNumber": "Version {{number}}",
+      "show": "Show",
+      "hide": "Hide",
+      "restore": "Restore",
+      "noHistory": "No previous versions",
+      "restoreConfirm": "Restore this version? The current value will be saved in history.",
+      "restored": "Version restored successfully",
+      "failedToLoad": "Failed to load version history",
+      "failedToRestore": "Failed to restore version"
+    },
+    "emptyState": {
+      "title": "No secrets found",
+      "descriptionEmpty": "Add your first secret to this project.",
+      "descriptionSearch": "No secrets match your search criteria."
+    },
+    "loadingSecrets": "Loading secrets\u2026",
+    "loadError": "Couldn't load secrets.",
+    "a11y": {
+      "indexLabel": "Project navigation",
+      "primaryNav": "Primary",
+      "toggleNav": "Toggle navigation",
+      "viewsLabel": "Views",
+      "searchLabel": "Search secrets",
+      "inspectorLabel": "Secret inspector",
+      "crumbsLabel": "Breadcrumb",
+      "tableLabel": "Secrets"
+    },
+    "retry": "Retry",
+    "footerHint": "Tip: press / to search, \u2191 \u2193 to move between secrets.",
+    "deleteConfirm": "Are you sure you want to delete secret \"{{key}}\"?",
+    "notifications": {
+      "secretAdded": "Secret \"{{key}}\" added successfully",
+      "secretSaved": "Secret \"{{key}}\" saved successfully",
+      "secretDeleted": "Secret \"{{key}}\" deleted successfully",
+      "imported": "Imported {{count}} secrets",
+      "exported": "Secrets exported to {{path}}",
+      "failedToLoad": "Failed to load secrets",
+      "failedToAdd": "Failed to add secret",
+      "failedToSave": "Failed to save secret",
+      "failedToDelete": "Failed to delete secret",
+      "failedToImport": "Failed to import .env file",
+      "failedToExport": "Failed to export secrets",
+      "failedToRotate": "Failed to rotate secret",
+      "failedToDuplicate": "Failed to duplicate secret",
+      "enterKey": "Please enter a secret key",
+      "keyExists": "A secret with this key already exists",
+      "noProject": "No project specified"
+    }
+  },
+  "logs": {
+    "title": "Access Logs",
+    "clearAll": "Clear All Logs",
+    "export": "Export",
+    "searchPlaceholder": "Search logs...",
+    "filterLabel": "Filter logs by category",
+    "categories": {
+      "all": "All",
+      "access": "Access",
+      "app": "App",
+      "lock": "Lock"
+    },
+    "emptyState": {
+      "title": "No logs found",
+      "description": "No logs have been recorded yet.",
+      "noMatchesTitle": "No matching logs",
+      "noMatchesDescription": "Try changing your filters or search query."
+    },
+    "clearConfirm": "Are you sure you want to clear all logs? This action cannot be undone.",
+    "timeAgo": {
+      "justNow": "Just now",
+      "minuteAgo": "{{count}} minute ago",
+      "minutesAgo": "{{count}} minutes ago",
+      "hourAgo": "{{count}} hour ago",
+      "hoursAgo": "{{count}} hours ago",
+      "dayAgo": "{{count}} day ago",
+      "daysAgo": "{{count}} days ago"
+    },
+    "notifications": {
+      "cleared": "All logs have been cleared",
+      "failedToClear": "Failed to clear logs",
+      "failedToLoad": "Failed to load logs",
+      "exported": "Logs exported to {{path}}",
+      "failedToExport": "Failed to export logs"
+    }
+  },
+  "approval": {
+    "title": "Access Request",
+    "vault": "Vault:",
+    "project": "Project:",
+    "environment": "Environment:",
+    "keys": "Keys:",
+    "action": "Action:",
+    "actionText": "Read access requested",
+    "actionTextRead": "Read access requested",
+    "actionTextWrite": "Write access requested",
+    "approve": "Approve",
+    "deny": "Deny"
+  },
+  "update": {
+    "title": "New update available",
+    "description": "v{{oldVersion}} \u27a0 v{{newVersion}}<br/>Click the update button to see more details.",
+    "update": "Update"
+  },
+  "cli": {
+    "install": {
+      "success": "CLI installed successfully.",
+      "successAt": "CLI installed successfully at {{path}}.",
+      "successPathSetupFailed": "CLI installed successfully, but terminal setup failed. Please add ~/.local/bin to your PATH manually.",
+      "successAtPathSetupFailed": "CLI installed successfully at {{path}}, but terminal setup failed. Please add ~/.local/bin to your PATH manually."
+    },
+    "uninstall": {
+      "success": "CLI uninstalled successfully.",
+      "notFound": "CLI not found. Already uninstalled or not installed."
+    },
+    "errors": {
+      "fileNotFound": "CLI file not found",
+      "noSuitablePath": "CLI installation failed: Cannot find suitable path"
+    }
+  },
+  "tray": {
+    "show": "Show KeyHarbor",
+    "lock": "Lock Vault",
+    "quit": "Quit"
+  },
+  "menu": {
+    "preferences": "Preferences..."
+  },
+  "dock": {
+    "newWindow": "New Window"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDesc": "Choose the display language",
+    "languageOptions": {
+      "system": "System",
+      "en": "English"
+    },
+    "theme": "Theme",
+    "themeDesc": "Select light, dark, or follow your operating system appearance",
+    "themeOptions": {
+      "system": "System",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "checkForUpdates": "Check for updates",
+    "checkForUpdatesDesc": "Automatically check for new versions on startup",
+    "showStatistics": "Show Statistics",
+    "showStatisticsDesc": "Display statistics on dashboard",
+    "autoLock": "Auto Lock",
+    "autoLockDesc": "Automatically lock vault after system idle time",
+    "autoLockTimeout": "Auto Lock Timeout (minutes)",
+    "screenCaptureProtection": "Screen Capture Protection",
+    "screenCaptureProtectionDesc": "Prevent screenshots and screen recording",
+    "vaultDiskSyncInterval": "Vault file sync interval",
+    "vaultDiskSyncIntervalDesc": "How often to check the vault file on disk for external changes while unlocked",
+    "vaultDiskSync5s": "Every 5 seconds",
+    "vaultDiskSync1m": "Every 1 minute",
+    "vaultSection": "Vault",
+    "touchIdUnlock": "Touch ID Unlock",
+    "touchIdUnlockDesc": "Unlock this Mac with Touch ID while keeping your master password as a fallback",
+    "changePassword": "Change password",
+    "changePasswordDesc": "Set a new master password for your vault",
+    "deleteVault": "Delete vault",
+    "deleteVaultDesc": "Permanently delete all secrets and the vault. This cannot be undone.",
+    "changePasswordModal": {
+      "title": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Change password",
+      "cancel": "Cancel",
+      "success": "Password changed successfully",
+      "invalidCurrent": "Current password is incorrect",
+      "mismatch": "New passwords do not match"
+    },
+    "deleteVaultModal": {
+      "title": "Delete vault",
+      "warning": "All projects and secrets will be permanently deleted. This cannot be undone.",
+      "confirmPlaceholder": "Type DELETE to confirm",
+      "submit": "Delete vault",
+      "cancel": "Cancel"
+    },
+    "notifications": {
+      "saved": "Settings saved",
+      "saveFailed": "Failed to save settings",
+      "failedToLoad": "Failed to load settings",
+      "repaired": "Some settings were invalid and were reset to defaults",
+      "resetDueToError": "Settings could not be loaded and were reset to defaults",
+      "touchIdEnabled": "Touch ID unlock enabled",
+      "touchIdDisabled": "Touch ID unlock disabled",
+      "touchIdFailed": "Failed to update Touch ID unlock"
+    }
+  },
+  "vault": {
+    "selector": {
+      "buttonLabel": "Vault",
+      "newVault": "New Vault",
+      "importVault": "Import Vault"
+    },
+    "status": {
+      "offline": "Offline"
+    },
+    "create": {
+      "title": "Create New Vault",
+      "nameLabel": "Vault Name",
+      "namePlaceholder": "Enter vault name",
+      "pathLabel": "Save Location",
+      "pathPlaceholder": "Select a folder",
+      "browse": "Browse",
+      "passwordLabel": "Master Password",
+      "passwordPlaceholder": "Enter a strong password",
+      "confirmLabel": "Confirm Password",
+      "confirmPlaceholder": "Re-enter your password",
+      "submit": "Create Vault",
+      "creating": "Creating..."
+    },
+    "import": {
+      "title": "Import Existing Vault",
+      "nameLabel": "Vault Name",
+      "namePlaceholder": "Enter vault name",
+      "pathLabel": "Vault Location (lkv folder)",
+      "pathPlaceholder": "Select lkv folder",
+      "browse": "Browse",
+      "passwordLabel": "Vault Password",
+      "passwordPlaceholder": "Enter this vault's password",
+      "passwordDesc": "The password used when this vault was created. On this computer, you only need to enter it once \u2014 after that, it unlocks automatically.",
+      "submit": "Import Vault",
+      "importing": "Importing..."
+    },
+    "context": {
+      "rename": "Rename",
+      "remove": "Remove from list"
+    },
+    "rename": {
+      "title": "Rename Vault",
+      "label": "New Name",
+      "placeholder": "Enter new vault name",
+      "submit": "Rename"
+    },
+    "remove": {
+      "confirm": "Remove \"{{name}}\" from the list? The vault files will not be deleted."
+    },
+    "reconciliation": {
+      "failed": "Could not reconcile the vault: {{error}}"
+    },
+    "merge": {
+      "title": "Resolve vault conflict",
+      "colProject": "Project",
+      "colEnvironment": "Environment",
+      "colSecret": "Secret",
+      "defaultSelection": "Default selection",
+      "defaultCandidates": "Session default: {{session}} \u00b7 On disk: {{disk}}",
+      "conflictCandidates": "Session: {{session}} \u00b7 On disk: {{disk}}",
+      "projectLevel": "Project-level",
+      "requiredKeysLabel": "Required keys",
+      "requiredKeysValue": "{{count}} required \u2014 {{keys}}",
+      "requiredKeysMore": "{{count}} more",
+      "notConfigured": "Not configured",
+      "noRequiredKeys": "No required keys",
+      "colSession": "This session",
+      "colDisk": "On disk",
+      "mergeFailed": "Apply failed: {{error}}",
+      "reason": {
+        "conflict": "Changes in this session and on disk conflict. Choose which version to keep.",
+        "disk_missing": "The vault file is missing. Choose whether to keep this session or inspect the file later.",
+        "disk_unreadable": "The vault file could not be read safely. Choose whether to keep this session or inspect the file later.",
+        "invalid_vault": "The vault file is not valid. Choose whether to keep this session or inspect the file later."
+      },
+      "useDisk": "Discard this session and use disk",
+      "keepSession": "Keep this session and save",
+      "confirmUseDisk": "Discard this session's unsaved changes and use the inspected disk version?",
+      "confirmKeepSession": "Overwrite the inspected disk version with this session's changes?",
+      "explicitDecision": "No version is selected automatically. Choose an explicit action to continue.",
+      "superseded": "The vault changed before this decision could be applied. Please review the latest state."
+    },
+    "notifications": {
+      "created": "Vault \"{{name}}\" created",
+      "imported": "Vault \"{{name}}\" imported",
+      "switched": "Switched to vault \"{{name}}\"",
+      "renamed": "Vault renamed to \"{{name}}\"",
+      "removed": "Vault \"{{name}}\" removed from list",
+      "failedToCreate": "Failed to create vault",
+      "failedToImport": "Failed to import vault",
+      "failedToSwitch": "Failed to switch vault",
+      "failedToRename": "Failed to rename vault",
+      "failedToRemove": "Failed to remove vault",
+      "passwordMismatch": "Passwords do not match",
+      "nameRequired": "Please enter a vault name",
+      "pathRequired": "Please select a location",
+      "passwordRequired": "Please enter the vault password",
+      "offlineVault": "Cannot access offline vault"
+    }
+  },
+  "setup": {
+    "title": "KeyHarbor",
+    "subtitle": "Secure Credential Management",
+    "cardTitle": "Master Password Setup",
+    "password": "Master Password",
+    "passwordPlaceholder": "Enter a strong password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "createVault": "Create Vault",
+    "creatingVault": "Creating Vault...",
+    "requirements": {
+      "length": "At least 12 characters",
+      "uppercase": "Contains uppercase letter",
+      "lowercase": "Contains lowercase letter",
+      "number": "Contains number",
+      "special": "Contains special character"
+    },
+    "warning": {
+      "line1": "Your master password is used to encrypt all your data.",
+      "line2": "It cannot be recovered if lost. Please store it safely."
+    },
+    "errors": {
+      "requirementNotMet": "Please meet all password requirements"
+    },
+    "success": "Vault created successfully!",
+    "cliModal": {
+      "title": "Install CLI Tool",
+      "description": "Would you like to install the KeyHarbor CLI tool? This allows you to use KeyHarbor from the command line.",
+      "features": "CLI Features:",
+      "feature1": "Manage secrets from terminal",
+      "feature2": "Run commands with environment variables",
+      "feature3": "Automated workflows",
+      "skip": "Skip",
+      "install": "Install CLI",
+      "installing": "Installing...",
+      "installError": "CLI installation failed: {{error}}"
+    }
+  }
+}

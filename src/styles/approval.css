@@ -1,0 +1,83 @@
+.approval-container {
+  flex-direction: column;
+}
+
+.approval-card {
+  background-color: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  max-width: 450px;
+  width: 100%;
+}
+
+.titlebar {
+  display: flex;
+  gap: 8px;
+}
+
+.approval-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 20px;
+}
+
+.approval-title {
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.approval-details {
+  background-color: var(--bg-tertiary);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 128px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  word-break: break-all;
+  flex: 1;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.approval-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  border: none;
+}
+
+.timeout-bar {
+  height: 4px;
+  background-color: var(--bg-tertiary);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.timeout-progress {
+  height: 100%;
+  background-color: var(--warning);
+  width: 100%;
+}

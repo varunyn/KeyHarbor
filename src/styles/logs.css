@@ -1,0 +1,136 @@
+.logs-screen {
+  --bg-primary: var(--ui-background);
+  --bg-secondary: var(--ui-card);
+  --bg-tertiary: var(--ui-secondary);
+  --text-primary: var(--ui-foreground);
+  --text-secondary: var(--ui-muted-foreground);
+  --accent: var(--ui-primary);
+  --primary: var(--ui-primary);
+  --border: var(--ui-border);
+  --success: #4edea3;
+  --warning: #fbbf24;
+  --error: var(--ui-destructive);
+  color: var(--ui-foreground);
+  background: var(--ui-background);
+}
+
+.logs-container {
+  overflow-y: auto;
+}
+
+.log-item {
+  padding: 15px 20px;
+  border-radius: 8px;
+}
+
+.log-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.log-timestamp {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: "Courier New", monospace;
+}
+
+.log-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.log-type.info {
+  background-color: rgba(74, 158, 255, 0.2);
+  color: var(--accent);
+}
+
+.log-type.access {
+  background: rgba(76, 175, 80, 0.2);
+  color: var(--success);
+}
+
+.log-type.app {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+}
+
+.log-type.lock {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.log-type.warning {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: var(--warning);
+}
+
+.log-type.error {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: var(--error);
+}
+
+.log-message {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.logs-filters {
+  display: flex;
+  gap: 14px;
+}
+
+.logs-screen [data-slot="input"] {
+  min-width: 0;
+  color: var(--ui-foreground);
+  background: var(--ui-background);
+  border-color: var(--ui-border);
+}
+
+.logs-screen [data-slot="input"]:focus-visible {
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 1px var(--ui-primary);
+}
+
+.logs-screen .log-timestamp {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.logs-screen .log-type.access {
+  color: #4edea3;
+}
+.logs-screen .log-type.lock,
+.logs-screen .log-type.warning {
+  color: #fbbf24;
+}
+.logs-screen .log-type.error {
+  color: var(--ui-destructive);
+}
+
+.logs-screen .filter-select {
+  color: var(--ui-foreground);
+  background: var(--ui-secondary);
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  box-shadow: none;
+  font-family: inherit;
+}
+.logs-screen .filter-select:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
+}

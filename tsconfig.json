@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/approval/**/*.ts",
+    "src/approval/**/*.tsx",
+    "src/dashboard/**/*.ts",
+    "src/dashboard/**/*.tsx",
+    "src/license/**/*.ts",
+    "src/license/**/*.tsx",
+    "src/lock/**/*.ts",
+    "src/lock/**/*.tsx",
+    "src/logs/**/*.ts",
+    "src/logs/**/*.tsx",
+    "src/project/**/*.ts",
+    "src/project/**/*.tsx",
+    "src/renderer/**/*.ts",
+    "src/renderer/**/*.tsx",
+    "src/settings/**/*.ts",
+    "src/settings/**/*.tsx",
+    "src/setup/**/*.ts",
+    "src/setup/**/*.tsx"
+  ]
+}

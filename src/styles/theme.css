@@ -1,0 +1,105 @@
+/* Shared navy/cyan component theme; consumers opt in with lk-ui-theme. */
+:root {
+  --ui-background: #0f1420;
+  --ui-card: #131824;
+  --ui-secondary: #1c2538;
+  --ui-foreground: #f1f5f9;
+  --ui-muted-foreground: #b0bdd0;
+  --ui-primary: #4cd7f6;
+  --ui-primary-foreground: #071119;
+  --ui-border: #29364d;
+  --ui-destructive: #fb7185;
+}
+
+.lk-ui-theme {
+  --ui-background: #0f1420;
+  --ui-card: #131824;
+  --ui-secondary: #1c2538;
+  --ui-foreground: #f1f5f9;
+  --ui-muted-foreground: #b0bdd0;
+  --ui-primary: #4cd7f6;
+  --ui-primary-foreground: #071119;
+  --ui-border: #29364d;
+  --ui-destructive: #fb7185;
+  --bg-primary: var(--ui-background);
+  --bg-secondary: var(--ui-card);
+  --bg-tertiary: var(--ui-secondary);
+  --text-primary: var(--ui-foreground);
+  --text-secondary: var(--ui-muted-foreground);
+  --accent: var(--ui-primary);
+  --border: var(--ui-border);
+  font-family: "Geist", sans-serif;
+}
+
+.lk-ui-theme [data-slot="dialog-content"],
+.lk-ui-theme [data-slot="dropdown-menu-content"] {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+.lk-ui-theme [data-slot="button"] .lk-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.lk-ui-theme [data-slot="button"]:disabled {
+  cursor: default;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]),
+  :root:not([data-theme="dark"]) .lk-ui-theme,
+  body.lk-ui-theme:not([data-theme="dark"]) {
+    --ui-background: #f8fafc;
+    --ui-card: #ffffff;
+    --ui-secondary: #f1f5f9;
+    --ui-foreground: #0f172a;
+    --ui-muted-foreground: #64748b;
+    --ui-primary: #0284c7;
+    --ui-primary-foreground: #ffffff;
+    --ui-border: #e2e8f0;
+    --ui-destructive: #e11d48;
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent: #0284c7;
+    --border: #e2e8f0;
+  }
+
+  :root:not([data-theme="dark"]) [data-slot="dialog-content"],
+  :root:not([data-theme="dark"]) [data-slot="dropdown-menu-content"],
+  body.lk-ui-theme:not([data-theme="dark"]) [data-slot="dialog-content"],
+  body.lk-ui-theme:not([data-theme="dark"])
+    [data-slot="dropdown-menu-content"] {
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+  }
+}
+
+:root[data-theme="light"],
+:root[data-theme="light"] .lk-ui-theme,
+body.lk-ui-theme[data-theme="light"] {
+  --ui-background: #f8fafc;
+  --ui-card: #ffffff;
+  --ui-secondary: #f1f5f9;
+  --ui-foreground: #0f172a;
+  --ui-muted-foreground: #64748b;
+  --ui-primary: #0284c7;
+  --ui-primary-foreground: #ffffff;
+  --ui-border: #e2e8f0;
+  --ui-destructive: #e11d48;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #0284c7;
+  --border: #e2e8f0;
+}
+
+:root[data-theme="light"] [data-slot="dialog-content"],
+:root[data-theme="light"] [data-slot="dropdown-menu-content"],
+body.lk-ui-theme[data-theme="light"] [data-slot="dialog-content"],
+body.lk-ui-theme[data-theme="light"] [data-slot="dropdown-menu-content"] {
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+}

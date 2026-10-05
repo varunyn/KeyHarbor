@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "rootDir": ".",
+    "outDir": "backend-build",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "noEmitOnError": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "sourceMap": false
+  },
+  "include": [
+    "src/main.js",
+    "src/main.ts",
+    "src/preload.js",
+    "src/preload.ts",
+    "src/modules/**/*.js",
+    "src/modules/**/*.ts",
+    "cli/**/*.js",
+    "cli/**/*.mjs",
+    "cli/**/*.ts",
+    "cli/**/*.mts",
+    "test/**/*.js",
+    "test/**/*.mjs",
+    "test/**/*.mts",
+    "test/**/*.cts",
+    "test/**/*.ts",
+    "scripts/copy-backend-resources.mts",
+    "scripts/lint-inline-js.mts",
+    "scripts/lint.mts"
+  ],
+  "exclude": [
+    "node_modules",
+    "backend-build",
+    "src/**/*.tsx",
+    "src/renderer/**"
+  ]
+}

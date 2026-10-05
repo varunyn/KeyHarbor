@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-02T18:51:19.381023+00:00",
+  "scope": "Recover two sources gutted by lint autofix and minimally repair lint wiring. Full Environment feature not accepted.",
+  "branch": "main",
+  "head": "3b802d50a049e17b7da9f543f313bfc9e1d918a8",
+  "node": "v24.21.0",
+  "sourceSha256": {
+    "cli/localkeys.ts": "f4a13de63771af86dd8f7165aca8e0741dd62ab7303e5e89155ca70dae5509a1",
+    "src/modules/project-configuration-ipc.ts": "bb6de2334b6120f77e00ba344183d90cd8f81c98af135ea59b7ee6ab0a1acddb",
+    "scripts/lint.mts": "51ef988841cfaec6cd77ffa2bd8ae2c75f2e50c0d98e5f73cc10e86b73d4954c",
+    "scripts/lint-inline-js.mts": "b1bac98b58135e9cc025195d0ec5df9e5eacdcb480105ee703fc8ebe595b9c1e",
+    "package.json": "a94af5c79d324324dae86c07ee3062474eaa718cf380b6c6bcb9a83958cbea7d",
+    "package-lock.json": "3b5bc970fdd582724a0e59cb7443146c93009105baedd917f8d0b5af6b35b467",
+    "tsconfig.backend.json": "b5b7a7be177ce9a24f095f57daaf7cfd6e8707ebba597982a42d5698ae2c5cab",
+    "stylelint.config.mjs": "401d0ea76e1058c9e4d0605edf5e034689237ff9f708e1fb934b3522aeac609e"
+  },
+  "compiledSha256": {
+    "backend-build/cli/localkeys.js": "c2cb65ec3556773450749b34f112a9ae6f3079241ef3493b8e3ce78a36e33e7b",
+    "backend-build/src/modules/project-configuration-ipc.js": "f9232eaf2a18e1563b819903e38290cbd77838ed535f1aafa003e774e8f98f0c",
+    "backend-build/scripts/lint.mjs": "77fdef7dbe124ed145e0e3eac5436a71063633ab1e2039aa0d6ac7c385bc459b",
+    "backend-build/scripts/lint-inline-js.mjs": "03641c2cb6e3f786b9f959790ab6ae712833a12ad58128168a80026e18628c9a"
+  },
+  "primaryChecks": {
+    "backendTypecheck": "pass",
+    "rendererTypecheckAndBuild": "pass",
+    "npmTest": {
+      "passed": 147,
+      "failed": 0,
+      "durationMs": 43009.856083,
+      "log": "/private/tmp/localkeys-env02-recovery/primary-test.log",
+      "fixture": "synthetic localhost legacy HTTP fixture, loopback escalation required"
+    },
+    "httpAdmissionProbe": "pass /private/tmp/localkeys-environments-verify/transport-acceptance.cjs",
+    "actualLegacyServerProbe": "pass /private/tmp/localkeys-environments-verify/old-server-acceptance.cjs",
+    "cssLint": "pass",
+    "inlineScriptLint": "pass",
+    "aggregatedLint": "fails on existing Ultracite lint/formatting debt, not accepted as clean",
+    "diffCheck": "pass",
+    "headBranchStagedAndUnrelatedHashes": "preserved"
+  },
+  "limitations": [
+    "No Environment UI/native final acceptance performed in recovery scope.",
+    "Manifest/lock mismatch for independently added Ultracite/Oxlint/Oxfmt remains; offline metadata sync failed ENOTCACHED, no installation attempted.",
+    "Ticket02 remains claimed pending full acceptance; tickets03/04 unclaimed."
+  ]
+}

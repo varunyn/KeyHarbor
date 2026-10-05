@@ -1,0 +1,35 @@
+{
+  "utc": "2026-10-02T15:30:32.997665+00:00",
+  "head": "3b802d50a049e17b7da9f543f313bfc9e1d918a8",
+  "branch": "main",
+  "staged": "",
+  "node": "v24.21.0",
+  "hashes": {
+    ".gitignore": "806b1d6367f2213a4221f23ffafcd401717ad052a23303c2bf2a017aca1d3b5a",
+    "eslint.config.mjs": "19f5debeb894303039c5bead11bb99f19d77abb00a251c1143bc0b762fb13086",
+    "package.json": "6e7299b4c53e09fd29c1484c026d06b53f5d9b72f25c4c0e76e8940a7313ec59",
+    "package-lock.json": "86717c08338e2ba89575e71cf1f64aec1c273399b63a5095843385d52480ea1b",
+    "tsconfig.json": "995d089c652d39c34a1caf019c840d6a26b031daea72e0381033413f59599bd6",
+    "tsconfig.backend.json": "07206ca1738f211a31c22bf121d1f8eb9de1b79d9d9ef48c2e90c2d8877dff31",
+    "scripts/copy-backend-resources.ts": "5e07fb3a9c33405682c2e0a1959c09d08652fb370b42ae3c8f7c9d6107a19e72",
+    "src/modules/vault.ts": "810eb7831ed28def6059dc22b6610df87761efce6a431d783af992f2a04f1a3e",
+    "src/modules/vault-manager.ts": "b64b2ee167cc693d19aff97130fd7540527387002ce49c8553d4100b57979ae0",
+    "src/modules/vault-reconciliation.ts": "8365dec90c30926d1ff9540078faa01b8c20a12c2bbb8a825df27af07f606f88",
+    "test/vault-session-integration.test.ts": "9c9fe03d6536795e5c2fc53f627c34acd47bbfe3c8275fec2f7052494442f435",
+    "test/project-environment-core.test.ts": "f0377b7b9d8a995185c8c5117abe0726752016a5655bc84b86ef04b108b0c82d",
+    "test/vault-lifecycle-primitives.test.ts": "bedf454a48a297e7e01b7e41d7f209e1d192196e3e4cf3d92668833b2ccb8449",
+    "test/project-configuration-coordinator.test.ts": "d3a7f3551e6ed05a35a403d99e678b15d5e7eabcdc3d6531285bb8f97f727965",
+    "test/env-text-import-coordinator.test.ts": "a81002c37793e964d724cdb3654cf47a4e245978dc8855f90e64c80da66ce600"
+  },
+  "checks": {
+    "npm test": "125/125 passed; 37651.83ms",
+    "npm run lint": "passed",
+    "npx tsc -p tsconfig.backend.json --noEmit": "passed on pre-round2 compiler config; subsequent npm test compiles changed TS",
+    "npm run build:renderer": "passed; renderer inputs/config unchanged since check",
+    "independent_probes": "core-acceptance, core-probes, corruption-probes, deletion-probes, recovery-probe, schema-edge-probes all passed",
+    "git diff --check": "passed"
+  },
+  "worker": "/root/environment_core",
+  "requestedModel": "gpt-6-luna",
+  "reviewRounds": 2
+}

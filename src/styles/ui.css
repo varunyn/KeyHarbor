@@ -1,0 +1,31 @@
+/* Shared component utilities. Preflight is intentionally omitted. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none);
+@source "../renderer/ui";
+@source "../dashboard";
+@source "../project";
+@source "../renderer/reconciliation.tsx";
+
+@theme inline {
+  --font-sans: "Geist", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-background: var(--ui-background);
+  --color-foreground: var(--ui-foreground);
+  --color-card: var(--ui-card);
+  --color-card-foreground: var(--ui-foreground);
+  --color-popover: var(--ui-card);
+  --color-popover-foreground: var(--ui-foreground);
+  --color-primary: var(--ui-primary);
+  --color-primary-foreground: var(--ui-primary-foreground);
+  --color-secondary: var(--ui-secondary);
+  --color-secondary-foreground: var(--ui-foreground);
+  --color-muted: var(--ui-secondary);
+  --color-muted-foreground: var(--ui-muted-foreground);
+  --color-accent: var(--ui-secondary);
+  --color-accent-foreground: var(--ui-foreground);
+  --color-destructive: var(--ui-destructive);
+  --color-destructive-foreground: var(--ui-background);
+  --color-border: var(--ui-border);
+  --color-input: var(--ui-border);
+  --color-ring: var(--ui-primary);
+}
