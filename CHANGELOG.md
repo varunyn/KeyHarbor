@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/varunyn/KeyHarbor/compare/v2.0.0...v2.1.0) (2026-10-06)
+
+
+### Features
+
+* initial commit for KeyHarbor ([dc3ade2](https://github.com/varunyn/KeyHarbor/commit/dc3ade2569f1f112950ea1a77798b4630df6ffbc))
+
 ## [Unreleased]
 
 ### Added
