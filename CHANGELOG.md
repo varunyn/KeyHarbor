@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- Fixed release installer uploads by separating packaging from publishing; manual rebuilds use the requested release tag, and macOS releases include a universal installer for Apple Silicon and Intel.
 - Desktop packaging now explicitly rebuilds the app, preventing stale renderer files when npm lifecycle hooks are disabled.
 - Aligned project dialog surfaces, fields, and action buttons with the shared shadcn theme in dark and light modes.
 - Centered dialogs consistently across the app and kept tall dialogs scrollable within the window, preventing clipped headers and actions.

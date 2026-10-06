@@ -92,7 +92,19 @@ flowchart TD
 
 ## Quick Start
 
-### Prerequisites
+### Download installers
+
+Get the latest installers from [GitHub Releases](https://github.com/varunyn/KeyHarbor/releases/latest). Expand **Assets** and choose the package for your operating system:
+
+| Operating system | Package | Installation |
+| --- | --- | --- |
+| macOS (Apple Silicon and Intel) | `KeyHarbor-macOS-<version>.dmg` | Open the DMG and drag KeyHarbor into Applications. |
+| Windows (x64) | `KeyHarbor-Windows-<version>.exe` | Run the installer. |
+| Linux (x64) | `KeyHarbor-<version>.AppImage` | Make the file executable, then run it. |
+
+The installers include their runtime; Node.js and npm are only needed when running from source. The macOS app is ad-hoc signed and is not Apple-notarized.
+
+### Prerequisites for running from source
 
 - **Node.js**: `20.19+` or `>= 22.12`
 - **npm**: `10+`

@@ -9,7 +9,7 @@ on:
     inputs:
       tag:
         description: "Release tag to build artifacts for (e.g. v2.0.0)"
-        required: false
+        required: true
         type: string
 
 permissions:
@@ -49,6 +49,7 @@ jobs:
           - platform: macOS
             os: macos-latest
             build_cmd: npm run build:mac
+            build_args: --universal
           - platform: Windows
             os: windows-latest
             build_cmd: npm run build:win
@@ -59,6 +60,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -70,7 +73,8 @@ jobs:
         run: npm ci
 
       - name: Build and package binary
-        run: ${{ matrix.build_cmd }}
+        # The upload step below owns publishing, using GITHUB_TOKEN.
+        run: ${{ matrix.build_cmd }} -- --publish never ${{ matrix.build_args }}
 
       - name: Determine tag name
         id: get_tag
