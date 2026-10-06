@@ -17,6 +17,33 @@ KeyHarbor gives developers a safe, encrypted space to manage application credent
 **100% free to use. Works entirely offline with no accounts, subscriptions, or telemetry.**
 ---
 
+## See KeyHarbor in action
+
+Real screenshots of the desktop app on macOS, using a temporary demo vault with fictional projects and credentials. Secret values remain masked.
+
+**Your projects, together in one local vault.**
+
+![KeyHarbor vault dashboard showing four fictional projects and their secret counts](docs/screenshots/vault-overview.png)
+
+**Separate environments, masked secrets, and useful metadata.**
+
+![Harbor Shop development environment with masked secrets, dev staging and prod tabs, and the secret inspector](docs/screenshots/project-secrets.png)
+
+<details>
+<summary><strong>Configuration checks and explicit access approval</strong></summary>
+
+Compare an environment against its required keys. This demo deliberately omits `SENTRY_DSN`, so the checklist marks it as missing.
+
+![Configuration checklist showing six ready keys and a missing SENTRY_DSN requirement](docs/screenshots/configuration-checks.png)
+
+External secret requests open a desktop prompt showing the vault, project, environment, and requested key. You choose whether to approve or deny access.
+
+<img src="docs/screenshots/access-approval.png" alt="Desktop approval prompt requesting read access to DATABASE_URL in Harbor Shop's dev environment, with Deny and Approve buttons" width="450" />
+
+</details>
+
+---
+
 ## Highlights
 
 - 🔒 **Zero-Knowledge Local Encryption**: Vaults are encrypted at rest with AES-256-GCM using authenticated key derivation. Biometric unlock supported via Touch ID on macOS.
