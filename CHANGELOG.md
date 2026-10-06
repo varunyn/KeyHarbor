@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/varunyn/KeyHarbor/compare/v2.1.0...v2.1.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* publish downloadable desktop installers ([4409e27](https://github.com/varunyn/KeyHarbor/commit/4409e27c7e5a177fbbb343d38dc4fc01db5b1fc4))
+
 ## [2.1.0](https://github.com/varunyn/KeyHarbor/compare/v2.0.0...v2.1.0) (2026-10-06)
 
 

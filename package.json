@@ -1,6 +1,6 @@
 {
   "name": "keyharbor",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A free local secrets workspace for developers, with configuration checks and approved CLI/MCP access.",
   "homepage": "https://github.com/varunyn/KeyHarbor",
   "bugs": {
