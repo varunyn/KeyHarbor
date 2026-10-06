@@ -98,7 +98,8 @@ Get the latest installers from [GitHub Releases](https://github.com/varunyn/KeyH
 
 | Operating system | Package | Installation |
 | --- | --- | --- |
-| macOS (Apple Silicon and Intel) | `KeyHarbor-macOS-<version>.dmg` | Open the DMG and drag KeyHarbor into Applications. |
+| macOS (Apple Silicon) | `KeyHarbor-macOS-<version>-arm64.dmg` | Open the DMG and drag KeyHarbor into Applications. |
+| macOS (Intel) | `KeyHarbor-macOS-<version>-x64.dmg` | Open the DMG and drag KeyHarbor into Applications. |
 | Windows (x64) | `KeyHarbor-Windows-<version>.exe` | Run the installer. |
 | Linux (x64) | `KeyHarbor-<version>.AppImage` | Make the file executable, then run it. |
 

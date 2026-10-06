@@ -46,10 +46,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macOS
+          - platform: macOS Apple Silicon
             os: macos-latest
             build_cmd: npm run build:mac
-            build_args: --universal
+            build_args: --arm64 --config.dmg.artifactName='KeyHarbor-macOS-${version}-${arch}.dmg'
+          - platform: macOS Intel
+            os: macos-latest
+            build_cmd: npm run build:mac
+            build_args: --x64 --config.dmg.artifactName='KeyHarbor-macOS-${version}-${arch}.dmg'
           - platform: Windows
             os: windows-latest
             build_cmd: npm run build:win
