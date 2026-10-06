@@ -9,5 +9,7 @@ export default defineConfig({
     ".agents/**",
     ".impeccable/**",
     "supabase/.temp/**",
+    // Release Please generates Markdown with its own formatting conventions.
+    "CHANGELOG.md",
   ],
 });
