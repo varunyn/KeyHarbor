@@ -575,7 +575,22 @@
     }
   },
   "approval": {
+    "notificationTitle": "KeyHarbor approval needed",
+    "notificationBody": "Open KeyHarbor to review a pending access request.",
     "title": "Access Request",
+    "agentTitle": "Agent Request",
+    "actionTextConnect": "Create a temporary credential proxy session",
+    "actionTextUse": "Use credential for this request",
+    "destination": "Destination:",
+    "methods": "Methods:",
+    "paths": "Paths:",
+    "bodySize": "Request body:",
+    "byteCount": "{{count}} bytes",
+    "bodyPreview": "Review request body",
+    "requestDigest": "Request fingerprint",
+    "privateNetwork": "This connection allows access to private network addresses.",
+    "customTrust": "This connection trusts an additional certificate authority.",
+    "agentNote": "KeyHarbor adds the credential privately. Each request needs your approval. Locking the vault revokes the session.",
     "vault": "Vault:",
     "project": "Project:",
     "environment": "Environment:",
@@ -608,7 +623,21 @@
       "noSuitablePath": "CLI installation failed: Cannot find suitable path"
     }
   },
+  "background": {
+    "title": "Keep KeyHarbor running?",
+    "detail": "Keep Running hides this window and leaves KeyHarbor in the menu bar or system tray. CLI and MCP requests remain available while the vault is unlocked. Your existing auto-lock settings still apply. Quit locks the vault, revokes agent sessions, and exits.",
+    "keepRunning": "Keep Running",
+    "quit": "Quit KeyHarbor",
+    "remember": "Remember my choice (change later in Settings)",
+    "unavailable": "The menu bar or system tray icon is unavailable. Keep KeyHarbor open to continue using CLI and MCP, or quit to lock the vault and exit.",
+    "errorTitle": "Could not close KeyHarbor",
+    "errorDetail": "The window has stayed open. Check your close preference in Settings and try again."
+  },
   "tray": {
+    "locked": "Vault locked",
+    "unlocked": "Vault unlocked",
+    "unavailable": "Vault unavailable",
+    "reviewApprovals": "Review approvals ({{count}})",
     "show": "Show KeyHarbor",
     "lock": "Lock Vault",
     "quit": "Quit"
@@ -620,6 +649,11 @@
     "newWindow": "New Window"
   },
   "settings": {
+    "closeBehavior": "When closing the window",
+    "closeBehaviorDesc": "Keep CLI and MCP available in the background, or quit KeyHarbor. Auto-lock still applies.",
+    "closeBehaviorAsk": "Ask each time",
+    "closeBehaviorBackground": "Keep running in background",
+    "closeBehaviorQuit": "Quit KeyHarbor",
     "title": "Settings",
     "language": "Language",
     "languageDesc": "Choose the display language",

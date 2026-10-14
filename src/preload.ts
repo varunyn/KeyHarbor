@@ -120,6 +120,12 @@ const api = {
   },
   settings: {
     get: () => ipcRenderer.invoke("settings:get"),
+    onCloseBehaviorChanged: (listener) => {
+      const handler = (_event, behavior) => listener(behavior);
+      ipcRenderer.on("settings:close-behavior-changed", handler);
+      return () =>
+        ipcRenderer.removeListener("settings:close-behavior-changed", handler);
+    },
     set: (settings) => ipcRenderer.invoke("settings:set", settings),
   },
   statistics: {

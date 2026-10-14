@@ -1,4 +1,15 @@
 import type Vault = require("./modules/vault");
+import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts";
+import { AGENT_APPROVAL_TIMEOUT_MS } from "./modules/agent-proxy-timeouts";
+import { notifyApproval } from "./modules/approval-notification";
+import {
+  normalizeCloseBehavior,
+  WindowCloseController,
+} from "./modules/window-close-controller";
+import type {
+  CloseBehavior,
+  CloseChoice,
+} from "./modules/window-close-controller";
 
 const {
   app,
@@ -26,6 +37,7 @@ const { getAppDataPath } = require("./modules/app-data-path");
 const VaultManager = require("./modules/vault-manager");
 const Logger = require("./modules/logger");
 const HttpServer = require("./modules/http-server");
+const AgentProxyCoordinator = require("./modules/agent-proxy-coordinator");
 const I18n = require("./modules/i18n");
 const TouchIdUnlock = require("./modules/touch-id-unlock");
 const VaultSession = require("./modules/vault-session");
@@ -61,8 +73,8 @@ interface ApprovalTarget {
 
 type ApprovalRequest = ApprovalTarget & {
   keys: string[];
-  action: "read" | "write";
-};
+  action: "read" | "write" | "connect" | "use";
+} & Partial<Omit<AgentProxyApprovalRequest, "action">>;
 
 interface ApprovalDecision {
   approved: boolean;
@@ -90,6 +102,8 @@ let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
 let vaultManager: InstanceType<typeof VaultManager> | null = null;
 let logger: InstanceType<typeof Logger> | null = null;
 let httpServer: InstanceType<typeof HttpServer> | null = null;
+let agentProxyCoordinator: InstanceType<typeof AgentProxyCoordinator> | null =
+  null;
 let vaultSession: InstanceType<typeof VaultSession> | null = null;
 let envTextImportCoordinator: InstanceType<
   typeof EnvTextImportCoordinator
@@ -105,6 +119,7 @@ let attachProjectConfigurationWindowCleanup: () => void = () => {
 };
 let shutdownCoordinator: InstanceType<typeof ShutdownCoordinator> | null = null;
 let tray: InstanceType<typeof Tray> | null = null;
+const pendingApprovals = new Map<string, InstanceType<typeof BrowserWindow>>();
 let isQuitting = false;
 let i18n: InstanceType<typeof I18n> | null = null;
 let touchIdUnlock: InstanceType<typeof TouchIdUnlock> | null = null;
@@ -138,6 +153,7 @@ const DEFAULT_SETTINGS = {
     timeout: 30,
   },
   checkForUpdates: true,
+  closeBehavior: "ask" as CloseBehavior,
   locale: "system",
   screenCaptureProtection: true,
   showStatistics: true,
@@ -147,6 +163,7 @@ const DEFAULT_SETTINGS = {
 };
 
 interface AppSettings {
+  closeBehavior: CloseBehavior;
   checkForUpdates: boolean;
   locale: string;
   showStatistics: boolean;
@@ -232,6 +249,7 @@ const normalizeSettings = (
       safeSettings.checkForUpdates,
       DEFAULT_SETTINGS.checkForUpdates
     ),
+    closeBehavior: normalizeCloseBehavior(safeSettings.closeBehavior),
     locale: coerceString(safeSettings.locale, DEFAULT_SETTINGS.locale),
     screenCaptureProtection: coerceBoolean(
       safeSettings.screenCaptureProtection,
@@ -252,6 +270,12 @@ const normalizeSettings = (
   };
 
   const repairs: string[] = [];
+  if (
+    safeSettings.closeBehavior !== undefined &&
+    normalized.closeBehavior !== safeSettings.closeBehavior
+  ) {
+    repairs.push("closeBehavior");
+  }
   if (normalized.checkForUpdates !== safeSettings.checkForUpdates) {
     repairs.push("checkForUpdates");
   }
@@ -619,17 +643,20 @@ const showApprovalDialog = (
 ): Promise<ApprovalDecision> => {
   const projectName = request?.projectName || "";
   const keys = Array.isArray(request?.keys) ? request.keys : [];
-  const action = request?.action === "write" ? "write" : "read";
+  const action = request.action ?? "read";
+  const isAgentRequest = action === "connect" || action === "use";
   // Convert native window, IPC, and abort events into one settled approval decision.
   // eslint-disable-next-line promise/avoid-new
   return new Promise<ApprovalDecision>((resolve) => {
     let approvalWindow: InstanceType<typeof BrowserWindow> | null = null;
     let isResolved = false;
+    let approvalDeadline: ReturnType<typeof setTimeout> | null = null;
     let channelName = "";
     let responseHandler:
       | ((event: Electron.IpcMainEvent, approved: unknown) => void)
       | null = null;
     let abortHandler: (() => void) | null = null;
+    let dismissNotification: (() => void) | undefined;
 
     const targetLog = {
       action,
@@ -641,6 +668,14 @@ const showApprovalDialog = (
     };
 
     const cleanup = () => {
+      pendingApprovals.delete(channelName);
+      // eslint-disable-next-line no-use-before-define -- Approval callbacks run after the desktop lifecycle is initialized.
+      updateTrayMenu();
+      dismissNotification?.();
+      dismissNotification = undefined;
+      if (approvalDeadline) {
+        clearTimeout(approvalDeadline);
+      }
       if (channelName && responseHandler) {
         try {
           ipcMain.removeListener(channelName, responseHandler);
@@ -673,6 +708,12 @@ const showApprovalDialog = (
       return;
     }
     signal?.addEventListener("abort", abortHandler, { once: true });
+    if (isAgentRequest) {
+      approvalDeadline = setTimeout(
+        () => doResolve({ approved: false, reason: "Approval expired" }),
+        AGENT_APPROVAL_TIMEOUT_MS
+      );
+    }
 
     try {
       approvalWindow = new BrowserWindow({
@@ -681,7 +722,7 @@ const showApprovalDialog = (
           nativeTheme.shouldUseDarkColors
         ),
         frame: false,
-        height: 390,
+        height: isAgentRequest ? 650 : 390,
         icon: path.join(__dirname, "assets", "icon.png"),
         modal: true,
         parent: mainWindow,
@@ -691,7 +732,7 @@ const showApprovalDialog = (
           nodeIntegration: false,
           preload: path.join(__dirname, "preload.js"),
         },
-        width: 450,
+        width: isAgentRequest ? 560 : 450,
       });
 
       loadRendererPage(approvalWindow, "approval.html");
@@ -714,10 +755,12 @@ const showApprovalDialog = (
         if (approved) {
           doResolve({ approved: true });
         } else {
-          logger?.logAccess(`Access denied (${action})`, projectName, keys, {
-            ...targetLog,
-            outcome: "denied",
-          });
+          if (!isAgentRequest) {
+            logger?.logAccess(`Access denied (${action})`, projectName, keys, {
+              ...targetLog,
+              outcome: "denied",
+            });
+          }
           doResolve({ approved: false, reason: "User denied" });
         }
       };
@@ -739,24 +782,52 @@ const showApprovalDialog = (
 
       approvalWindow.on("close", () => {
         if (!isResolved) {
-          logger?.logAccess(`Access denied (${action})`, projectName, keys, {
-            ...targetLog,
-            outcome: "denied",
-          });
+          if (!isAgentRequest) {
+            logger?.logAccess(`Access denied (${action})`, projectName, keys, {
+              ...targetLog,
+              outcome: "denied",
+            });
+          }
           doResolve({ approved: false, reason: "Dialog closed" });
         }
       });
 
       approvalWindow.webContents.once("did-finish-load", () => {
+        if (isResolved || !approvalWindow || approvalWindow.isDestroyed()) {
+          return;
+        }
+        pendingApprovals.set(channelName, approvalWindow);
+        // eslint-disable-next-line no-use-before-define -- Renderer load is asynchronous and occurs after menu setup.
+        updateTrayMenu();
         approvalWindow.webContents.send("approval:data", {
           action,
+          allowPrivateNetwork: request.allowPrivateNetwork,
+          bodyBytes: request.bodyBytes,
+          bodyPreview: request.bodyPreview,
           channel: channelName,
+          customTrust: request.customTrust,
           environmentId: request.environmentId,
           environmentName: request.environmentName,
           keys,
+          method: request.method,
+          methods: request.methods,
+          origin: request.origin,
+          path: request.path,
+          pathPrefixes: request.pathPrefixes,
           projectName,
+          requestDigest: request.requestDigest,
           vaultName: request.vaultName,
         });
+        dismissNotification = notifyApproval(
+          approvalWindow,
+          i18n?.t("approval.notificationTitle") ?? "KeyHarbor approval needed",
+          i18n?.t("approval.notificationBody") ??
+            "Open KeyHarbor to review a pending access request.",
+          () =>
+            logger?.logApp(
+              "Approval notification unavailable; desktop review remains open"
+            )
+        );
       });
 
       approvalWindow.webContents.on(
@@ -782,6 +853,9 @@ const ensureHttpServerStarted = async () => {
   if (!httpServer) {
     httpServer = new HttpServer(vaultManager, logger, vaultSession);
     httpServer.setApprovalCallback(showApprovalDialog);
+    if (agentProxyCoordinator) {
+      httpServer.bindAgentProxy(agentProxyCoordinator);
+    }
   }
 
   if (httpServer.server) {
@@ -912,11 +986,8 @@ const createWindow = () => {
   mainWindow.on("close", (event) => {
     if (!isQuitting) {
       event.preventDefault();
-      mainWindow.hide();
-
-      if (process.platform === "darwin") {
-        app.dock.hide();
-      }
+      // eslint-disable-next-line no-use-before-define -- The controller exists before any main window is created.
+      void windowCloseController.requestClose();
     }
   });
 
@@ -940,57 +1011,149 @@ const lockVault = async (reason = "manual") => {
   return vaultSession.close({ reason });
 };
 
-const createTray = () => {
-  if (tray) {
-    tray.destroy();
+const showMainWindow = () => {
+  if (process.platform === "darwin") {
+    void app.dock.show();
+    app.show();
   }
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+};
 
-  const iconPath = path.join(__dirname, "assets", "icon.png");
-  let iconImage;
-
-  try {
-    iconImage = nativeImage.createFromPath(iconPath);
-
-    tray = new Tray(iconImage);
-
-    if (process.platform === "darwin") {
-      tray.setImage(iconImage.resize({ height: 16, width: 16 }));
-    }
-  } catch (error) {
-    console.error("Failed to create tray icon:", error);
-
-    try {
-      iconImage = nativeImage.createEmpty();
-      tray = new Tray(iconImage);
-
-      if (process.platform === "darwin") {
-        tray.setImage(iconImage.resize({ height: 16, width: 16 }));
-      }
-    } catch (fallbackError) {
-      console.error("Failed to create fallback icon:", fallbackError);
+const reviewPendingApproval = () => {
+  showMainWindow();
+  for (const window of pendingApprovals.values()) {
+    if (!window.isDestroyed()) {
+      window.show();
+      window.focus();
       return;
     }
   }
+};
 
-  const showLabel = i18n ? i18n.t("tray.show") : "Show KeyHarbor";
-  const lockLabel = i18n ? i18n.t("tray.lock") : "Lock Vault";
-  const quitLabel = i18n ? i18n.t("tray.quit") : "Quit";
+const broadcastCloseBehavior = (behavior: CloseBehavior) => {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send("settings:close-behavior-changed", behavior);
+    }
+  }
+};
 
+const windowCloseController = new WindowCloseController({
+  background: () => {
+    if (!tray || tray.isDestroyed()) {
+      throw new Error("Menu bar icon unavailable");
+    }
+    mainWindow?.hide();
+    if (process.platform === "darwin" && pendingApprovals.size === 0) {
+      app.dock.hide();
+    }
+    for (const window of pendingApprovals.values()) {
+      if (!window.isDestroyed()) {
+        window.show();
+      }
+    }
+  },
+  choose: async () => {
+    const canBackground = Boolean(tray && !tray.isDestroyed());
+    const buttons = canBackground
+      ? [
+          i18n.t("background.keepRunning"),
+          i18n.t("background.quit"),
+          i18n.t("common.cancel"),
+        ]
+      : [i18n.t("background.quit"), i18n.t("common.cancel")];
+    const options: Electron.MessageBoxOptions = {
+      buttons,
+      cancelId: buttons.length - 1,
+      checkboxLabel: i18n.t("background.remember"),
+      defaultId: 0,
+      detail: i18n.t(
+        canBackground ? "background.detail" : "background.unavailable"
+      ),
+      message: i18n.t("background.title"),
+      noLink: true,
+      type: "question",
+    };
+    const result =
+      mainWindow && !mainWindow.isDestroyed()
+        ? await dialog.showMessageBox(mainWindow, options)
+        : await dialog.showMessageBox(options);
+    let action: CloseChoice["action"] = "cancel";
+    if (canBackground && result.response === 0) {
+      action = "background";
+    } else if (result.response === (canBackground ? 1 : 0)) {
+      action = "quit";
+    }
+    return { action, remember: result.checkboxChecked };
+  },
+  getBehavior: () =>
+    tray && !tray.isDestroyed() ? loadSettings().closeBehavior : "ask",
+  isQuitting: () => isQuitting,
+  quit: () => {
+    isQuitting = true;
+    void shutdownCoordinator?.requestQuit();
+  },
+  remember: (behavior) => {
+    const result = saveSettings({ ...loadSettings(), closeBehavior: behavior });
+    if (!result.success) {
+      throw new Error("Failed to save close preference");
+    }
+    broadcastCloseBehavior(behavior);
+  },
+  reportError: () => {
+    if (isQuitting) {
+      return;
+    }
+    showMainWindow();
+    dialog.showErrorBox(
+      i18n.t("background.errorTitle"),
+      i18n.t("background.errorDetail")
+    );
+  },
+});
+
+const updateTrayMenu = () => {
+  if (!tray || tray.isDestroyed() || !i18n) {
+    return;
+  }
+  const state = vaultSession?.snapshot().state;
+  let statusKey = "tray.unavailable";
+  if (state === "active") {
+    statusKey = "tray.unlocked";
+  } else if (state === "locked") {
+    statusKey = "tray.locked";
+  }
+  const status = i18n.t(statusKey);
+  const count = pendingApprovals.size;
   const contextMenu = Menu.buildFromTemplate([
+    { enabled: false, label: status },
+    { type: "separator" },
+    {
+      click: reviewPendingApproval,
+      enabled: count > 0,
+      label: i18n.t("tray.reviewApprovals", { count }),
+    },
+    {
+      click: showMainWindow,
+      label: i18n.t("tray.show"),
+    },
     {
       click: () => {
-        if (process.platform === "darwin") {
-          app.dock.show();
-        }
-
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        } else {
-          createWindow();
+        showMainWindow();
+        if (isVaultSessionActive()) {
+          loadRendererPage(mainWindow, "settings.html");
         }
       },
-      label: showLabel,
+      enabled: isVaultSessionActive(),
+      label: i18n.t("menu.preferences"),
     },
     {
       click: async () => {
@@ -1002,7 +1165,8 @@ const createTray = () => {
           }
         }
       },
-      label: lockLabel,
+      enabled: isVaultSessionActive(),
+      label: i18n.t("tray.lock"),
     },
     { type: "separator" },
     {
@@ -1010,12 +1174,43 @@ const createTray = () => {
         isQuitting = true;
         void shutdownCoordinator?.requestQuit();
       },
-      label: quitLabel,
+      label: i18n.t("tray.quit"),
     },
   ]);
 
-  tray.setToolTip("KeyHarbor");
+  tray.setToolTip(`KeyHarbor — ${status}`);
+  if (process.platform === "darwin") {
+    tray.setTitle(count > 0 ? String(count) : "");
+  }
   tray.setContextMenu(contextMenu);
+};
+
+const createTray = () => {
+  tray?.destroy();
+  tray = null;
+  try {
+    const isMac = process.platform === "darwin";
+    let image = nativeImage.createFromPath(
+      path.join(__dirname, "assets", isMac ? "keyharbor-logo.png" : "icon.png")
+    );
+    if (image.isEmpty()) {
+      throw new Error("Tray icon is missing");
+    }
+    if (isMac) {
+      // Preserve the current shield-and-anchor branding at Retina menu bar size.
+      const retina = image.resize({ height: 36, width: 36 }).toPNG();
+      image = nativeImage.createFromBuffer(retina, { scaleFactor: 2 });
+    }
+    tray = new Tray(image);
+    if (process.platform === "win32") {
+      tray.on("double-click", showMainWindow);
+    }
+    updateTrayMenu();
+  } catch {
+    console.error(
+      "Failed to create the menu bar icon; background mode is unavailable"
+    );
+  }
 };
 
 // Preserve the asynchronous update-check API and its existing rejection behavior.
@@ -1269,6 +1464,10 @@ const initializeApp = () => {
         setInterval(callback, milliseconds),
     },
     onStateChange: (snapshot) => {
+      updateTrayMenu();
+      if (snapshot.state !== "active") {
+        agentProxyCoordinator?.clear();
+      }
       if (snapshot.state !== "active") {
         envTextImportCoordinator?.clear();
       }
@@ -1326,13 +1525,53 @@ const initializeApp = () => {
     session: vaultSession,
   });
 
+  const helperName = `keyharbor-agent-proxy${process.platform === "win32" ? ".exe" : ""}`;
+  const helperPath = app.isPackaged
+    ? path.join(process.resourcesPath, "agent-proxy", helperName)
+    : path.join(
+        app.getAppPath(),
+        "native",
+        "agent-proxy",
+        "bin",
+        `${process.platform}-${process.arch}`,
+        helperName
+      );
+  agentProxyCoordinator = new AgentProxyCoordinator({
+    approve: showApprovalDialog,
+    helperPath,
+    logAccess: (event) => {
+      if (event.action === "connect") {
+        logger?.logApp(
+          `Agent proxy connection ${event.approved ? "approved" : "denied"} - Project: ${event.projectName}, Environment: ${event.environmentName}`
+        );
+        return;
+      }
+      logger?.logAccess(
+        "Authenticated request",
+        event.projectName,
+        [event.key],
+        {
+          action: event.action,
+          environmentId: event.environmentId,
+          environmentName: event.environmentName,
+          outcome: event.approved ? "approved" : "denied",
+          vaultId: event.vaultId,
+          vaultInstanceId: event.vaultInstanceId,
+        }
+      );
+    },
+    session: vaultSession,
+  });
+
   httpServer = new HttpServer(vaultManager, logger, vaultSession);
 
   httpServer.setApprovalCallback(showApprovalDialog);
+  httpServer.bindAgentProxy(agentProxyCoordinator);
 
   shutdownCoordinator = new ShutdownCoordinator({
     app,
     beforeExit: async () => {
+      agentProxyCoordinator?.clear();
       if (httpServer) {
         await httpServer.stop();
       }
@@ -2933,6 +3172,10 @@ const setupIpcHandlers = () => {
         }
       }
 
+      if (mergedSettings.closeBehavior !== currentSettings.closeBehavior) {
+        broadcastCloseBehavior(mergedSettings.closeBehavior);
+      }
+
       await vaultSession.configure(getVaultSessionPolicy());
 
       const screenCaptureChanged =
@@ -2969,7 +3212,7 @@ const buildAppMenu = () => {
               isVaultSessionActive()
             ) {
               loadRendererPage(mainWindow, "settings.html");
-              mainWindow.show();
+              showMainWindow();
             }
           },
           label: i18n ? i18n.t("menu.preferences") : "Preferences...",
@@ -3083,15 +3326,7 @@ app.whenReady().then(async () => {
   await ensureHttpServerStarted();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else if (mainWindow && mainWindow.isDestroyed() === false) {
-      if (process.platform === "darwin") {
-        app.dock.show();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    showMainWindow();
   });
 });
 
