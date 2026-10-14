@@ -1,3 +1,23 @@
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Clock,
+  Folder,
+  Key,
+  LayoutGrid,
+  List,
+  Loader2,
+  Lock,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
+  Star,
+  Vault,
+} from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -37,6 +57,7 @@ import {
   DropdownMenuSubTrigger,
 } from "../renderer/ui/dropdown-menu";
 import { Input } from "../renderer/ui/input";
+import { cn } from "../renderer/ui/utils";
 
 type ViewMode = "grid" | "list";
 type SortMode = "recent" | "name" | "secrets";
@@ -85,18 +106,64 @@ const isBridgeSuccess = <T extends object>(
   value: BridgeResult<T>
 ): value is Extract<BridgeResult<T>, { success: true }> => value.success;
 
+const ICON_MAP: Record<
+  string,
+  React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>
+> = {
+  activity: Activity,
+  "arrow-left": ArrowLeft,
+  "arrow-right": ArrowRight,
+  "chevron-down": ChevronDown,
+  "circle-alert": AlertCircle,
+  clock: Clock,
+  ellipsis: MoreHorizontal,
+  folder: Folder,
+  grid: LayoutGrid,
+  key: Key,
+  list: List,
+  lock: Lock,
+  plus: Plus,
+  search: Search,
+  settings: Settings,
+  star: Star,
+  vault: Vault,
+};
+
 const Icon = ({
   name,
   className = "",
 }: {
   name: string;
   className?: string;
-}) => (
-  <span
-    className={`lk-icon lk-icon-${name}${className ? ` ${className}` : ""}`}
-    aria-hidden="true"
-  />
-);
+}) => {
+  const Comp = ICON_MAP[name];
+  if (!Comp) {
+    return (
+      <span
+        className={`lk-icon lk-icon-${name}${className ? ` ${className}` : ""}`}
+        aria-hidden="true"
+      />
+    );
+  }
+  return (
+    <Comp
+      className={cn("inline-block size-4 shrink-0 align-middle", className)}
+      aria-hidden="true"
+    />
+  );
+};
+
+const MONOGRAM_TONES = [
+  "bg-sky-500/15 text-sky-400 border border-sky-500/30",
+  "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+  "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  "bg-purple-500/15 text-purple-400 border border-purple-500/30",
+  "bg-teal-500/15 text-teal-400 border border-teal-500/30",
+  "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30",
+];
 
 const monogram = (name: string) => {
   const clean = name.replaceAll(/[^A-Za-z0-9]/gu, "").toUpperCase();
@@ -219,6 +286,1116 @@ const requireProjectData = (
   }
   return result.data;
 };
+
+const TONE_CLASSES: Record<string, string> = {
+  "text-amber-400": "text-amber-400",
+  "text-rose-400": "text-rose-400",
+  "tone-amber": "text-amber-400",
+  "tone-red": "text-rose-400",
+};
+
+const ProjectActions = ({
+  project,
+  favorite,
+  isMenuOpen,
+  onToggleFavorite,
+  onOpenMenu,
+  onDeleteProject,
+}: {
+  project: ProjectRecord;
+  favorite: boolean;
+  isMenuOpen: boolean;
+  onToggleFavorite: (name: string) => void;
+  onOpenMenu: (open: boolean) => void;
+  onDeleteProject: (name: string) => void;
+}) => (
+  <span className="dash-card-actions relative z-10 flex shrink-0 items-center gap-1">
+    <Button
+      variant="ghost"
+      size="icon"
+      type="button"
+      className={cn(
+        "dash-icon-btn text-muted-foreground hover:bg-secondary hover:text-foreground size-8 rounded-lg transition-colors",
+        favorite && "is-fav text-amber-400 hover:text-amber-300"
+      )}
+      aria-pressed={favorite}
+      aria-label={t(
+        favorite ? "project.removeFromFavorites" : "project.addToFavorites"
+      )}
+      title={t(
+        favorite ? "project.removeFromFavorites" : "project.addToFavorites"
+      )}
+      onClick={() => onToggleFavorite(project.name)}
+    >
+      <Icon name="star" />
+    </Button>
+    <DropdownMenu open={isMenuOpen} onOpenChange={onOpenMenu}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          type="button"
+          className="dash-icon-btn text-muted-foreground hover:bg-secondary hover:text-foreground size-8 rounded-lg"
+          aria-label={t("dashboard.a11y.menuLabel")}
+        >
+          <Icon name="ellipsis" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="min-w-[140px] p-1"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive cursor-pointer rounded-md px-2.5 py-1.5 text-xs"
+          onSelect={() => onDeleteProject(project.name)}
+        >
+          {t("dashboard.deleteProject.deleteBtn")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </span>
+);
+
+const ProjectCard = ({
+  project,
+  access,
+  now,
+  favorite,
+  isMenuOpen,
+  onOpenProject,
+  onToggleFavorite,
+  onOpenMenu,
+  onDeleteProject,
+}: {
+  project: ProjectRecord;
+  access?: number;
+  now: number;
+  favorite: boolean;
+  isMenuOpen: boolean;
+  onOpenProject: (name: string) => void;
+  onToggleFavorite: (name: string) => void;
+  onOpenMenu: (open: boolean) => void;
+  onDeleteProject: (name: string) => void;
+}) => {
+  const mark = monogram(project.name);
+  const activeToday =
+    isToday(project.updatedAt) ||
+    (typeof access === "number" &&
+      now - access < 86_400_000 &&
+      isToday(new Date(access).toISOString()));
+
+  return (
+    <article
+      className="dash-card group border-border bg-card hover:border-primary/50 relative flex min-h-[220px] cursor-pointer flex-col justify-between rounded-xl border p-5 transition-all duration-150 hover:shadow-md"
+      data-list-key={project.name}
+    >
+      <a
+        className="absolute inset-0 z-0 rounded-[inherit]"
+        href={`project.html?name=${encodeURIComponent(project.name)}`}
+        aria-label={t("dashboard.card.openProject", { name: project.name })}
+        onKeyDown={(event) => {
+          if (event.key === " ") {
+            event.preventDefault();
+            onOpenProject(project.name);
+          }
+        }}
+      >
+        <span className="sr-only">
+          {t("dashboard.card.openProject", { name: project.name })}
+        </span>
+      </a>
+      <div className="dash-card-top mb-2.5 flex items-center gap-3">
+        <span
+          className={cn(
+            "monogram flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold tracking-wider",
+            MONOGRAM_TONES[mark.tone]
+          )}
+          aria-hidden="true"
+        >
+          {mark.initials}
+        </span>
+        <span className="dash-card-name text-foreground min-w-0 flex-1 truncate text-base font-semibold">
+          {project.name}
+        </span>
+        <ProjectActions
+          project={project}
+          favorite={favorite}
+          isMenuOpen={isMenuOpen}
+          onToggleFavorite={onToggleFavorite}
+          onOpenMenu={onOpenMenu}
+          onDeleteProject={onDeleteProject}
+        />
+      </div>
+      <p className="dash-card-sub text-muted-foreground mb-3 truncate text-xs">
+        {t("dashboard.card.localProject")}
+      </p>
+      <div className="dash-card-status bg-secondary/60 text-muted-foreground my-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs">
+        {activeToday ? (
+          <span className="active-pill inline-flex items-center gap-1.5 font-medium text-emerald-400">
+            <span
+              className="pill-dot size-1.5 rounded-full bg-emerald-400"
+              aria-hidden="true"
+            />
+            {t("dashboard.card.activeToday")}
+          </span>
+        ) : (
+          <>
+            <Icon name="key" className="text-primary" />
+            <span>{t("dashboard.card.storedLocally")}</span>
+          </>
+        )}
+      </div>
+      <div className="dash-card-badges my-2 flex flex-wrap items-center gap-1.5">
+        <span className="bg-secondary text-muted-foreground rounded px-2 py-0.5 font-mono text-[11px]">
+          {t(
+            project.secretCount === 1
+              ? "dashboard.secretCountOne"
+              : "dashboard.secretCount",
+            { count: project.secretCount }
+          )}
+        </span>
+        <span className="bg-secondary text-primary rounded px-2 py-0.5 font-mono text-[11px]">
+          {t(
+            project.environmentCount === 1
+              ? "dashboard.card.environmentOne"
+              : "dashboard.card.environments",
+            { count: project.environmentCount }
+          )}
+        </span>
+      </div>
+      {typeof access === "number" && (
+        <p className="dash-card-sub access-line text-muted-foreground mb-2 truncate text-[11px]">
+          {t("dashboard.card.lastAccessed", {
+            time: formatAccessTime(access, now),
+          })}
+        </p>
+      )}
+      <div className="dash-card-foot border-border text-muted-foreground mt-auto flex items-center justify-between border-t pt-3 font-mono text-xs">
+        <span>
+          {t("dashboard.updated", {
+            time: formatDate(project.updatedAt, now),
+          })}
+        </span>
+        <span className="dash-card-open text-muted-foreground group-hover:text-primary inline-flex items-center gap-1 transition-all group-hover:translate-x-0.5">
+          {t("dashboard.card.open")}
+          <Icon name="arrow-right" />
+        </span>
+      </div>
+    </article>
+  );
+};
+
+const ProjectRow = ({
+  project,
+  now,
+  favorite,
+  isMenuOpen,
+  onOpenProject,
+  onToggleFavorite,
+  onOpenMenu,
+  onDeleteProject,
+}: {
+  project: ProjectRecord;
+  now: number;
+  favorite: boolean;
+  isMenuOpen: boolean;
+  onOpenProject: (name: string) => void;
+  onToggleFavorite: (name: string) => void;
+  onOpenMenu: (open: boolean) => void;
+  onDeleteProject: (name: string) => void;
+}) => {
+  const mark = monogram(project.name);
+  return (
+    <div
+      className="dash-row group bg-card hover:bg-secondary/40 relative flex min-h-[56px] cursor-pointer items-center gap-3 p-3.5 transition-colors"
+      data-list-key={project.name}
+    >
+      <a
+        className="absolute inset-0 z-0 rounded-[inherit]"
+        href={`project.html?name=${encodeURIComponent(project.name)}`}
+        aria-label={t("dashboard.card.openProject", { name: project.name })}
+        onKeyDown={(event) => {
+          if (event.key === " ") {
+            event.preventDefault();
+            onOpenProject(project.name);
+          }
+        }}
+      >
+        <span className="sr-only">
+          {t("dashboard.card.openProject", { name: project.name })}
+        </span>
+      </a>
+      <span
+        className={cn(
+          "monogram flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-bold tracking-wider",
+          MONOGRAM_TONES[mark.tone]
+        )}
+        aria-hidden="true"
+      >
+        {mark.initials}
+      </span>
+      <div className="row-main min-w-0 flex-1">
+        <div className="row-name text-foreground truncate text-sm font-semibold">
+          {project.name}
+        </div>
+        <div className="row-sub text-muted-foreground truncate font-mono text-xs">
+          {t("dashboard.updated", {
+            time: formatDate(project.updatedAt, now),
+          })}
+        </div>
+      </div>
+      <div className="row-meta text-muted-foreground px-2 font-mono text-xs">
+        {t(
+          project.secretCount === 1
+            ? "dashboard.secretCountOne"
+            : "dashboard.secretCount",
+          project.secretCount === 1 ? undefined : { count: project.secretCount }
+        )}
+      </div>
+      <ProjectActions
+        project={project}
+        favorite={favorite}
+        isMenuOpen={isMenuOpen}
+        onToggleFavorite={onToggleFavorite}
+        onOpenMenu={onOpenMenu}
+        onDeleteProject={onDeleteProject}
+      />
+    </div>
+  );
+};
+
+const StatisticsStrip = ({ statistics }: { statistics: ProjectStatistics }) => {
+  const expiring = statistics.expiringSecrets > 0;
+  let expiryTone = "";
+  if (expiring) {
+    expiryTone = statistics.hasExpired ? "text-rose-400" : "text-amber-400";
+  }
+  const expired = statistics.hasExpired;
+  const metrics = [
+    {
+      icon: "folder",
+      iconTone: "",
+      label: t("dashboard.statistics.totalProjects"),
+      tone: "",
+      value: statistics.totalProjects,
+    },
+    {
+      icon: "key",
+      iconTone: "",
+      label: t("dashboard.statistics.totalSecrets"),
+      tone: "",
+      value: statistics.totalSecrets,
+    },
+    {
+      icon: "clock",
+      iconTone: expiryTone,
+      label: t(
+        expired
+          ? "dashboard.statistics.expiringAndExpired"
+          : "dashboard.statistics.expiringSecrets"
+      ),
+      tone: expiryTone,
+      value: statistics.expiringSecrets,
+    },
+    {
+      icon: "activity",
+      iconTone: "",
+      label: t("dashboard.statistics.recentAccess"),
+      tone: "",
+      value: statistics.recentAccessCount,
+    },
+  ];
+  return (
+    <div className="dash-strip-wrap mb-6" id="stripWrap">
+      <section
+        className="dash-strip grid grid-cols-2 gap-3 lg:grid-cols-4"
+        id="overviewStrip"
+        aria-label={t("dashboard.statistics.overview")}
+      >
+        {metrics.map((metric) => (
+          <div
+            className="dash-metric bg-card border-border/80 flex items-center justify-between rounded-xl border p-4 shadow-xs"
+            key={metric.label}
+          >
+            <div>
+              <span className="m-label text-muted-foreground block text-xs">
+                {metric.label}
+              </span>
+              <span
+                className={cn(
+                  "m-value text-foreground font-mono text-2xl font-semibold tracking-tight",
+                  TONE_CLASSES[metric.tone] ?? ""
+                )}
+              >
+                {metric.value}
+              </span>
+            </div>
+            <div
+              className={cn(
+                "m-icon bg-secondary text-primary flex size-9 items-center justify-center rounded-lg",
+                TONE_CLASSES[metric.iconTone] ?? ""
+              )}
+            >
+              <Icon name={metric.icon} />
+            </div>
+          </div>
+        ))}
+      </section>
+      <p className="dash-stat-note text-muted-foreground mt-2 text-right text-[11px]">
+        {t("dashboard.statistics.scopeLabel")}
+      </p>
+    </div>
+  );
+};
+
+const DIALOG_TITLES: Record<NonNullable<DialogKind>, string> = {
+  "create-vault": "vault.create.title",
+  "import-vault": "vault.import.title",
+  project: "dashboard.addProjectModal.title",
+  "rename-vault": "vault.rename.title",
+};
+
+const DashboardDialog = ({
+  dialog,
+  dialogRef,
+  form,
+  actionBusy,
+  onClose,
+  onFieldChange,
+  onBrowseFolder,
+  onSubmitProject,
+  onSubmitVaultCreate,
+  onSubmitVaultImport,
+  onSubmitVaultRename,
+}: {
+  dialog: DialogKind;
+  dialogRef: React.RefObject<HTMLDivElement | null>;
+  form: DialogForm;
+  actionBusy: string | null;
+  onClose: () => void;
+  onFieldChange: (field: keyof DialogForm, value: string) => void;
+  onBrowseFolder: (target: "create-vault" | "import-vault") => void;
+  onSubmitProject: () => void;
+  onSubmitVaultCreate: () => void;
+  onSubmitVaultImport: () => void;
+  onSubmitVaultRename: () => void;
+}) => {
+  if (!dialog) {
+    return null;
+  }
+  const dialogTitle = t(DIALOG_TITLES[dialog]);
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        ref={dialogRef}
+        closeLabel={t("common.close")}
+        aria-describedby={undefined}
+        className="max-w-[440px]"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const fields: Record<NonNullable<DialogKind>, string> = {
+            "create-vault": "#vault-create-name",
+            "import-vault": "#vault-import-path",
+            project: "#project-name",
+            "rename-vault": "#vault-rename-input",
+          };
+          dialogRef.current
+            ?.querySelector<HTMLElement>(fields[dialog])
+            ?.focus();
+        }}
+      >
+        <DialogTitle className="text-foreground text-base font-semibold">
+          {dialogTitle}
+        </DialogTitle>
+        <div className="modal-body space-y-4 py-2">
+          {dialog === "project" && (
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="project-name"
+                id="label-project-name"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("dashboard.addProjectModal.label")}
+              </label>
+              <Input
+                id="project-name"
+                type="text"
+                autoComplete="off"
+                placeholder={t("dashboard.addProjectModal.placeholder")}
+                value={form.projectName}
+                onChange={(event) =>
+                  onFieldChange("projectName", event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onSubmitProject();
+                  }
+                }}
+                className="bg-secondary/50"
+              />
+            </div>
+          )}
+          {dialog === "create-vault" && (
+            <>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-create-name"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.create.nameLabel")}
+                </label>
+                <Input
+                  id="vault-create-name"
+                  type="text"
+                  autoComplete="off"
+                  placeholder={t("vault.create.namePlaceholder")}
+                  value={form.vaultName}
+                  onChange={(event) =>
+                    onFieldChange("vaultName", event.target.value)
+                  }
+                  className="bg-secondary/50"
+                />
+              </div>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-create-path"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.create.pathLabel")}
+                </label>
+                <div className="input-row flex gap-2">
+                  <Input
+                    id="vault-create-path"
+                    type="text"
+                    readOnly
+                    placeholder={t("vault.create.pathPlaceholder")}
+                    value={form.folderPath}
+                    className="bg-secondary/50 flex-1"
+                  />
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    className="dh-btn dh-btn-secondary"
+                    id="vault-create-browse"
+                    disabled={actionBusy !== null}
+                    onClick={() => onBrowseFolder("create-vault")}
+                  >
+                    {t("vault.create.browse")}
+                  </Button>
+                </div>
+              </div>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-create-password"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.create.passwordLabel")}
+                </label>
+                <Input
+                  id="vault-create-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t("vault.create.passwordPlaceholder")}
+                  value={form.password}
+                  onChange={(event) =>
+                    onFieldChange("password", event.target.value)
+                  }
+                  className="bg-secondary/50"
+                />
+              </div>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-create-confirm"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.create.confirmLabel")}
+                </label>
+                <Input
+                  id="vault-create-confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t("vault.create.confirmPlaceholder")}
+                  value={form.passwordConfirm}
+                  onChange={(event) =>
+                    onFieldChange("passwordConfirm", event.target.value)
+                  }
+                  className="bg-secondary/50"
+                />
+              </div>
+            </>
+          )}
+          {dialog === "import-vault" && (
+            <>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-import-path"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.import.pathLabel")}
+                </label>
+                <div className="input-row flex gap-2">
+                  <Input
+                    id="vault-import-path"
+                    type="text"
+                    readOnly
+                    placeholder={t("vault.import.pathPlaceholder")}
+                    value={form.folderPath}
+                    className="bg-secondary/50 flex-1"
+                  />
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    className="dh-btn dh-btn-secondary"
+                    id="vault-import-browse"
+                    disabled={actionBusy !== null}
+                    onClick={() => onBrowseFolder("import-vault")}
+                  >
+                    {t("vault.import.browse")}
+                  </Button>
+                </div>
+              </div>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-import-name"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.import.nameLabel")}
+                </label>
+                <Input
+                  id="vault-import-name"
+                  type="text"
+                  autoComplete="off"
+                  placeholder={t("vault.import.namePlaceholder")}
+                  value={form.vaultName}
+                  onChange={(event) =>
+                    onFieldChange("vaultName", event.target.value)
+                  }
+                  className="bg-secondary/50"
+                />
+              </div>
+              <div className="input-group space-y-1.5">
+                <label
+                  htmlFor="vault-import-password"
+                  className="text-muted-foreground block text-xs font-medium"
+                >
+                  {t("vault.import.passwordLabel")}
+                </label>
+                <Input
+                  id="vault-import-password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder={t("vault.import.passwordPlaceholder")}
+                  value={form.password}
+                  onChange={(event) =>
+                    onFieldChange("password", event.target.value)
+                  }
+                  className="bg-secondary/50"
+                />
+                <p className="input-desc text-muted-foreground mt-1 text-xs">
+                  {t("vault.import.passwordDesc")}
+                </p>
+              </div>
+            </>
+          )}
+          {dialog === "rename-vault" && (
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-rename-input"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.rename.label")}
+              </label>
+              <Input
+                id="vault-rename-input"
+                type="text"
+                autoComplete="off"
+                placeholder={t("vault.rename.placeholder")}
+                value={form.vaultName}
+                onChange={(event) =>
+                  onFieldChange("vaultName", event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onSubmitVaultRename();
+                  }
+                }}
+                className="bg-secondary/50"
+              />
+            </div>
+          )}
+          <p
+            className="modal-error text-destructive mt-1 min-h-[1.25rem] text-xs"
+            role="alert"
+          >
+            {form.error}
+          </p>
+        </div>
+        <div className="modal-footer border-border flex justify-end gap-2 border-t pt-3">
+          <Button
+            variant="secondary"
+            type="button"
+            className="dh-btn dh-btn-secondary"
+            onClick={onClose}
+          >
+            {t("common.cancel")}
+          </Button>
+          {dialog === "project" && (
+            <Button
+              variant="default"
+              type="button"
+              className="dh-btn dh-btn-primary"
+              id="confirm-add-project"
+              disabled={actionBusy !== null}
+              onClick={onSubmitProject}
+            >
+              {t("dashboard.addProjectModal.add")}
+            </Button>
+          )}
+          {dialog === "create-vault" && (
+            <Button
+              variant="default"
+              type="button"
+              className="dh-btn dh-btn-primary"
+              id="vault-create-submit"
+              disabled={actionBusy !== null}
+              onClick={onSubmitVaultCreate}
+            >
+              {t("vault.create.submit")}
+            </Button>
+          )}
+          {dialog === "import-vault" && (
+            <Button
+              variant="default"
+              type="button"
+              className="dh-btn dh-btn-primary"
+              id="vault-import-submit"
+              disabled={actionBusy !== null}
+              onClick={onSubmitVaultImport}
+            >
+              {t("vault.import.submit")}
+            </Button>
+          )}
+          {dialog === "rename-vault" && (
+            <Button
+              variant="default"
+              type="button"
+              className="dh-btn dh-btn-primary"
+              id="vault-rename-submit"
+              disabled={actionBusy !== null}
+              onClick={onSubmitVaultRename}
+            >
+              {t("vault.rename.submit")}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface DashboardSidebarProps {
+  sidebarOpen: boolean;
+  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  menu: string | null;
+  setMenu: React.Dispatch<React.SetStateAction<string | null>>;
+  loadVaults: () => void;
+  activeVault: VaultListEntry | null;
+  vaults: VaultListEntry[];
+  switchVault: (vault: VaultListEntry) => void;
+  openDialog: (
+    kind: Exclude<DialogKind, null>,
+    trigger?: HTMLElement | null,
+    initial?: Partial<DialogForm>
+  ) => void;
+  removeVault: (vault: VaultListEntry) => void;
+  openCreateVault: (trigger?: HTMLElement | null) => void;
+  openImportVault: (trigger?: HTMLElement | null) => void;
+  projectsCount: number;
+  navigate: (page: "settings" | "logs") => void;
+  syncAt: number;
+  now: number;
+  dialogStateRef: React.MutableRefObject<DialogKind>;
+}
+
+// eslint-disable-next-line complexity -- Dashboard sidebar renders collapsed and expanded navigation rails with active vault menus.
+const DashboardSidebar = ({
+  sidebarOpen,
+  setSidebarOpen,
+  menu,
+  setMenu,
+  loadVaults,
+  activeVault,
+  vaults,
+  switchVault,
+  openDialog,
+  removeVault,
+  openCreateVault,
+  openImportVault,
+  projectsCount,
+  navigate,
+  syncAt,
+  now,
+  dialogStateRef,
+}: DashboardSidebarProps) => (
+  <aside
+    className={cn(
+      "dash-index bg-card border-border relative z-50 flex shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
+      sidebarOpen
+        ? "w-[248px] p-3 max-[860px]:w-[248px] max-[860px]:translate-x-0"
+        : "is-collapsed items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
+    )}
+    id="indexPanel"
+    aria-label={t("dashboard.a11y.indexLabel")}
+  >
+    <div
+      className={cn(
+        "dash-brand flex items-center gap-2",
+        sidebarOpen ? "mb-3 px-1 py-0.5" : "mb-1 flex-col px-0 py-0.5"
+      )}
+    >
+      <img src={logoUrl} alt="" className="size-8 shrink-0 rounded-lg" />
+      {sidebarOpen && (
+        <span className="text-foreground flex-1 truncate text-sm font-semibold tracking-tight">
+          KeyHarbor
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        type="button"
+        className={cn(
+          "dh-btn dh-btn-icon dash-sidebar-toggle text-muted-foreground hover:text-foreground shrink-0 rounded-lg transition-colors",
+          sidebarOpen ? "size-7" : "hover:bg-secondary size-7"
+        )}
+        aria-label={sidebarLabel(sidebarOpen)}
+        title={sidebarLabel(sidebarOpen)}
+        aria-expanded={sidebarOpen}
+        aria-controls="indexPanel"
+        onClick={() => setSidebarOpen((open) => !open)}
+      >
+        <Icon name={sidebarArrow(sidebarOpen)} className="size-4" />
+      </Button>
+    </div>
+    {!sidebarOpen && <div className="border-border/60 my-1 w-7 border-t" />}
+    <div
+      className={cn(
+        "dash-vault-switcher",
+        sidebarOpen ? "mb-2.5 w-full" : "my-1 flex w-full justify-center"
+      )}
+    >
+      <DropdownMenu
+        open={menu === "vaults" || menu?.startsWith("vault:")}
+        onOpenChange={(open) => {
+          if (open) {
+            loadVaults();
+          }
+          setMenu(open ? "vaults" : null);
+        }}
+      >
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            type="button"
+            className={cn(
+              "dash-vault-btn border-border/70 border transition-colors",
+              sidebarOpen
+                ? "bg-secondary/50 hover:bg-secondary flex h-auto min-h-[46px] w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left"
+                : "bg-secondary/60 hover:bg-secondary text-foreground relative flex size-10 items-center justify-center rounded-xl p-0"
+            )}
+            id="vault-dropdown-btn"
+            title={`${t("dashboard.crumbsVault")}: ${activeVault?.name ?? t("dashboard.vaultDefault")}`}
+            aria-label={`${t("dashboard.crumbsVault")}: ${activeVault?.name ?? t("dashboard.vaultDefault")}`}
+          >
+            {sidebarOpen ? (
+              <>
+                <span className="dash-vault-text min-w-0 flex-1">
+                  <small className="text-muted-foreground block text-[10px] leading-none font-semibold tracking-wider uppercase">
+                    {t("dashboard.crumbsVault")}
+                  </small>
+                  <strong
+                    id="vault-dropdown-name"
+                    className="text-foreground mt-0.5 block truncate text-xs leading-tight font-semibold"
+                  >
+                    {activeVault?.name ?? t("dashboard.vaultDefault")}
+                  </strong>
+                </span>
+                <Icon
+                  name="chevron-down"
+                  className="text-muted-foreground size-3.5 shrink-0"
+                />
+              </>
+            ) : (
+              <>
+                <Icon name="vault" className="text-foreground size-4.5" />
+                <span id="vault-dropdown-name" className="sr-only">
+                  {activeVault?.name ?? t("dashboard.vaultDefault")}
+                </span>
+                <span className="bg-muted-foreground/60 absolute right-1.5 bottom-1.5 size-1.5 rounded-full" />
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align={sidebarOpen ? "start" : "center"}
+          side="right"
+          sideOffset={8}
+          className="dash-vault-menu bg-card border-border min-w-[220px] rounded-xl border p-1.5 shadow-xl"
+          id="vault-dropdown-menu"
+          onCloseAutoFocus={(event) => {
+            if (dialogStateRef.current !== null || !document.hasFocus()) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <div
+            id="vault-dropdown-list"
+            className="dash-vault-list max-h-[260px] space-y-0.5 overflow-y-auto"
+          >
+            {vaults.map((vault) => (
+              <div
+                key={vault.id}
+                className={cn(
+                  "vault-dropdown-row group flex min-w-0 items-center rounded-lg",
+                  vault.isActive && "active bg-primary/10",
+                  vault.status === "offline" && "offline opacity-60"
+                )}
+              >
+                <DropdownMenuItem
+                  className={cn(
+                    "dash-vault-item min-w-0 flex-1 cursor-pointer rounded-lg px-2.5 py-2 text-xs",
+                    vault.isActive && "active text-primary font-medium",
+                    vault.status === "offline" && "offline"
+                  )}
+                  disabled={vault.status === "offline"}
+                  onSelect={() => switchVault(vault)}
+                >
+                  <span className="dropdown-item-left flex min-w-0 flex-1 items-center gap-2">
+                    {vault.status === "offline" && (
+                      <Icon
+                        name="circle-alert"
+                        className="dropdown-item-icon status-offline size-3.5 shrink-0 text-amber-400"
+                      />
+                    )}
+                    <span
+                      className={cn(
+                        "dropdown-item-name truncate",
+                        vault.isActive && "active text-primary font-medium"
+                      )}
+                    >
+                      {vault.name}
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+                {!vault.isSystem && (
+                  <DropdownMenuSub
+                    open={menu === `vault:${vault.id}`}
+                    onOpenChange={(open) =>
+                      setMenu((current) => {
+                        if (open) {
+                          return `vault:${vault.id}`;
+                        }
+                        return current === `vault:${vault.id}`
+                          ? "vaults"
+                          : current;
+                      })
+                    }
+                  >
+                    <DropdownMenuSubTrigger
+                      className="dropdown-item-context-btn text-muted-foreground hover:text-foreground flex size-8 items-center justify-center rounded-lg p-0"
+                      aria-label={`${vault.name} ${t("dashboard.a11y.menuLabel")}`}
+                    >
+                      <Icon name="ellipsis" />
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="dash-vault-context-menu bg-card border-border min-w-[140px] rounded-xl border p-1 shadow-xl">
+                      <DropdownMenuItem
+                        className="cursor-pointer px-2.5 py-1.5 text-xs"
+                        onSelect={() => {
+                          openDialog(
+                            "rename-vault",
+                            document.querySelector<HTMLElement>(
+                              "#vault-dropdown-btn"
+                            ),
+                            {
+                              renameVaultId: vault.id,
+                              vaultName: vault.name,
+                            }
+                          );
+                        }}
+                      >
+                        {t("vault.context.rename")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive cursor-pointer px-2.5 py-1.5 text-xs"
+                        onSelect={() => removeVault(vault)}
+                      >
+                        {t("vault.context.remove")}
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+              </div>
+            ))}
+          </div>
+          <DropdownMenuSeparator className="dash-vault-separator bg-border my-1" />
+          <DropdownMenuItem
+            id="vault-new-btn"
+            className="dash-vault-item cursor-pointer gap-1.5 rounded-lg px-2.5 py-2 text-xs"
+            onSelect={() =>
+              openCreateVault(
+                document.querySelector<HTMLElement>("#vault-dropdown-btn")
+              )
+            }
+          >
+            <Icon name="plus" />
+            {t("vault.selector.newVault")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            id="vault-import-btn"
+            className="dash-vault-item cursor-pointer gap-1.5 rounded-lg px-2.5 py-2 text-xs"
+            onSelect={() =>
+              openImportVault(
+                document.querySelector<HTMLElement>("#vault-dropdown-btn")
+              )
+            }
+          >
+            <Icon name="folder" />
+            {t("vault.selector.importVault")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+    {!sidebarOpen && <div className="border-border/60 my-1 w-7 border-t" />}
+    <nav
+      className={cn(
+        "dash-nav my-1 flex flex-col gap-1",
+        sidebarOpen ? "w-full" : "w-full items-center"
+      )}
+      aria-label={t("dashboard.a11y.primaryNav")}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        className={cn(
+          "bg-primary/10 text-primary hover:bg-primary/15 flex rounded-lg font-semibold transition-colors",
+          sidebarOpen
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            : "relative size-10 items-center justify-center p-0"
+        )}
+        aria-current="page"
+        aria-label={t("dashboard.sidebar.navProjects")}
+        title={`${t("dashboard.sidebar.navProjects")} (${projectsCount})`}
+      >
+        <Icon name="folder" className={sidebarOpen ? "size-4" : "size-4.5"} />
+        {sidebarOpen && (
+          <>
+            <span className="flex-1 text-left">
+              {t("dashboard.sidebar.navProjects")}
+            </span>
+            <span className="dash-nav-count bg-primary/15 text-primary rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+              {projectsCount}
+            </span>
+          </>
+        )}
+        {!sidebarOpen && projectsCount > 0 && (
+          <span className="bg-primary text-primary-foreground ring-card absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full font-mono text-[9px] font-bold ring-2">
+            {projectsCount}
+          </span>
+        )}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        id="navActivity"
+        className={cn(
+          "text-muted-foreground hover:text-foreground hover:bg-secondary flex rounded-lg font-medium transition-colors",
+          sidebarOpen
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            : "size-10 items-center justify-center p-0"
+        )}
+        title={t("dashboard.sidebar.navActivity")}
+        aria-label={t("dashboard.sidebar.navActivity")}
+        onClick={() => navigate("logs")}
+      >
+        <Icon name="clock" className={sidebarOpen ? "size-4" : "size-4.5"} />
+        {sidebarOpen && (
+          <span className="flex-1 text-left">
+            {t("dashboard.sidebar.navActivity")}
+          </span>
+        )}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        id="navSettings"
+        className={cn(
+          "text-muted-foreground hover:text-foreground hover:bg-secondary flex rounded-lg font-medium transition-colors",
+          sidebarOpen
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            : "size-10 items-center justify-center p-0"
+        )}
+        title={t("dashboard.sidebar.navSettings")}
+        aria-label={t("dashboard.sidebar.navSettings")}
+        onClick={() => navigate("settings")}
+      >
+        <Icon name="settings" className={sidebarOpen ? "size-4" : "size-4.5"} />
+        {sidebarOpen && (
+          <span className="flex-1 text-left">
+            {t("dashboard.sidebar.navSettings")}
+          </span>
+        )}
+      </Button>
+    </nav>
+    <div
+      className={cn(
+        "dash-sync border-border/50 bg-secondary/30 text-muted-foreground mt-auto flex items-center rounded-xl border transition-colors",
+        sidebarOpen ? "gap-2.5 p-2 text-xs" : "size-8 justify-center p-0"
+      )}
+      title={`${t("dashboard.sidebar.unlocked")} — ${t(
+        "dashboard.sidebar.synced",
+        {
+          time: formatAccessTime(syncAt, now),
+        }
+      )}`}
+    >
+      <span
+        className="dash-sync-dot size-2 shrink-0 animate-pulse rounded-full bg-emerald-400"
+        aria-hidden="true"
+      />
+      {sidebarOpen ? (
+        <span className="dash-sync-text truncate">
+          {t("dashboard.sidebar.unlocked")}
+          <small
+            id="syncLabel"
+            className="text-muted-foreground/80 block text-[10px]"
+          >
+            {t("dashboard.sidebar.synced", {
+              time: formatAccessTime(syncAt, now),
+            })}
+          </small>
+        </span>
+      ) : (
+        <span id="syncLabel" className="sr-only">
+          {t("dashboard.sidebar.synced", {
+            time: formatAccessTime(syncAt, now),
+          })}
+        </span>
+      )}
+    </div>
+  </aside>
+);
 
 const App = () => {
   useRendererTranslation();
@@ -1377,282 +2554,31 @@ const App = () => {
       error: field === "error" ? value : "",
     }));
 
-  const projectActions = (project: ProjectRecord) => {
-    const favorite = favorites.includes(project.name);
-    return (
-      <span className="dash-card-actions relative z-10">
-        <Button
-          variant="ghost"
-          type="button"
-          className={`dash-icon-btn${favorite ? " is-fav" : ""}`}
-          aria-pressed={favorite}
-          aria-label={t(
-            favorite ? "project.removeFromFavorites" : "project.addToFavorites"
-          )}
-          title={t(
-            favorite ? "project.removeFromFavorites" : "project.addToFavorites"
-          )}
-          onClick={() => toggleFavorite(project.name)}
-        >
-          <Icon name="star" />
-        </Button>
-        <DropdownMenu
-          open={menu === `project:${project.name}`}
-          onOpenChange={(open) =>
-            setMenu(open ? `project:${project.name}` : null)
-          }
-        >
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              type="button"
-              className="dash-icon-btn"
-              aria-label={t("dashboard.a11y.menuLabel")}
-            >
-              <Icon name="ellipsis" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onSelect={() => {
-                closeMenus();
-                deleteProject(project.name);
-              }}
-            >
-              {t("dashboard.deleteProject.deleteBtn")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </span>
-    );
-  };
-
-  const projectCard = (project: ProjectRecord) => {
-    const mark = monogram(project.name);
-    const access = accessTimes[project.name];
-    const activeToday =
-      isToday(project.updatedAt) ||
-      (typeof access === "number" &&
-        now - access < 86_400_000 &&
-        isToday(new Date(access).toISOString()));
-    return (
-      <article
-        key={project.name}
-        className="dash-card relative"
-        data-list-key={project.name}
-      >
-        <a
-          className="absolute inset-0 z-0 rounded-[inherit]"
-          href={`project.html?name=${encodeURIComponent(project.name)}`}
-          aria-label={t("dashboard.card.openProject", { name: project.name })}
-          onKeyDown={(event) => {
-            if (event.key === " ") {
-              event.preventDefault();
-              openProject(project.name);
-            }
-          }}
-        >
-          <span className="sr-only">
-            {t("dashboard.card.openProject", { name: project.name })}
-          </span>
-        </a>
-        <div className="dash-card-top">
-          <span className={`monogram mono-${mark.tone}`} aria-hidden="true">
-            {mark.initials}
-          </span>
-          <span className="dash-card-name">{project.name}</span>
-          {projectActions(project)}
-        </div>
-        <p className="dash-card-sub">{t("dashboard.card.localProject")}</p>
-        <div className="dash-card-status">
-          {activeToday ? (
-            <span className="active-pill">
-              <span className="pill-dot" aria-hidden="true" />
-              {t("dashboard.card.activeToday")}
-            </span>
-          ) : (
-            <>
-              <Icon name="key" />
-              <span>{t("dashboard.card.storedLocally")}</span>
-            </>
-          )}
-        </div>
-        <div className="dash-card-badges">
-          <span>
-            {t(
-              project.secretCount === 1
-                ? "dashboard.secretCountOne"
-                : "dashboard.secretCount",
-              { count: project.secretCount }
-            )}
-          </span>
-          <span>
-            {t(
-              project.environmentCount === 1
-                ? "dashboard.card.environmentOne"
-                : "dashboard.card.environments",
-              { count: project.environmentCount }
-            )}
-          </span>
-        </div>
-        {typeof access === "number" && (
-          <p className="dash-card-sub access-line">
-            {t("dashboard.card.lastAccessed", {
-              time: formatAccessTime(access, now),
-            })}
-          </p>
-        )}
-        <div className="dash-card-foot">
-          <span>
-            {t("dashboard.updated", {
-              time: formatDate(project.updatedAt, now),
-            })}
-          </span>
-          <span className="dash-card-open">
-            {t("dashboard.card.open")}
-            <Icon name="arrow-right" />
-          </span>
-        </div>
-      </article>
-    );
-  };
-  const projectRow = (project: ProjectRecord) => {
-    const mark = monogram(project.name);
-    return (
-      <div
-        key={project.name}
-        className="dash-row relative"
-        data-list-key={project.name}
-      >
-        <a
-          className="absolute inset-0 z-0 rounded-[inherit]"
-          href={`project.html?name=${encodeURIComponent(project.name)}`}
-          aria-label={t("dashboard.card.openProject", { name: project.name })}
-          onKeyDown={(event) => {
-            if (event.key === " ") {
-              event.preventDefault();
-              openProject(project.name);
-            }
-          }}
-        >
-          <span className="sr-only">
-            {t("dashboard.card.openProject", { name: project.name })}
-          </span>
-        </a>
-        <span className={`monogram mono-${mark.tone}`} aria-hidden="true">
-          {mark.initials}
-        </span>
-        <div className="row-main">
-          <div className="row-name">{project.name}</div>
-          <div className="row-sub">
-            {t("dashboard.updated", {
-              time: formatDate(project.updatedAt, now),
-            })}
-          </div>
-        </div>
-        <div className="row-meta">
-          {t(
-            project.secretCount === 1
-              ? "dashboard.secretCountOne"
-              : "dashboard.secretCount",
-            project.secretCount === 1
-              ? undefined
-              : { count: project.secretCount }
-          )}
-        </div>
-        {projectActions(project)}
-      </div>
-    );
-  };
-
-  const statisticsStrip = () => {
-    if (!showStatistics || !statistics) {
-      return null;
-    }
-    const expiring = statistics.expiringSecrets > 0;
-    let expiryTone = "";
-    if (expiring) {
-      expiryTone = statistics.hasExpired ? "tone-red" : "tone-amber";
-    }
-    const expired = statistics.hasExpired;
-    const metrics = [
-      {
-        icon: "folder",
-        iconTone: "",
-        label: t("dashboard.statistics.totalProjects"),
-        tone: "",
-        value: statistics.totalProjects,
-      },
-      {
-        icon: "key",
-        iconTone: "",
-        label: t("dashboard.statistics.totalSecrets"),
-        tone: "",
-        value: statistics.totalSecrets,
-      },
-      {
-        icon: "clock",
-        iconTone: expiryTone,
-        label: t(
-          expired
-            ? "dashboard.statistics.expiringAndExpired"
-            : "dashboard.statistics.expiringSecrets"
-        ),
-        tone: expiryTone,
-        value: statistics.expiringSecrets,
-      },
-      {
-        icon: "activity",
-        iconTone: "",
-        label: t("dashboard.statistics.recentAccess"),
-        tone: "",
-        value: statistics.recentAccessCount,
-      },
-    ];
-    return (
-      <div className="dash-strip-wrap" id="stripWrap">
-        <section
-          className="dash-strip"
-          id="overviewStrip"
-          aria-label={t("dashboard.statistics.overview")}
-        >
-          {metrics.map((metric) => (
-            <div className="dash-metric" key={metric.icon}>
-              <span className="m-label">{metric.label}</span>
-              <span className={`m-icon ${metric.iconTone}`}>
-                <Icon name={metric.icon} />
-              </span>
-              <span className={`m-value ${metric.tone}`}>{metric.value}</span>
-            </div>
-          ))}
-        </section>
-        <p className="dash-stat-note">{t("dashboard.statistics.scopeLabel")}</p>
-      </div>
-    );
-  };
-
   const projectState = () => {
     if (loadState === "loading") {
       return (
-        <div className="dash-state">
-          <output className="spinner" aria-label={t("common.loading")} />
+        <div className="dash-state flex flex-col items-center justify-center gap-3 py-20 text-center">
+          <Loader2
+            className="text-primary size-8 animate-spin"
+            aria-label={t("common.loading")}
+          />
         </div>
       );
     }
     if (loadState === "error") {
       return (
-        <div className="dash-state">
-          <Icon name="circle-alert" />
-          <h2>{t("dashboard.notifications.failedToLoad")}</h2>
-          <p>{t("dashboard.emptyState.noResultsBody")}</p>
+        <div className="dash-state flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <Icon name="circle-alert" className="text-destructive size-10" />
+          <h2 className="text-foreground text-base font-semibold">
+            {t("dashboard.notifications.failedToLoad")}
+          </h2>
+          <p className="text-muted-foreground max-w-sm text-xs">
+            {t("dashboard.emptyState.noResultsBody")}
+          </p>
           <Button
             variant="secondary"
             type="button"
-            className="dh-btn dh-btn-secondary"
+            className="dh-btn dh-btn-secondary mt-2"
             onClick={() => refresh()}
           >
             {t("project.retry")}
@@ -1662,14 +2588,14 @@ const App = () => {
     }
     if (!visibleProjects.length) {
       return (
-        <div className="dash-state">
-          <Icon name="folder" />
-          <h2>
+        <div className="dash-state flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <Icon name="folder" className="text-muted-foreground/60 size-10" />
+          <h2 className="text-foreground text-base font-semibold">
             {projects.length
               ? t("dashboard.emptyState.title")
               : t("dashboard.emptyState.emptyTitle")}
           </h2>
-          <p>
+          <p className="text-muted-foreground max-w-sm text-xs">
             {projects.length
               ? t("dashboard.emptyState.noResultsBody")
               : t("dashboard.emptyState.emptyBody")}
@@ -1678,7 +2604,7 @@ const App = () => {
             <Button
               variant="secondary"
               type="button"
-              className="dh-btn dh-btn-secondary"
+              className="dh-btn dh-btn-secondary mt-2"
               onClick={() => {
                 setSearch("");
                 setProjectFilter("all");
@@ -1691,7 +2617,7 @@ const App = () => {
             <Button
               variant="default"
               type="button"
-              className="dh-btn dh-btn-primary"
+              className="dh-btn dh-btn-primary mt-2 gap-1.5"
               onClick={(event) => openDialog("project", event.currentTarget)}
             >
               <Icon name="plus" />
@@ -1701,9 +2627,51 @@ const App = () => {
         </div>
       );
     }
+    if (viewMode === "grid") {
+      return (
+        <div className="dash-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleProjects.map((project) => (
+            <ProjectCard
+              key={project.name}
+              project={project}
+              access={accessTimes[project.name]}
+              now={now}
+              favorite={favorites.includes(project.name)}
+              isMenuOpen={menu === `project:${project.name}`}
+              onOpenProject={openProject}
+              onToggleFavorite={toggleFavorite}
+              onOpenMenu={(open) =>
+                setMenu(open ? `project:${project.name}` : null)
+              }
+              onDeleteProject={(name) => {
+                closeMenus();
+                deleteProject(name);
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
     return (
-      <div className={viewMode === "grid" ? "dash-grid" : "dash-list"}>
-        {visibleProjects.map(viewMode === "grid" ? projectCard : projectRow)}
+      <div className="dash-list border-border divide-border bg-card flex flex-col divide-y overflow-hidden rounded-xl border shadow-xs">
+        {visibleProjects.map((project) => (
+          <ProjectRow
+            key={project.name}
+            project={project}
+            now={now}
+            favorite={favorites.includes(project.name)}
+            isMenuOpen={menu === `project:${project.name}`}
+            onOpenProject={openProject}
+            onToggleFavorite={toggleFavorite}
+            onOpenMenu={(open) =>
+              setMenu(open ? `project:${project.name}` : null)
+            }
+            onDeleteProject={(name) => {
+              closeMenus();
+              deleteProject(name);
+            }}
+          />
+        ))}
       </div>
     );
   };
@@ -1726,235 +2694,48 @@ const App = () => {
     openDialog("create-vault", trigger);
   const openImportVault = (trigger?: HTMLElement | null) =>
     openDialog("import-vault", trigger);
-  const dialogTitles = {
-    "create-vault": "vault.create.title",
-    "import-vault": "vault.import.title",
-    project: "dashboard.addProjectModal.title",
-    "rename-vault": "vault.rename.title",
-  };
-  const dialogTitle = t(dialogTitles[dialog ?? "rename-vault"]);
 
   return (
-    <div className="dash-app" ref={appRef}>
-      <aside
-        className={`dash-index${sidebarOpen ? "" : " is-collapsed"}`}
-        id="indexPanel"
-        aria-label={t("dashboard.a11y.indexLabel")}
-      >
-        <div className="dash-brand">
-          <img src={logoUrl} alt="" />
-          <span>KeyHarbor</span>
-          <Button
-            variant="ghost"
-            type="button"
-            className="dh-btn dh-btn-icon dash-sidebar-toggle"
-            aria-label={sidebarLabel(sidebarOpen)}
-            title={sidebarLabel(sidebarOpen)}
-            aria-expanded={sidebarOpen}
-            aria-controls="indexPanel"
-            onClick={() => setSidebarOpen((open) => !open)}
-          >
-            <Icon name={sidebarArrow(sidebarOpen)} />
-          </Button>
-        </div>
-        <div className="dash-vault-switcher">
-          <DropdownMenu
-            open={menu === "vaults" || menu?.startsWith("vault:")}
-            onOpenChange={(open) => {
-              if (open) {
-                loadVaults();
-              }
-              setMenu(open ? "vaults" : null);
-            }}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="secondary"
-                type="button"
-                className="dash-vault-btn"
-                id="vault-dropdown-btn"
-              >
-                <span className="dash-vault-text">
-                  <small>{t("dashboard.crumbsVault")}</small>
-                  <strong id="vault-dropdown-name">
-                    {activeVault?.name ?? t("dashboard.vaultDefault")}
-                  </strong>
-                </span>
-                <Icon name="chevron-down" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              side="right"
-              sideOffset={8}
-              className="dash-vault-menu"
-              id="vault-dropdown-menu"
-              onCloseAutoFocus={(event) => {
-                if (dialogStateRef.current !== null || !document.hasFocus()) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <div id="vault-dropdown-list" className="dash-vault-list">
-                {vaults.map((vault) => (
-                  <div
-                    key={vault.id}
-                    className={`vault-dropdown-row${vault.isActive ? " active" : ""}${vault.status === "offline" ? " offline" : ""}`}
-                  >
-                    <DropdownMenuItem
-                      className={`dash-vault-item${vault.isActive ? " active" : ""}${vault.status === "offline" ? " offline" : ""}`}
-                      disabled={vault.status === "offline"}
-                      onSelect={() => switchVault(vault)}
-                    >
-                      <span className="dropdown-item-left">
-                        {vault.status === "offline" && (
-                          <Icon
-                            name="circle-alert"
-                            className="dropdown-item-icon status-offline"
-                          />
-                        )}
-                        <span
-                          className={`dropdown-item-name${vault.isActive ? " active" : ""}`}
-                        >
-                          {vault.name}
-                        </span>
-                      </span>
-                    </DropdownMenuItem>
-                    {!vault.isSystem && (
-                      <DropdownMenuSub
-                        open={menu === `vault:${vault.id}`}
-                        onOpenChange={(open) =>
-                          setMenu((current) => {
-                            if (open) {
-                              return `vault:${vault.id}`;
-                            }
-                            return current === `vault:${vault.id}`
-                              ? "vaults"
-                              : current;
-                          })
-                        }
-                      >
-                        <DropdownMenuSubTrigger
-                          className="dropdown-item-context-btn"
-                          aria-label={`${vault.name} ${t("dashboard.a11y.menuLabel")}`}
-                        >
-                          <Icon name="ellipsis" />
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="dash-vault-context-menu">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              openDialog(
-                                "rename-vault",
-                                document.querySelector<HTMLElement>(
-                                  "#vault-dropdown-btn"
-                                ),
-                                {
-                                  renameVaultId: vault.id,
-                                  vaultName: vault.name,
-                                }
-                              );
-                            }}
-                          >
-                            {t("vault.context.rename")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => removeVault(vault)}
-                          >
-                            {t("vault.context.remove")}
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <DropdownMenuSeparator className="dash-vault-separator" />
-              <DropdownMenuItem
-                id="vault-new-btn"
-                className="dash-vault-item"
-                onSelect={() =>
-                  openCreateVault(
-                    document.querySelector<HTMLElement>("#vault-dropdown-btn")
-                  )
-                }
-              >
-                {t("vault.selector.newVault")}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                id="vault-import-btn"
-                className="dash-vault-item"
-                onSelect={() =>
-                  openImportVault(
-                    document.querySelector<HTMLElement>("#vault-dropdown-btn")
-                  )
-                }
-              >
-                {t("vault.selector.importVault")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <nav className="dash-nav" aria-label={t("dashboard.a11y.primaryNav")}>
-          <Button
-            variant="secondary"
-            type="button"
-            aria-current="page"
-            aria-label={t("dashboard.sidebar.navProjects")}
-            title={t("dashboard.sidebar.navProjects")}
-          >
-            <Icon name="folder" />
-            <span>{t("dashboard.sidebar.navProjects")}</span>
-            <span className="dash-nav-count">{projects.length}</span>
-          </Button>
-          <Button
-            variant="secondary"
-            type="button"
-            id="navActivity"
-            title={t("dashboard.sidebar.navActivity")}
-            aria-label={t("dashboard.sidebar.navActivity")}
-            onClick={() => navigate("logs")}
-          >
-            <Icon name="clock" />
-            <span>{t("dashboard.sidebar.navActivity")}</span>
-          </Button>
-          <Button
-            variant="secondary"
-            type="button"
-            id="navSettings"
-            title={t("dashboard.sidebar.navSettings")}
-            aria-label={t("dashboard.sidebar.navSettings")}
-            onClick={() => navigate("settings")}
-          >
-            <Icon name="settings" />
-            <span>{t("dashboard.sidebar.navSettings")}</span>
-          </Button>
-        </nav>
-        <div className="dash-sync">
-          <span className="dash-sync-dot" aria-hidden="true" />
-          <span>
-            {t("dashboard.sidebar.unlocked")}
-            <small id="syncLabel">
-              {t("dashboard.sidebar.synced", {
-                time: formatAccessTime(syncAt, now),
-              })}
-            </small>
-          </span>
-        </div>
-      </aside>
+    <div
+      className="dash-app bg-background text-foreground flex h-dvh overflow-hidden font-sans"
+      ref={appRef}
+    >
+      <DashboardSidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        menu={menu}
+        setMenu={setMenu}
+        loadVaults={loadVaults}
+        activeVault={activeVault}
+        vaults={vaults}
+        switchVault={switchVault}
+        openDialog={openDialog}
+        removeVault={removeVault}
+        openCreateVault={openCreateVault}
+        openImportVault={openImportVault}
+        projectsCount={projects.length}
+        navigate={navigate}
+        syncAt={syncAt}
+        now={now}
+        dialogStateRef={dialogStateRef}
+      />
       <button
         type="button"
-        className="dash-sidebar-scrim"
+        className={cn(
+          "dash-sidebar-scrim fixed inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity min-[861px]:hidden",
+          sidebarOpen ? "block opacity-100" : "hidden opacity-0"
+        )}
         hidden={!sidebarOpen}
         aria-label={t("project.sidebar.collapse")}
         onClick={() => setSidebarOpen(false)}
       />
-      <main className="dash-main">
-        <header className="dash-topbar">
+      <main className="dash-main bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="dash-topbar border-border bg-card/50 flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
           <Button
             variant="secondary"
+            size="icon"
             type="button"
-            className="dh-btn dh-btn-icon dash-index-toggle"
+            className="dh-btn dh-btn-icon dash-index-toggle size-9 shrink-0 min-[861px]:hidden"
             id="indexToggle"
             aria-label={t("dashboard.a11y.indexLabel")}
             aria-controls="indexPanel"
@@ -1964,15 +2745,20 @@ const App = () => {
             <Icon name="list" />
           </Button>
           <nav
-            className="dash-crumbs"
+            className="dash-crumbs text-muted-foreground hidden items-center gap-2 font-mono text-xs min-[1200px]:flex"
             aria-label={t("dashboard.a11y.crumbsLabel")}
           >
             <span>{t("dashboard.crumbsVault")}</span>
             <span aria-hidden="true">/</span>
-            <span aria-current="page">{t("dashboard.title")}</span>
+            <span aria-current="page" className="text-foreground">
+              {t("dashboard.title")}
+            </span>
           </nav>
-          <div className="dash-search">
-            <Icon name="search" />
+          <div className="dash-search relative mx-auto max-w-[420px] min-w-[120px] flex-1">
+            <Icon
+              name="search"
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+            />
             <Input
               ref={searchRef}
               type="search"
@@ -1982,16 +2768,18 @@ const App = () => {
               autoComplete="off"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              className="bg-secondary/50 border-border h-9 pr-14 pl-9 text-xs"
             />
-            <kbd className="dash-search-kbd" aria-hidden="true">
+            <kbd className="dash-search-kbd text-muted-foreground border-border/80 bg-background/50 pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[10px]">
               ⌘K
             </kbd>
           </div>
-          <div className="dash-toolbar">
+          <div className="dash-toolbar flex shrink-0 items-center gap-2">
             <Button
               variant="secondary"
+              size="sm"
               type="button"
-              className="dh-btn dh-btn-secondary"
+              className="dh-btn dh-btn-secondary h-9 gap-1.5 text-xs"
               id="lock-btn"
               disabled={actionBusy !== null}
               onClick={() => lock()}
@@ -2006,17 +2794,19 @@ const App = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="secondary"
+                  size="icon"
                   type="button"
-                  className="dh-btn-icon"
+                  className="dh-btn-icon size-9"
                   id="settings-dropdown-btn"
                   aria-label={t("dashboard.a11y.menuLabel")}
                 >
                   <Icon name="ellipsis" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="min-w-[160px] p-1">
                 <DropdownMenuItem
                   id="install-cli-btn"
+                  className="cursor-pointer px-2.5 py-1.5 text-xs"
                   disabled={!cliReady || actionBusy !== null}
                   onSelect={() =>
                     handleCli(cliInstalled ? "uninstall" : "install")
@@ -2026,6 +2816,7 @@ const App = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   id="settings-btn"
+                  className="cursor-pointer px-2.5 py-1.5 text-xs"
                   onSelect={() => navigate("settings")}
                 >
                   {t("dashboard.settings")}
@@ -2034,8 +2825,9 @@ const App = () => {
             </DropdownMenu>
             <Button
               variant="default"
+              size="sm"
               type="button"
-              className="dh-btn dh-btn-primary"
+              className="dh-btn dh-btn-primary h-9 gap-1.5 text-xs"
               id="add-project-btn"
               aria-label={t("dashboard.addProject")}
               title={t("dashboard.addProject")}
@@ -2043,30 +2835,42 @@ const App = () => {
               onClick={(event) => openDialog("project", event.currentTarget)}
             >
               <Icon name="plus" />
-              <span className="btn-label-collapsible">
+              <span className="btn-label-collapsible max-[860px]:hidden">
                 {t("dashboard.addProject")}
               </span>
             </Button>
           </div>
         </header>
-        <div className="dash-canvas">
-          <div className="dash-heading">
-            <h1>{t("dashboard.title")}</h1>
-            <p className="dash-subtitle">{t("dashboard.subtitle")}</p>
+        <div className="dash-canvas flex-1 space-y-6 overflow-y-auto p-6 lg:p-8">
+          <div className="dash-heading space-y-1">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
+              {t("dashboard.title")}
+            </h1>
+            <p className="dash-subtitle text-muted-foreground text-xs">
+              {t("dashboard.subtitle")}
+            </p>
           </div>
-          {statisticsStrip()}
+          {showStatistics && statistics && (
+            <StatisticsStrip statistics={statistics} />
+          )}
           <section
-            className="dash-section"
+            className="dash-section space-y-4"
             aria-label={t("dashboard.a11y.sectionLabel")}
           >
-            <div className="dash-section-head">
+            <div className="dash-section-head mb-4 flex flex-wrap items-center gap-3">
               <fieldset
-                className="dash-filters"
+                className="dash-filters m-0 flex min-w-0 items-center gap-2 border-0 p-0"
                 aria-label={t("dashboard.filters.label")}
               >
                 <Button
                   variant="secondary"
+                  size="sm"
                   type="button"
+                  className={cn(
+                    "h-8 px-3 text-xs",
+                    projectFilter === "all" &&
+                      "bg-primary/10 text-primary border-primary/20"
+                  )}
                   aria-pressed={projectFilter === "all"}
                   onClick={() => setProjectFilter("all")}
                 >
@@ -2074,7 +2878,13 @@ const App = () => {
                 </Button>
                 <Button
                   variant="secondary"
+                  size="sm"
                   type="button"
+                  className={cn(
+                    "h-8 gap-1.5 px-3 text-xs",
+                    projectFilter === "starred" &&
+                      "bg-primary/10 text-primary border-primary/20"
+                  )}
                   aria-pressed={projectFilter === "starred"}
                   onClick={() => setProjectFilter("starred")}
                 >
@@ -2086,14 +2896,17 @@ const App = () => {
                   })}
                 </Button>
               </fieldset>
-              <span className="spacer" />
-              <div
-                className="dash-seg"
-                aria-label={t("dashboard.viewToggle.label")}
-              >
+              <span className="spacer flex-1" />
+              <div className="dash-seg bg-secondary/80 border-border inline-flex gap-0.5 rounded-lg border p-0.5">
                 <Button
-                  variant="secondary"
+                  variant="ghost"
+                  size="icon"
                   type="button"
+                  className={cn(
+                    "text-muted-foreground size-7 rounded-md",
+                    viewMode === "grid" &&
+                      "bg-card text-foreground font-medium shadow-xs"
+                  )}
                   id="viewGridBtn"
                   aria-label={t("dashboard.viewToggle.grid")}
                   aria-pressed={viewMode === "grid"}
@@ -2102,8 +2915,14 @@ const App = () => {
                   <Icon name="grid" />
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="ghost"
+                  size="icon"
                   type="button"
+                  className={cn(
+                    "text-muted-foreground size-7 rounded-md",
+                    viewMode === "list" &&
+                      "bg-card text-foreground font-medium shadow-xs"
+                  )}
                   id="viewListBtn"
                   aria-label={t("dashboard.viewToggle.list")}
                   aria-pressed={viewMode === "list"}
@@ -2119,7 +2938,9 @@ const App = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="secondary"
+                    size="sm"
                     type="button"
+                    className="h-8 gap-1.5 px-3 text-xs"
                     id="sortBtn"
                     aria-label={t("dashboard.a11y.sortLabel")}
                   >
@@ -2129,13 +2950,21 @@ const App = () => {
                     <Icon name="chevron-down" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" id="sortMenu">
+                <DropdownMenuContent
+                  align="end"
+                  id="sortMenu"
+                  className="min-w-[140px] p-1"
+                >
                   <DropdownMenuRadioGroup
                     value={sortMode}
                     onValueChange={(value) => setSortMode(value as SortMode)}
                   >
                     {(["recent", "name", "secrets"] as const).map((sort) => (
-                      <DropdownMenuRadioItem key={sort} value={sort}>
+                      <DropdownMenuRadioItem
+                        key={sort}
+                        value={sort}
+                        className="cursor-pointer px-2.5 py-1.5 text-xs"
+                      >
                         {t(`dashboard.sort.${sort}`)}
                       </DropdownMenuRadioItem>
                     ))}
@@ -2149,301 +2978,57 @@ const App = () => {
             <Button
               variant="ghost"
               type="button"
-              className="dash-add-tile"
+              className="dash-add-tile border-border/80 hover:border-primary/50 hover:bg-secondary/30 group my-4 flex h-auto w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-all"
               disabled={actionBusy !== null}
               onClick={(event) => openDialog("project", event.currentTarget)}
             >
-              <span className="dash-add-icon">
+              <span className="dash-add-icon bg-secondary text-primary flex size-9 items-center justify-center rounded-lg transition-transform group-hover:scale-105">
                 <Icon name="plus" />
               </span>
-              <strong>{t("dashboard.addTile.title")}</strong>
-              <span>{t("dashboard.addTile.description")}</span>
+              <strong className="text-foreground text-sm font-semibold">
+                {t("dashboard.addTile.title")}
+              </strong>
+              <span className="text-muted-foreground text-xs">
+                {t("dashboard.addTile.description")}
+              </span>
             </Button>
           )}
         </div>
-        <footer className="dash-footer">
+        <footer className="dash-footer bg-card/90 border-border text-muted-foreground fixed right-4 bottom-3 z-20 flex items-center gap-3 rounded-lg border px-3 py-1.5 text-[11px] shadow-sm backdrop-blur-xs">
           <span>
-            <kbd>Enter</kbd> {t("dashboard.card.open")}
+            <kbd className="bg-secondary/80 border-border rounded border px-1 py-0.5 font-mono text-[10px]">
+              Enter
+            </kbd>{" "}
+            {t("dashboard.card.open")}
           </span>
           <span>
-            <kbd>⌘K / Ctrl+K</kbd> {t("dashboard.a11y.searchLabel")}
+            <kbd className="bg-secondary/80 border-border rounded border px-1 py-0.5 font-mono text-[10px]">
+              ⌘K / Ctrl+K
+            </kbd>{" "}
+            {t("dashboard.a11y.searchLabel")}
           </span>
-          <span className="dash-footer-local">
-            <span className="dash-sync-dot" aria-hidden="true" />
+          <span className="dash-footer-local hidden items-center gap-1.5 min-[1001px]:inline-flex">
+            <span
+              className="dash-sync-dot size-1.5 rounded-full bg-emerald-400"
+              aria-hidden="true"
+            />
             {t("dashboard.card.storedLocally")}
           </span>
         </footer>
       </main>
-      <Dialog
-        open={dialog !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDialog();
-          }
-        }}
-      >
-        <DialogContent
-          ref={dialogRef}
-          closeLabel={t("common.close")}
-          aria-describedby={undefined}
-          onCloseAutoFocus={(event) => event.preventDefault()}
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            const fields = {
-              "create-vault": "#vault-create-name",
-              "import-vault": "#vault-import-path",
-              project: "#project-name",
-              "rename-vault": "#vault-rename-input",
-            };
-            if (dialog) {
-              dialogRef.current
-                ?.querySelector<HTMLElement>(fields[dialog])
-                ?.focus();
-            }
-          }}
-        >
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <div className="modal-body">
-            {dialog === "project" && (
-              <div className="input-group">
-                <label htmlFor="project-name" id="label-project-name">
-                  {t("dashboard.addProjectModal.label")}
-                </label>
-                <Input
-                  id="project-name"
-                  type="text"
-                  autoComplete="off"
-                  placeholder={t("dashboard.addProjectModal.placeholder")}
-                  value={form.projectName}
-                  onChange={(event) =>
-                    setField("projectName", event.target.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      submitProject();
-                    }
-                  }}
-                />
-              </div>
-            )}
-            {dialog === "create-vault" && (
-              <>
-                <div className="input-group">
-                  <label htmlFor="vault-create-name">
-                    {t("vault.create.nameLabel")}
-                  </label>
-                  <Input
-                    id="vault-create-name"
-                    type="text"
-                    autoComplete="off"
-                    placeholder={t("vault.create.namePlaceholder")}
-                    value={form.vaultName}
-                    onChange={(event) =>
-                      setField("vaultName", event.target.value)
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label htmlFor="vault-create-path">
-                    {t("vault.create.pathLabel")}
-                  </label>
-                  <div className="input-row">
-                    <Input
-                      id="vault-create-path"
-                      type="text"
-                      readOnly
-                      placeholder={t("vault.create.pathPlaceholder")}
-                      value={form.folderPath}
-                    />
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      className="dh-btn dh-btn-secondary"
-                      id="vault-create-browse"
-                      disabled={actionBusy !== null}
-                      onClick={() => browseFolder("create-vault")}
-                    >
-                      {t("vault.create.browse")}
-                    </Button>
-                  </div>
-                </div>
-                <div className="input-group">
-                  <label htmlFor="vault-create-password">
-                    {t("vault.create.passwordLabel")}
-                  </label>
-                  <Input
-                    id="vault-create-password"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={t("vault.create.passwordPlaceholder")}
-                    value={form.password}
-                    onChange={(event) =>
-                      setField("password", event.target.value)
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label htmlFor="vault-create-confirm">
-                    {t("vault.create.confirmLabel")}
-                  </label>
-                  <Input
-                    id="vault-create-confirm"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={t("vault.create.confirmPlaceholder")}
-                    value={form.passwordConfirm}
-                    onChange={(event) =>
-                      setField("passwordConfirm", event.target.value)
-                    }
-                  />
-                </div>
-              </>
-            )}
-            {dialog === "import-vault" && (
-              <>
-                <div className="input-group">
-                  <label htmlFor="vault-import-path">
-                    {t("vault.import.pathLabel")}
-                  </label>
-                  <div className="input-row">
-                    <Input
-                      id="vault-import-path"
-                      type="text"
-                      readOnly
-                      placeholder={t("vault.import.pathPlaceholder")}
-                      value={form.folderPath}
-                    />
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      className="dh-btn dh-btn-secondary"
-                      id="vault-import-browse"
-                      disabled={actionBusy !== null}
-                      onClick={() => browseFolder("import-vault")}
-                    >
-                      {t("vault.import.browse")}
-                    </Button>
-                  </div>
-                </div>
-                <div className="input-group">
-                  <label htmlFor="vault-import-name">
-                    {t("vault.import.nameLabel")}
-                  </label>
-                  <Input
-                    id="vault-import-name"
-                    type="text"
-                    autoComplete="off"
-                    placeholder={t("vault.import.namePlaceholder")}
-                    value={form.vaultName}
-                    onChange={(event) =>
-                      setField("vaultName", event.target.value)
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label htmlFor="vault-import-password">
-                    {t("vault.import.passwordLabel")}
-                  </label>
-                  <Input
-                    id="vault-import-password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder={t("vault.import.passwordPlaceholder")}
-                    value={form.password}
-                    onChange={(event) =>
-                      setField("password", event.target.value)
-                    }
-                  />
-                  <p className="input-desc">{t("vault.import.passwordDesc")}</p>
-                </div>
-              </>
-            )}
-            {dialog === "rename-vault" && (
-              <div className="input-group">
-                <label htmlFor="vault-rename-input">
-                  {t("vault.rename.label")}
-                </label>
-                <Input
-                  id="vault-rename-input"
-                  type="text"
-                  autoComplete="off"
-                  placeholder={t("vault.rename.placeholder")}
-                  value={form.vaultName}
-                  onChange={(event) =>
-                    setField("vaultName", event.target.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      submitVaultRename();
-                    }
-                  }}
-                />
-              </div>
-            )}
-            <p className="modal-error" role="alert">
-              {form.error}
-            </p>
-          </div>
-          <div className="modal-footer">
-            <Button
-              variant="secondary"
-              type="button"
-              className="dh-btn dh-btn-secondary"
-              onClick={() => closeDialog()}
-            >
-              {t("common.cancel")}
-            </Button>
-            {dialog === "project" && (
-              <Button
-                variant="default"
-                type="button"
-                className="dh-btn dh-btn-primary"
-                id="confirm-add-project"
-                disabled={actionBusy !== null}
-                onClick={() => submitProject()}
-              >
-                {t("dashboard.addProjectModal.add")}
-              </Button>
-            )}
-            {dialog === "create-vault" && (
-              <Button
-                variant="default"
-                type="button"
-                className="dh-btn dh-btn-primary"
-                id="vault-create-submit"
-                disabled={actionBusy !== null}
-                onClick={() => submitVaultCreate()}
-              >
-                {t("vault.create.submit")}
-              </Button>
-            )}
-            {dialog === "import-vault" && (
-              <Button
-                variant="default"
-                type="button"
-                className="dh-btn dh-btn-primary"
-                id="vault-import-submit"
-                disabled={actionBusy !== null}
-                onClick={() => submitVaultImport()}
-              >
-                {t("vault.import.submit")}
-              </Button>
-            )}
-            {dialog === "rename-vault" && (
-              <Button
-                variant="default"
-                type="button"
-                className="dh-btn dh-btn-primary"
-                id="vault-rename-submit"
-                disabled={actionBusy !== null}
-                onClick={() => submitVaultRename()}
-              >
-                {t("vault.rename.submit")}
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DashboardDialog
+        dialog={dialog}
+        dialogRef={dialogRef}
+        form={form}
+        actionBusy={actionBusy}
+        onClose={closeDialog}
+        onFieldChange={setField}
+        onBrowseFolder={browseFolder}
+        onSubmitProject={submitProject}
+        onSubmitVaultCreate={submitVaultCreate}
+        onSubmitVaultImport={submitVaultImport}
+        onSubmitVaultRename={submitVaultRename}
+      />
       {confirmationDialog}
     </div>
   );
