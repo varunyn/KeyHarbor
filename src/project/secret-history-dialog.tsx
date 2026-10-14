@@ -29,21 +29,21 @@ const SecretHistoryList = ({
 }: Omit<SecretHistoryDialogProps, "contextLabel" | "closeModal">) => {
   if (historyLoading) {
     return (
-      <div className="secrets-state">
-        <output className="spinner" />
+      <div className="flex items-center justify-center p-8">
+        <output className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
       </div>
     );
   }
   if (!history) {
     return (
-      <div className="secrets-state">
+      <div className="text-muted-foreground flex items-center justify-center p-8 text-xs">
         <p>{t("project.history.failedToLoad")}</p>
       </div>
     );
   }
   if (history.history.length === 0) {
     return (
-      <div className="secrets-state">
+      <div className="text-muted-foreground flex items-center justify-center p-8 text-xs">
         <p>{t("project.history.noHistory")}</p>
       </div>
     );
@@ -69,21 +69,23 @@ const SecretHistoryList = ({
         })),
       ].map((row, index) => (
         <div
-          className={`history-row${row.current ? " current" : ""}`}
+          className={`space-y-2 p-3.5 text-xs${row.current ? " bg-primary/5" : ""}`}
           key={`${row.index}:${row.changedAt}`}
         >
-          <div className="history-row-head">
-            <strong>{row.label}</strong>
-            <time>{relative(row.changedAt)}</time>
+          <div className="flex items-center justify-between font-medium">
+            <strong className="text-foreground">{row.label}</strong>
+            <time className="text-muted-foreground font-mono">
+              {relative(row.changedAt)}
+            </time>
           </div>
-          <div className="history-value">
+          <div className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs break-all select-text">
             {historyShown[index] ? String(row.value ?? "") : mask(row.value)}
           </div>
-          <div className="history-row-actions">
+          <div className="flex items-center gap-3 pt-1">
             <Button
               variant="link"
               type="button"
-              className="link-btn"
+              className="text-primary h-auto p-0 text-xs hover:underline"
               data-toggle
               onClick={() => onToggle(index)}
             >
@@ -97,7 +99,7 @@ const SecretHistoryList = ({
               <Button
                 variant="link"
                 type="button"
-                className="link-btn"
+                className="text-destructive h-auto p-0 text-xs hover:underline"
                 data-restore
                 disabled={actionBusy}
                 onClick={() => restoreVersion(row.index)}
@@ -128,11 +130,16 @@ export const SecretHistoryDialog = ({
   restoreVersion,
 }: SecretHistoryDialogProps) => (
   <ModalFrame id="historyModalOverlay" onClose={closeModal}>
-    <div className="modal-header">
+    <div className="mb-4">
       <ModalTitle>{t("project.history.title")}</ModalTitle>
+      <p className="text-muted-foreground mt-1 font-mono text-xs">
+        {contextLabel}
+      </p>
     </div>
-    <p className="environment-context">{contextLabel}</p>
-    <div className="history-list" id="historyList">
+    <div
+      className="border-border divide-border/60 bg-card mb-6 max-h-[340px] divide-y overflow-y-auto rounded-xl border"
+      id="historyList"
+    >
       <SecretHistoryList
         historyLoading={historyLoading}
         history={history}
@@ -143,7 +150,7 @@ export const SecretHistoryDialog = ({
         restoreVersion={restoreVersion}
       />
     </div>
-    <div className="modal-actions">
+    <div className="border-border flex justify-end gap-2 border-t pt-3">
       <DialogCloseButton onClose={closeModal} label="common.close" />
     </div>
   </ModalFrame>

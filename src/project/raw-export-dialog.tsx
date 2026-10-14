@@ -26,19 +26,21 @@ export const RawExportDialog = ({
   exportRaw,
 }: RawExportDialogProps) => (
   <ModalFrame id="rawExportModalOverlay" onClose={closeModal}>
-    <div className="modal-header">
+    <div className="mb-4">
       <ModalTitle>{t("project.rawExportModal.title")}</ModalTitle>
+      <p className="text-muted-foreground mt-1 font-mono text-xs">
+        {contextLabel}
+      </p>
     </div>
-    <p className="environment-context">{contextLabel}</p>
-    <div className="modal-warning">
+    <div className="bg-destructive/10 border-destructive/20 text-destructive mb-4 flex items-center gap-2.5 rounded-xl border p-3 text-xs">
       <Icon name="circle-alert" />
       <span>{t("project.rawExportModal.body")}</span>
     </div>
-    <div
-      className={`sl-field${fieldErrors.password ? " invalid" : ""}`}
-      id="fieldRawPassword"
-    >
-      <label htmlFor="rawPassword">
+    <div className="mb-6 space-y-1.5" id="fieldRawPassword">
+      <label
+        htmlFor="rawPassword"
+        className="text-foreground block text-xs font-medium"
+      >
         {t("project.rawExportModal.passwordLabel")}
       </label>
       <Input
@@ -49,11 +51,13 @@ export const RawExportDialog = ({
         value={rawPassword}
         onChange={(event) => onPasswordChange(event.target.value)}
       />
-      <p className="sl-field-error" id="rawPasswordError">
-        {fieldErrors.password}
-      </p>
+      {fieldErrors.password && (
+        <p className="text-destructive mt-1 text-xs" id="rawPasswordError">
+          {fieldErrors.password}
+        </p>
+      )}
     </div>
-    <div className="modal-actions">
+    <div className="border-border flex justify-end gap-2 border-t pt-3">
       <DialogCloseButton onClose={closeModal} />
       <Button
         variant="destructive"

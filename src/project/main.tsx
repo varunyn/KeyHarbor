@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../renderer/ui/dropdown-menu";
+import { cn } from "../renderer/ui/utils";
 import type {
   ActivityLog,
   ConfigurationResult,
@@ -262,22 +263,20 @@ interface ProjectStateProps {
 }
 
 const LoadingState = ({ label }: { label: string }) => (
-  <>
-    <output className="spinner" aria-label={label} />
+  <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-12 text-center text-xs">
+    <output
+      className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent"
+      aria-label={label}
+    />
     <p>{label}</p>
-  </>
+  </div>
 );
 
 const ErrorState = ({ label, retry }: { label: string; retry: () => void }) => (
-  <div className="secrets-error-card">
+  <div className="bg-destructive/10 border-destructive/20 text-destructive secrets-error-card mx-auto flex max-w-sm flex-col items-center justify-center gap-3 rounded-2xl border p-8 text-center">
     <Icon name="circle-alert" />
-    <h2>{label}</h2>
-    <Button
-      variant="secondary"
-      className="sl-btn sl-btn-secondary"
-      type="button"
-      onClick={retry}
-    >
+    <h2 className="text-sm font-semibold">{label}</h2>
+    <Button variant="secondary" size="sm" type="button" onClick={retry}>
       {t("project.retry")}
     </Button>
   </div>
@@ -312,16 +311,22 @@ const ProjectState = ({
     content = (
       <>
         <Icon name="search" />
-        <h2>{t("project.emptyState.title")}</h2>
-        <p>{t("project.table.noResults")}</p>
+        <h2 className="text-foreground text-sm font-semibold">
+          {t("project.emptyState.title")}
+        </h2>
+        <p className="text-muted-foreground text-xs">
+          {t("project.table.noResults")}
+        </p>
       </>
     );
   } else {
     content = (
       <>
         <Icon name="key" />
-        <h2>{t("project.emptyState.title")}</h2>
-        <p>
+        <h2 className="text-foreground text-sm font-semibold">
+          {t("project.emptyState.title")}
+        </h2>
+        <p className="text-muted-foreground max-w-sm text-xs">
           {t("project.environments.emptyState", {
             environment: environmentName,
             project: projectName,
@@ -329,18 +334,22 @@ const ProjectState = ({
         </p>
         <Button
           variant="default"
-          className="sl-btn sl-btn-primary"
+          size="sm"
           type="button"
           disabled={!targetAvailable}
           onClick={openSecret}
         >
           <Icon name="plus" />
-          {t("project.newSecret")}
+          <span>{t("project.newSecret")}</span>
         </Button>
       </>
     );
   }
-  return <div className="secrets-state">{content}</div>;
+  return (
+    <div className="text-muted-foreground secrets-state flex flex-col items-center justify-center gap-3 p-12 text-center text-xs">
+      {content}
+    </div>
+  );
 };
 
 const ProjectSummary = ({
@@ -352,14 +361,23 @@ const ProjectSummary = ({
   attention: number;
   updatedAt: string | null;
 }) => (
-  <div className="secrets-footing" id="footing" aria-live="polite">
+  <div
+    className="border-border/30 text-muted-foreground secrets-footing flex items-center gap-3 border-b px-6 py-2 text-xs"
+    id="footing"
+    aria-live="polite"
+  >
     <span>{secretCountLabelFor(entryCount)}</span>
-    <span className="attention">
+    <span
+      className={cn(
+        "font-medium",
+        attention > 0 ? "text-amber-400" : "text-muted-foreground"
+      )}
+    >
       {t("project.summary.needsAttention", { count: attention })}
     </span>
     {updatedAt && (
       <>
-        <span className="sep" aria-hidden="true">
+        <span className="opacity-40" aria-hidden="true">
           ·
         </span>
         <span>
@@ -430,20 +448,30 @@ const ConfigurationPanel = ({
     result && "state" in result && result.state === "unavailable";
   return (
     <section
-      className="configuration-panel"
+      className="bg-card border-border configuration-panel mx-6 mt-4 rounded-xl border p-4 shadow-xs"
       id="configurationPanel"
       aria-labelledby="configurationHeading"
     >
-      <div className="configuration-panel-head">
-        <div className="configuration-overview">
-          <h2 id="configurationHeading">
+      <div className="configuration-panel-head flex flex-wrap items-center justify-between gap-4">
+        <div className="configuration-overview space-y-1">
+          <h2
+            id="configurationHeading"
+            className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
+          >
             {t("project.configuration.heading")}
           </h2>
-          <output id="configurationSummaryText" aria-live="polite">
+          <output
+            id="configurationSummaryText"
+            className="text-foreground block text-xs font-medium"
+            aria-live="polite"
+          >
             {configurationSummaryText}
           </output>
           {checklist && statusCounts && (
-            <p className="configuration-breakdown" id="configurationBreakdown">
+            <p
+              className="text-muted-foreground configuration-breakdown font-mono text-[11px]"
+              id="configurationBreakdown"
+            >
               {t("project.configuration.breakdown", {
                 empty: statusCounts.empty,
                 expired: statusCounts.expired,
@@ -452,11 +480,12 @@ const ConfigurationPanel = ({
             </p>
           )}
         </div>
-        <div className="configuration-panel-actions">
+        <div className="configuration-panel-actions flex items-center gap-2">
           <Button
             variant="secondary"
+            size="sm"
             type="button"
-            className="sl-btn sl-btn-secondary"
+            className="h-8 px-3 text-xs font-medium"
             id="configurationAction"
             disabled={!targetAvailable}
             onClick={onOpen}
@@ -468,7 +497,7 @@ const ConfigurationPanel = ({
               variant="ghost"
               size="icon"
               type="button"
-              className="sl-btn sl-btn-icon"
+              className="size-8"
               id="configurationToggle"
               aria-expanded={open}
               aria-controls="configurationChecklist"
@@ -486,21 +515,29 @@ const ConfigurationPanel = ({
         </div>
       </div>
       {showUnavailableHint && (
-        <p className="configuration-error" id="configurationError">
+        <p className="text-destructive mt-2 text-xs" id="configurationError">
           {t("project.configuration.retryHint")}
         </p>
       )}
       {checklist && (
         <ul
-          className="configuration-checklist"
+          className="border-border/40 divide-border/30 configuration-checklist mt-3 divide-y border-t pt-3"
           id="configurationChecklist"
           aria-label={t("project.configuration.heading")}
           hidden={!open}
         >
           {checklist.entries.map((entry) => (
-            <li className="configuration-check-row" key={entry.key}>
-              <code>{entry.key}</code>
-              <span className="configuration-status" data-status={entry.status}>
+            <li
+              className="flex items-center justify-between py-2 text-xs"
+              key={entry.key}
+            >
+              <code className="text-foreground font-mono font-medium">
+                {entry.key}
+              </code>
+              <span
+                className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 font-mono text-[11px]"
+                data-status={entry.status}
+              >
                 {t(
                   `project.configuration.status.${entry.status.toLowerCase()}`
                 )}
@@ -510,8 +547,9 @@ const ConfigurationPanel = ({
               ) : (
                 <Button
                   variant="link"
+                  size="sm"
                   type="button"
-                  className="configuration-row-action"
+                  className="text-primary h-auto p-0 text-xs hover:underline"
                   aria-label={t(
                     entry.status === "Missing"
                       ? "project.configuration.addKey"
@@ -576,12 +614,18 @@ const InspectorPanel = ({
   onReveal,
 }: InspectorPanelProps) => (
   <aside
-    className={inspectorClassFor(inspectorOpen, selected)}
+    className={cn(
+      "border-border bg-card/40 secrets-inspector flex h-full w-[360px] shrink-0 flex-col border-l",
+      inspectorClassFor(inspectorOpen, selected)
+    )}
     id="inspector"
     aria-label={t("project.a11y.inspectorLabel")}
   >
-    <div className="inspector-head">
-      <span className="type-icon" id="inspectorIcon">
+    <div className="border-border/40 inspector-head flex items-center gap-3 border-b p-4">
+      <span
+        className="bg-secondary/80 border-border text-primary type-icon flex size-8 shrink-0 items-center justify-center rounded-lg border"
+        id="inspectorIcon"
+      >
         <Icon
           name={
             activeEntry &&
@@ -591,33 +635,38 @@ const InspectorPanel = ({
           }
         />
       </span>
-      <div className="inspector-title">
-        <h2 id="inspectorName">{selected || "–"}</h2>
-        <p id="inspectorSub">
+      <div className="inspector-title min-w-0 flex-1">
+        <h2
+          id="inspectorName"
+          className="text-foreground truncate font-mono text-sm font-semibold"
+        >
+          {selected || "–"}
+        </h2>
+        <p id="inspectorSub" className="text-muted-foreground truncate text-xs">
           {activeEntry
             ? `${t(deriveType(selected || "", activeEntry.value) === "secret" ? "project.inspector.secretIn" : "project.inspector.configIn")} · ${relative(activeEntry.updatedAt)}`
             : t("project.inspector.noSelection")}
         </p>
       </div>
       <DropdownMenu open={menu === "inspector"} onOpenChange={onMenuOpenChange}>
-        <div className="dropdown" id="inspectorMenuDropdown">
+        <div className="dropdown relative" id="inspectorMenuDropdown">
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               type="button"
-              className="row-action"
+              className="text-muted-foreground hover:text-foreground row-action size-7 rounded-md"
               id="inspectorMenuBtn"
               aria-expanded={menu === "inspector"}
             >
-              <Icon name="ellipsis" />
+              <Icon name="ellipsis" className="size-3.5" />
               <span className="sr-only">
                 {t("project.inspector.secretActions")}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="dropdown-menu dropdown-menu-left"
+            className="bg-card border-border min-w-[160px] rounded-xl border p-1 shadow-xl"
             id="inspectorMenu"
             align="end"
           >
@@ -631,10 +680,14 @@ const InspectorPanel = ({
             ).map(([action, label]) => (
               <React.Fragment key={action}>
                 {action === "delete" && (
-                  <DropdownMenuSeparator className="dropdown-separator" />
+                  <DropdownMenuSeparator className="border-border my-1 border-t" />
                 )}
                 <DropdownMenuItem
-                  className={`dropdown-item${action === "delete" ? " danger" : ""}`}
+                  className={cn(
+                    "hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+                    action === "delete" &&
+                      "text-destructive hover:bg-destructive/10"
+                  )}
                   data-act={action}
                   onSelect={() => onAction(action)}
                 >
@@ -649,15 +702,18 @@ const InspectorPanel = ({
         variant="ghost"
         size="icon"
         type="button"
-        className="row-action"
+        className="text-muted-foreground hover:text-foreground row-action size-7 rounded-md"
         id="inspectorClose"
         onClick={onClose}
       >
-        <Icon name="x" />
+        <Icon name="x" className="size-3.5" />
         <span className="sr-only">{t("project.inspector.close")}</span>
       </Button>
     </div>
-    <div className="inspector-body" id="inspectorBody">
+    <div
+      className="inspector-body min-h-0 flex-1 overflow-y-auto p-4"
+      id="inspectorBody"
+    >
       {activeEntry && selected ? (
         <Inspector
           entry={activeEntry}
@@ -670,7 +726,9 @@ const InspectorPanel = ({
           onReveal={onReveal}
         />
       ) : (
-        <p className="inspector-empty">{t("project.inspector.noSelection")}</p>
+        <div className="text-muted-foreground inspector-empty flex h-full items-center justify-center text-xs italic">
+          {t("project.inspector.noSelection")}
+        </div>
       )}
     </div>
   </aside>
@@ -3024,7 +3082,7 @@ const ProjectApp = () => {
   };
   return (
     <>
-      <div className="secrets-app">
+      <div className="bg-background text-foreground secrets-app flex h-screen w-screen overflow-hidden">
         <ProjectSidebar
           indexOpen={indexOpen}
           onToggle={() => setIndexOpen((open) => !open)}
@@ -3048,9 +3106,9 @@ const ProjectApp = () => {
             document.querySelector<HTMLElement>("#indexToggle")?.focus();
           }}
         />
-        <main className="secrets-main">
-          <div className="secrets-topbar">
-            <div className="secrets-commandbar">
+        <main className="secrets-main flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="border-border/40 secrets-topbar flex shrink-0 flex-col border-b">
+            <div className="border-border/30 secrets-commandbar flex items-center justify-between gap-4 border-b px-6 py-2.5">
               <ProjectSwitcher
                 menu={menu}
                 setMenu={setMenu}
@@ -3058,36 +3116,45 @@ const ProjectApp = () => {
                 switcherProjects={otherProjects.slice(0, 30)}
                 nav={nav}
               />
-              <span className="secrets-local-state">
+              <span className="text-muted-foreground secrets-local-state flex items-center gap-1.5 text-xs font-medium">
                 <Icon name="lock" />
                 {t("project.header.localVault")}
               </span>
             </div>
             <nav
-              className="secrets-crumbs"
+              className="text-muted-foreground border-border/30 secrets-crumbs flex items-center gap-2 border-b px-6 py-2 text-xs"
               aria-label={t("project.a11y.crumbsLabel")}
             >
-              <a className="secrets-back-link" href="dashboard.html">
+              <a
+                className="text-primary secrets-back-link inline-flex items-center gap-1 font-medium hover:underline"
+                href="dashboard.html"
+              >
                 <Icon name="arrow-left" />
                 <span>{t("project.sidebar.allProjects")}</span>
               </a>
-              <span aria-hidden="true">/</span>
+              <span aria-hidden="true" className="opacity-40">
+                /
+              </span>
               <span id="crumbProject">{projectBreadcrumbFor(projectName)}</span>
-              <span aria-hidden="true">/</span>
+              <span aria-hidden="true" className="opacity-40">
+                /
+              </span>
               <span id="crumbEnvironment">
                 {environmentBreadcrumbFor(currentEnvironment?.name)}
               </span>
-              <span aria-hidden="true">/</span>
-              <span aria-current="page">
+              <span aria-hidden="true" className="opacity-40">
+                /
+              </span>
+              <span aria-current="page" className="text-foreground font-medium">
                 {t("project.header.breadcrumbSecrets")}
               </span>
             </nav>
-            <div className="secrets-title-row">
+            <div className="secrets-title-row flex flex-wrap items-center gap-4 px-6 py-3">
               <Button
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="sl-btn sl-btn-icon secrets-index-toggle"
+                className="secrets-index-toggle size-8"
                 id="indexToggle"
                 aria-label={sidebarToggleLabel}
                 title={sidebarToggleLabel}
@@ -3097,7 +3164,9 @@ const ProjectApp = () => {
               >
                 <Icon name="list" />
               </Button>
-              <h1>{t("project.header.title")}</h1>
+              <h1 className="text-foreground truncate text-lg font-bold tracking-tight">
+                {t("project.header.title")}
+              </h1>
               <EnvironmentControls
                 projectName={projectName}
                 vaultInstanceId={vaultInstanceId}
@@ -3108,7 +3177,10 @@ const ProjectApp = () => {
                 onSelect={selectEnvironment}
                 onStructureChanged={onEnvironmentStructureChanged}
               />
-              <span className="secrets-vault-tag" id="vaultTag">
+              <span
+                className="text-muted-foreground secrets-vault-tag font-mono text-xs"
+                id="vaultTag"
+              >
                 {vaultSubtitleFor(vaultName)}
               </span>
             </div>
@@ -3211,7 +3283,9 @@ const ProjectApp = () => {
               setMenu(menu === `row:${key}` ? null : `row:${key}`);
             }}
           />
-          <div className="secrets-hint">{t("project.footerHint")}</div>
+          <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-[11px]">
+            {t("project.footerHint")}
+          </div>
         </main>
         <InspectorPanel
           selected={selected}

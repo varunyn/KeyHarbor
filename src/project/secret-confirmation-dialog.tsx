@@ -26,14 +26,18 @@ export const SecretConfirmationDialog = ({
     initialFocusId={`${action}CancelBtn`}
     onClose={closeModal}
   >
-    <div className="modal-header">
+    <div className="mb-4">
       <ModalTitle>
         {t(`project.${action}Modal.title`, { key: actionKey })}
       </ModalTitle>
+      <p className="text-muted-foreground mt-1 font-mono text-xs">
+        {contextLabel}
+      </p>
     </div>
-    <p className="environment-context">{contextLabel}</p>
-    <p className="modal-sub">{t(`project.${action}Modal.body`)}</p>
-    <div className="modal-actions">
+    <p className="text-muted-foreground mb-6 text-xs leading-relaxed">
+      {t(`project.${action}Modal.body`)}
+    </p>
+    <div className="border-border flex justify-end gap-2 border-t pt-3">
       <DialogCloseButton id={`${action}CancelBtn`} onClose={closeModal} />
       <Button
         variant={action === "delete" ? "destructive" : "default"}

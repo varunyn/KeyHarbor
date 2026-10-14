@@ -1,3 +1,14 @@
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ClipboardList,
+  Key,
+  Loader2,
+  Lock,
+  Search,
+  X,
+} from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -7,6 +18,7 @@ import React, {
   useState,
 } from "react";
 
+import { AGENT_APPROVAL_TIMEOUT_MS } from "../modules/agent-proxy-timeouts";
 import type {
   ActivityLog,
   AppSettings,
@@ -21,6 +33,7 @@ import { Button } from "./ui/button";
 import { useConfirmation } from "./ui/confirmation";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { cn } from "./ui/utils";
 
 const resultError = (
   result: {
@@ -103,6 +116,9 @@ const Modal = ({
   );
 };
 const EMPTY_SETTING_IDS = { description: "", label: "" };
+const SETTINGS_SELECT_CLASS =
+  "bg-secondary text-foreground border-border focus-visible:ring-primary h-8 min-w-[100px] rounded-lg border px-2.5 text-[13px] font-sans shadow-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none";
+
 const SettingsToggle = ({
   label,
   checked,
@@ -116,17 +132,33 @@ const SettingsToggle = ({
   disabled?: boolean;
   id?: string;
 }) => (
-  <label className="toggle-switch" aria-label={label}>
+  <label
+    className={cn(
+      "focus-within:ring-primary focus-within:ring-offset-background relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors focus-within:ring-2 focus-within:ring-offset-2",
+      checked
+        ? "border-primary bg-primary"
+        : "border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-700/80",
+      disabled && "cursor-not-allowed opacity-50"
+    )}
+    aria-label={label}
+  >
     <input
       id={id}
       type="checkbox"
+      className="peer sr-only"
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
     />
-    <span className="toggle-slider" />
+    <span
+      className={cn(
+        "pointer-events-none block size-5 rounded-full bg-white shadow-md ring-1 shadow-black/25 ring-black/10 transition-transform",
+        checked ? "translate-x-[21px]" : "translate-x-0.5"
+      )}
+    />
   </label>
 );
+
 const SettingsRow = ({
   label,
   description,
@@ -143,13 +175,22 @@ const SettingsRow = ({
     hidden?: boolean;
   };
 }) => (
-  <div className={`settings-item${ids.hidden ? " hidden" : ""}`} id={ids.row}>
-    <div className="settings-item-info">
-      <span className="settings-item-label" id={ids.label}>
+  <div
+    className={cn(
+      "border-border flex items-center justify-between border-b px-4 py-3.5 last:border-b-0",
+      ids.hidden && "hidden"
+    )}
+    id={ids.row}
+  >
+    <div className="flex flex-col gap-0.5">
+      <span className="text-foreground text-[14px] font-medium" id={ids.label}>
         {label}
       </span>
       {description && (
-        <span className="settings-item-description" id={ids.description}>
+        <span
+          className="text-muted-foreground text-[12px]"
+          id={ids.description}
+        >
           {description}
         </span>
       )}
@@ -160,6 +201,15 @@ const SettingsRow = ({
 export const SettingsScreen = () => {
   const { t } = useRendererTranslation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  useEffect(
+    () =>
+      window.keyharbor.settings.onCloseBehaviorChanged((closeBehavior) => {
+        setSettings((current) =>
+          current ? { ...current, closeBehavior } : current
+        );
+      }),
+    []
+  );
   const [touch, setTouch] = useState<TouchIdStatus>({
     available: false,
     enabled: false,
@@ -500,17 +550,19 @@ export const SettingsScreen = () => {
   };
   if (!settings) {
     return (
-      <main className="container">
-        <div className="page-header">
-          <div className="page-title">{t("settings.title")}</div>
+      <main className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto p-5">
+        <div className="border-border mb-5 flex shrink-0 items-center justify-between border-b pb-5">
+          <div className="text-foreground text-[28px] font-semibold">
+            {t("settings.title")}
+          </div>
         </div>
       </main>
     );
   }
   return (
-    <main className="container">
-      <div className="page-header">
-        <div className="page-title">
+    <main className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto p-5">
+      <div className="border-border mb-5 flex shrink-0 items-center justify-between border-b pb-5">
+        <div className="text-foreground flex items-center gap-2.5 text-[28px] font-semibold">
           <Button
             variant="ghost"
             size="icon"
@@ -522,13 +574,13 @@ export const SettingsScreen = () => {
               window.location.href = "dashboard.html";
             }}
           >
-            <span className="lk-icon lk-icon-arrow-left" aria-hidden="true" />
+            <ArrowLeft className="size-5" aria-hidden="true" />
           </Button>
           <span id="title">{t("settings.title")}</span>
         </div>
       </div>
       <div id="settings-container">
-        <div className="settings-section">
+        <div className="border-border bg-card rounded-lg border">
           <SettingsRow
             label={t("settings.language")}
             description={t("settings.languageDesc")}
@@ -537,7 +589,7 @@ export const SettingsScreen = () => {
             <select
               id="language-select"
               aria-labelledby="label-language"
-              className="btn btn-secondary filter-select"
+              className={SETTINGS_SELECT_CLASS}
               value={settings.locale || "system"}
               onChange={(e) => patch("locale", e.target.value)}
             >
@@ -557,7 +609,7 @@ export const SettingsScreen = () => {
             <select
               id="theme-select"
               aria-labelledby="label-theme"
-              className="btn btn-secondary filter-select"
+              className={SETTINGS_SELECT_CLASS}
               value={settings.theme || "system"}
               onChange={(e) => patch("theme", e.target.value as AppTheme)}
             >
@@ -589,6 +641,34 @@ export const SettingsScreen = () => {
             />
           </SettingsRow>
           <SettingsRow
+            label={t("settings.closeBehavior")}
+            description={t("settings.closeBehaviorDesc")}
+            ids={{
+              description: "desc-close-behavior",
+              label: "label-close-behavior",
+            }}
+          >
+            <select
+              aria-describedby="desc-close-behavior"
+              aria-labelledby="label-close-behavior"
+              className={SETTINGS_SELECT_CLASS}
+              id="close-behavior-select"
+              onChange={(event) =>
+                patch(
+                  "closeBehavior",
+                  event.target.value as AppSettings["closeBehavior"]
+                )
+              }
+              value={settings.closeBehavior}
+            >
+              <option value="ask">{t("settings.closeBehaviorAsk")}</option>
+              <option value="background">
+                {t("settings.closeBehaviorBackground")}
+              </option>
+              <option value="quit">{t("settings.closeBehaviorQuit")}</option>
+            </select>
+          </SettingsRow>
+          <SettingsRow
             label={t("settings.showStatistics")}
             description={t("settings.showStatisticsDesc")}
             ids={{
@@ -618,10 +698,13 @@ export const SettingsScreen = () => {
             />
           </SettingsRow>
           {settings.autoLock.enabled && (
-            <div className="settings-item" id="auto-lock-timeout-item">
-              <div className="settings-item-info">
+            <div
+              className="border-border flex items-center justify-between border-b px-4 py-3.5 last:border-b-0"
+              id="auto-lock-timeout-item"
+            >
+              <div className="flex flex-col gap-0.5">
                 <span
-                  className="settings-item-label"
+                  className="text-foreground text-[14px] font-medium"
                   id="label-auto-lock-timeout"
                 >
                   {t("settings.autoLockTimeout")}
@@ -631,7 +714,7 @@ export const SettingsScreen = () => {
                 id="auto-lock-timeout-input"
                 aria-labelledby="label-auto-lock-timeout"
                 type="number"
-                className="settings-input"
+                className="h-8 w-24 text-[13px]"
                 min={1}
                 max={1440}
                 value={settings.autoLock.timeout}
@@ -674,7 +757,7 @@ export const SettingsScreen = () => {
             <select
               id="vault-sync-interval-select"
               aria-labelledby="label-vault-sync-interval"
-              className="btn btn-secondary filter-select"
+              className={SETTINGS_SELECT_CLASS}
               value={settings.vaultDiskSyncIntervalSeconds === 60 ? "60" : "5"}
               onChange={(e) =>
                 patch("vaultDiskSyncIntervalSeconds", Number(e.target.value))
@@ -689,7 +772,10 @@ export const SettingsScreen = () => {
             </select>
           </SettingsRow>
           <section className="settings-vault-section">
-            <h3 className="settings-section-title" id="vault-section-title">
+            <h3
+              className="text-foreground border-border border-t px-4 pt-4 pb-2 text-[16px] font-semibold"
+              id="vault-section-title"
+            >
               {t("settings.vaultSection")}
             </h3>
             <SettingsRow
@@ -868,7 +954,10 @@ export const SettingsScreen = () => {
             </Button>
           </div>
         >
-          <p id="delete-vault-warning" className="delete-vault-warning">
+          <p
+            id="delete-vault-warning"
+            className="text-muted-foreground mb-3 text-[13px] leading-relaxed"
+          >
             {t("settings.deleteVaultModal.warning")}
           </p>
           <div className="input-group">
@@ -985,15 +1074,22 @@ export const LockScreen = () => {
     );
   };
   return (
-    <main className="container">
-      <section className="lock-container">
-        <div className="logo">
-          <h1 id="title">{t("lock.title")}</h1>
-          <p id="subtitle">{t("lock.subtitle")}</p>
+    <main className="flex h-dvh flex-col items-center justify-center p-5">
+      <section className="w-full max-w-[400px]">
+        <div className="mb-10 text-center">
+          <h1
+            id="title"
+            className="text-primary text-[36px] font-bold tracking-tight"
+          >
+            {t("lock.title")}
+          </h1>
+          <p id="subtitle" className="text-muted-foreground mt-2 text-[16px]">
+            {t("lock.subtitle")}
+          </p>
         </div>
         <div
           id="message-container"
-          className={unlockError ? "lock-error" : ""}
+          className="text-destructive mb-3 min-h-[1.25rem] text-center text-[14px]"
           role={unlockError ? "alert" : undefined}
         >
           {unlockError}
@@ -1007,8 +1103,8 @@ export const LockScreen = () => {
             }
           }}
         >
-          <div className="input-group input-inline">
-            <input
+          <div className="relative flex items-center">
+            <Input
               id="password"
               ref={passwordRef}
               type="password"
@@ -1016,25 +1112,30 @@ export const LockScreen = () => {
               placeholder={t("lock.passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="h-10 pr-10 text-[14px]"
             />
-            <button
-              className="btn unlock-btn"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 size-8"
               id="unlock-btn"
               type="submit"
               disabled={busy}
               aria-label={t("lock.title")}
             >
-              <span
-                className={`lk-icon lk-icon-${busy ? "loader lk-icon-spin" : "arrow-right"}`}
-                aria-hidden="true"
-              />
-            </button>
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <ArrowRight className="size-4" aria-hidden="true" />
+              )}
+            </Button>
           </div>
         </form>
         {touchEnabled && (
-          <div id="touch-id-actions" className="touch-id-actions">
-            <button
-              className="btn btn-secondary touch-id-btn"
+          <div id="touch-id-actions" className="mt-3.5">
+            <Button
+              variant="secondary"
+              className="h-9 w-full gap-2 text-[13px]"
               id="touch-id-btn"
               type="button"
               disabled={busy}
@@ -1042,23 +1143,23 @@ export const LockScreen = () => {
                 void unlock("touch");
               }}
             >
-              <span className="lk-icon lk-icon-key" aria-hidden="true" />
+              <Key className="size-4" aria-hidden="true" />
               <span id="touch-id-label">{t("lock.touchIdButton")}</span>
-            </button>
+            </Button>
           </div>
         )}
       </section>
     </main>
   );
 };
-const passwordStrengthClass = (score: number) => {
+const passwordStrengthWidth = (score: number) => {
   if (score <= 2) {
-    return " strength-weak";
+    return "w-1/3 bg-destructive";
   }
   if (score <= 4) {
-    return " strength-medium";
+    return "w-2/3 bg-[var(--warning,#fbbf24)]";
   }
-  return " strength-strong";
+  return "w-full bg-[var(--success,#4edea3)]";
 };
 export const SetupScreen = () => {
   const { t } = useRendererTranslation();
@@ -1208,22 +1309,37 @@ export const SetupScreen = () => {
     window.keyharbor.navigate("dashboard");
   };
   return (
-    <main className="container">
-      <div className="setup-container">
-        <div className="logo">
-          <h1 id="title">{t("setup.title")}</h1>
-          <p id="subtitle">{t("setup.subtitle")}</p>
+    <main className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto p-5">
+      <div className="mx-auto my-auto w-full max-w-[500px] py-8">
+        <div className="mb-8 text-center">
+          <h1
+            id="title"
+            className="text-primary text-[36px] font-bold tracking-tight"
+          >
+            {t("setup.title")}
+          </h1>
+          <p id="subtitle" className="text-muted-foreground mt-2 text-[16px]">
+            {t("setup.subtitle")}
+          </p>
         </div>
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title" id="card-title">
+        <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
+          <div className="mb-5">
+            <h2
+              className="text-foreground text-[20px] font-semibold"
+              id="card-title"
+            >
               {t("setup.cardTitle")}
             </h2>
           </div>
           <div id="message-container">
             {message && (
               <div
-                className={`message message-${message.kind}`}
+                className={cn(
+                  "mb-4 rounded-md p-3 text-[13px]",
+                  message.kind === "error"
+                    ? "border-destructive/30 bg-destructive/10 text-destructive border"
+                    : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                )}
                 role={message.kind === "error" ? "alert" : "status"}
               >
                 {message.text}
@@ -1236,11 +1352,15 @@ export const SetupScreen = () => {
               void submit(e);
             }}
           >
-            <div className="input-group">
-              <label htmlFor="password" id="label-password">
+            <div className="mb-4 flex flex-col gap-1.5">
+              <label
+                htmlFor="password"
+                id="label-password"
+                className="text-foreground text-[14px] font-medium"
+              >
                 {t("setup.password")}
               </label>
-              <input
+              <Input
                 id="password"
                 type="password"
                 autoComplete="new-password"
@@ -1248,31 +1368,54 @@ export const SetupScreen = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <div className="password-strength">
+              <div className="bg-secondary mt-1.5 h-1 overflow-hidden rounded-full">
                 <div
-                  className={`password-strength-bar${password ? passwordStrengthClass(score) : ""}`}
+                  className={cn(
+                    "h-full transition-all duration-300",
+                    password ? passwordStrengthWidth(score) : "w-0"
+                  )}
                   id="strength-bar"
                 />
               </div>
-              <div className="requirements">
+              <div className="mt-2.5 space-y-1">
                 {["length", "uppercase", "lowercase", "number", "special"].map(
                   (key, index) => (
                     <div
-                      className={`requirement${checks[index] ? " met" : ""}`}
+                      className={cn(
+                        "flex items-center gap-2 text-[12px]",
+                        checks[index]
+                          ? "text-[var(--success,#4edea3)]"
+                          : "text-muted-foreground"
+                      )}
                       id={`req-${key}`}
                       key={key}
                     >
-                      {t(`setup.requirements.${key}`)}
+                      {checks[index] ? (
+                        <Check
+                          className="size-3.5 shrink-0 text-[var(--success,#4edea3)]"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <X
+                          className="text-destructive size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span>{t(`setup.requirements.${key}`)}</span>
                     </div>
                   )
                 )}
               </div>
             </div>
-            <div className="input-group">
-              <label htmlFor="confirm-password" id="label-confirm-password">
+            <div className="mb-6 flex flex-col gap-1.5">
+              <label
+                htmlFor="confirm-password"
+                id="label-confirm-password"
+                className="text-foreground text-[14px] font-medium"
+              >
                 {t("setup.confirmPassword")}
               </label>
-              <input
+              <Input
                 id="confirm-password"
                 type="password"
                 autoComplete="new-password"
@@ -1281,19 +1424,20 @@ export const SetupScreen = () => {
                 onChange={(e) => setConfirm(e.target.value)}
               />
             </div>
-            <div className="form-actions">
-              <button
+            <div>
+              <Button
                 type="submit"
-                className="btn"
+                variant="default"
+                className="w-full"
                 id="setup-btn"
                 disabled={!valid || busy}
               >
                 {t(busy ? "setup.creatingVault" : "setup.createVault")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
-        <div className="setup-warning text-center">
+        <div className="text-muted-foreground mt-8 text-center text-[13px] leading-relaxed">
           <p id="warning-line1">{t("setup.warning.line1")}</p>
           <p id="warning-line2">{t("setup.warning.line2")}</p>
         </div>
@@ -1331,12 +1475,20 @@ export const SetupScreen = () => {
             </Button>
           </div>
         >
-          <p id="cli-modal-description">{t("setup.cliModal.description")}</p>
-          <div className="cli-features-box">
-            <strong id="cli-features-title">
+          <p
+            id="cli-modal-description"
+            className="text-muted-foreground text-[13px] leading-relaxed"
+          >
+            {t("setup.cliModal.description")}
+          </p>
+          <div className="border-border bg-secondary/50 mt-4 rounded-lg border p-4 text-[13px]">
+            <strong
+              id="cli-features-title"
+              className="text-foreground block font-semibold"
+            >
               {t("setup.cliModal.features")}
             </strong>
-            <ul className="cli-features-list">
+            <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
               <li id="cli-feature1">{t("setup.cliModal.feature1")}</li>
               <li id="cli-feature2">{t("setup.cliModal.feature2")}</li>
               <li id="cli-feature3">{t("setup.cliModal.feature3")}</li>
@@ -1347,6 +1499,18 @@ export const SetupScreen = () => {
     </main>
   );
 };
+const CATEGORY_BADGE_CLASSES: Record<string, string> = {
+  access: "bg-emerald-500/20 text-emerald-400",
+  app: "bg-zinc-500/20 text-zinc-400",
+  error: "bg-rose-500/20 text-rose-400",
+  info: "bg-sky-500/20 text-sky-400",
+  lock: "bg-amber-500/20 text-amber-400",
+  warning: "bg-amber-500/20 text-amber-400",
+};
+
+const categoryBadgeClass = (category: string) =>
+  CATEGORY_BADGE_CLASSES[category.toLowerCase()] ??
+  "bg-secondary text-muted-foreground";
 export const LogsScreen = () => {
   const { t } = useRendererTranslation();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -1628,9 +1792,9 @@ export const LogsScreen = () => {
     }
   };
   return (
-    <main className="container">
-      <div className="page-header">
-        <div className="page-title">
+    <main className="flex h-dvh flex-col overflow-hidden p-5">
+      <div className="border-border mb-5 flex shrink-0 items-center justify-between border-b pb-5">
+        <div className="text-foreground flex items-center gap-2.5 text-[28px] font-semibold">
           <Button
             variant="ghost"
             size="icon"
@@ -1642,11 +1806,11 @@ export const LogsScreen = () => {
               window.location.href = "dashboard.html";
             }}
           >
-            <span className="lk-icon lk-icon-arrow-left" aria-hidden="true" />
+            <ArrowLeft className="size-5" aria-hidden="true" />
           </Button>
           <span id="title">{t("logs.title")}</span>
         </div>
-        <div className="header-actions">
+        <div className="flex items-center gap-2">
           <Button
             variant="secondary"
             id="export-logs-btn"
@@ -1671,11 +1835,11 @@ export const LogsScreen = () => {
           </Button>
         </div>
       </div>
-      <div className="logs-filters">
+      <div className="mb-4 flex shrink-0 items-center gap-3.5">
         <select
           id="category-filter"
           aria-label={t("logs.filterLabel")}
-          className="btn btn-secondary filter-select"
+          className={SETTINGS_SELECT_CLASS}
           value={category}
           onChange={(e) => {
             setCategory(e.target.value);
@@ -1687,11 +1851,11 @@ export const LogsScreen = () => {
           <option value="app">{t("logs.categories.app")}</option>
           <option value="lock">{t("logs.categories.lock")}</option>
         </select>
-        <div className="search-bar">
+        <div className="relative flex-1">
           <Input
             id="search-input"
             aria-label={t("logs.searchPlaceholder")}
-            className="logs-search-input"
+            className="h-8 pr-8 text-[13px]"
             type="text"
             placeholder={t("logs.searchPlaceholder")}
             value={search}
@@ -1700,26 +1864,29 @@ export const LogsScreen = () => {
               setVisibleCount(50);
             }}
           />
-          <span
-            className="search-icon lk-icon lk-icon-search"
+          <Search
+            className="text-muted-foreground pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2"
             aria-hidden="true"
           />
         </div>
       </div>
       <div
         ref={container}
-        className="logs-container"
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1"
         id="logs-container"
         onScroll={loadMore}
       >
         {!loaded && !failure && (
-          <div className="loading">
-            <div className="spinner" />
+          <div className="flex h-40 items-center justify-center">
+            <Loader2
+              className="text-muted-foreground size-6 animate-spin"
+              aria-hidden="true"
+            />
           </div>
         )}
         {failure && (
-          <div className="empty-state">
-            <div className="empty-state-title">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="text-destructive mb-3 text-[16px] font-semibold">
               {t("logs.notifications.failedToLoad")}
             </div>
             <Button
@@ -1733,17 +1900,17 @@ export const LogsScreen = () => {
           </div>
         )}
         {loaded && filtered.length === 0 && (
-          <div className="empty-state">
-            <div
-              className="empty-state-icon lk-icon lk-icon-clipboard lk-icon-xl"
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <ClipboardList
+              className="text-muted-foreground mb-3 size-12"
               aria-hidden="true"
             />
-            <div className="empty-state-title">
+            <div className="text-foreground text-[16px] font-semibold">
               {logs.length
                 ? t("logs.emptyState.noMatchesTitle")
                 : t("logs.emptyState.title")}
             </div>
-            <div className="empty-state-description">
+            <div className="text-muted-foreground mt-1 text-[13px]">
               {logs.length
                 ? t("logs.emptyState.noMatchesDescription")
                 : t("logs.emptyState.description")}
@@ -1752,25 +1919,32 @@ export const LogsScreen = () => {
         )}
         {filtered.slice(0, visibleCount).map((log, index) => (
           <article
-            className="log-item"
+            className="border-border bg-card/60 hover:bg-card flex flex-col gap-1.5 rounded-lg border p-3.5 transition-colors"
             key={`${log.timestamp}:${log.category}:${index}`}
           >
-            <div className="log-header">
+            <div className="flex items-center justify-between">
               <time
-                className="log-timestamp"
+                className="text-muted-foreground font-mono text-[12px] tabular-nums"
                 dateTime={log.timestamp}
                 title={new Date(log.timestamp).toLocaleString()}
               >
                 {ago(log.timestamp)}
               </time>
-              <span className={`log-type ${log.category.toLowerCase()}`}>
+              <span
+                className={cn(
+                  "rounded px-2 py-0.5 text-[11px] font-medium tracking-wider uppercase",
+                  categoryBadgeClass(log.category)
+                )}
+              >
                 {t(`logs.categories.${log.category.toLowerCase()}`) ===
                 `logs.categories.${log.category.toLowerCase()}`
                   ? log.category
                   : t(`logs.categories.${log.category.toLowerCase()}`)}
               </span>
             </div>
-            <div className="log-message">{log.message}</div>
+            <div className="text-foreground text-[13px] leading-relaxed break-words">
+              {log.message}
+            </div>
           </article>
         ))}
       </div>
@@ -1813,12 +1987,82 @@ if (typeof window !== "undefined") {
     }
   });
 }
+const isAgentApproval = (request: ApprovalRequest | null): boolean =>
+  request?.action === "connect" || request?.action === "use";
+
+const AgentApprovalDetails = ({
+  request,
+  row,
+}: {
+  request: ApprovalRequest | null;
+  row: (id: string, label: string, value?: string) => React.ReactNode;
+}) => {
+  const { t } = useRendererTranslation();
+  if (!request || !isAgentApproval(request)) {
+    return null;
+  }
+  return (
+    <>
+      {row("destination", "approval.destination", request.origin)}
+      {row(
+        "methods",
+        "approval.methods",
+        request.method ?? request.methods?.join(", ")
+      )}
+      {row(
+        "paths",
+        "approval.paths",
+        request.path ?? request.pathPrefixes?.join(", ")
+      )}
+      {request.action === "use" &&
+        row(
+          "body-size",
+          "approval.bodySize",
+          t("approval.byteCount", { count: request.bodyBytes ?? 0 })
+        )}
+      {request.allowPrivateNetwork && (
+        <p className="mt-[12px] text-[12px] leading-normal text-[var(--warning)]">
+          {t("approval.privateNetwork")}
+        </p>
+      )}
+      {request.customTrust && (
+        <p className="mt-[12px] text-[12px] leading-normal text-[var(--warning)]">
+          {t("approval.customTrust")}
+        </p>
+      )}
+      {request.bodyPreview && (
+        <details className="mt-[12px] text-[12px]">
+          <summary className="text-muted-foreground focus-visible:outline-ring cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2">
+            {t("approval.bodyPreview")}
+          </summary>
+          <pre className="mt-[8px] block font-mono leading-normal [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {request.bodyPreview}
+          </pre>
+        </details>
+      )}
+      {request.requestDigest && (
+        <details className="mt-[12px] text-[12px]">
+          <summary className="text-muted-foreground focus-visible:outline-ring cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2">
+            {t("approval.requestDigest")}
+          </summary>
+          <code className="mt-[8px] block font-mono leading-normal [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {request.requestDigest}
+          </code>
+        </details>
+      )}
+    </>
+  );
+};
+
+const approvalTimeoutSeconds = (request: ApprovalRequest | null) =>
+  isAgentApproval(request) ? AGENT_APPROVAL_TIMEOUT_MS / 1000 : 30;
+
 export const ApprovalScreen = () => {
   const { t } = useRendererTranslation();
   const [state, setState] = useState<ApprovalState>({
     request: latestApproval,
     responded: false,
-    timeLeft: 30,
+    timeLeft: approvalTimeoutSeconds(latestApproval),
   });
   const responded = useRef(false);
   const timer = useRef<number | null>(null);
@@ -1832,7 +2076,11 @@ export const ApprovalScreen = () => {
       }
       responded.current = false;
       requestRef.current = request;
-      setState({ request, responded: false, timeLeft: 30 });
+      setState({
+        request,
+        responded: false,
+        timeLeft: approvalTimeoutSeconds(request),
+      });
       approveRef.current?.focus();
     };
     approvalListeners.add(receive);
@@ -1875,7 +2123,10 @@ export const ApprovalScreen = () => {
     }
     const started = Date.now();
     timer.current = window.setInterval(() => {
-      const left = Math.max(0, 30 - (Date.now() - started) / 1000);
+      const left = Math.max(
+        0,
+        approvalTimeoutSeconds(state.request) - (Date.now() - started) / 1000
+      );
       setState((current) => ({ ...current, timeLeft: left }));
       if (left <= 0) {
         respond(false);
@@ -1889,18 +2140,7 @@ export const ApprovalScreen = () => {
   }, [state.request, respond]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      const { target } = event;
-      if (
-        (event.key === "Enter" || event.key === " ") &&
-        target instanceof HTMLButtonElement &&
-        target.id === "deny-btn"
-      ) {
-        return;
-      }
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        respond(true);
-      } else if (event.key === "Escape") {
+      if (event.key === "Escape") {
         event.preventDefault();
         respond(false);
       }
@@ -1914,39 +2154,58 @@ export const ApprovalScreen = () => {
     };
   }, [respond]);
   const { request } = state;
+  const agentRequest = isAgentApproval(request);
+  const actionLabel = {
+    connect: "approval.actionTextConnect",
+    read: "approval.actionTextRead",
+    use: "approval.actionTextUse",
+    write: "approval.actionTextWrite",
+  }[request?.action ?? "read"];
   const keys = request?.keys || [];
   const keyText = keys.join(", ");
-  const progress = Math.max(0, (state.timeLeft / 30) * 100);
+  const progress = Math.max(
+    0,
+    (state.timeLeft / approvalTimeoutSeconds(request)) * 100
+  );
   const row = (id: string, label: string, value?: string) => (
-    <div className="detail-row" key={id}>
-      <div className="detail-label" id={`label-${id}`}>
+    <div className="mb-[8px] flex gap-[10px] last:mb-0" key={id}>
+      <div
+        className="text-muted-foreground w-[128px] shrink-0 font-semibold"
+        id={`label-${id}`}
+      >
         {t(label)}
       </div>
-      <div className="detail-value" id={`${id}-value`}>
+      <div
+        className="text-foreground min-w-0 flex-1 [overflow-wrap:anywhere]"
+        id={`${id}-value`}
+      >
         {value || "-"}
       </div>
     </div>
   );
   return (
-    <main className="approval-container">
-      <section className="approval-card">
-        <div className="titlebar">
-          <div
-            className="approval-icon lk-icon lk-icon-lock"
-            aria-hidden="true"
-          />
-          <h2 className="approval-title" id="title">
-            {t("approval.title")}
+    <main className="flex h-dvh flex-col items-center justify-center p-[20px]">
+      <section
+        aria-labelledby="title"
+        className="border-border bg-card text-foreground flex max-h-full w-full max-w-[520px] flex-col rounded-[8px] border border-solid p-[20px]"
+      >
+        <div className="flex shrink-0 gap-[8px]">
+          <Lock className="mb-[20px] size-[28px] shrink-0" aria-hidden="true" />
+          <h2 className="mt-[2px] text-[20px] font-semibold" id="title">
+            {t(agentRequest ? "approval.agentTitle" : "approval.title")}
           </h2>
         </div>
-        <div className="timeout-bar">
+        <div className="bg-secondary mb-[20px] h-[4px] shrink-0 overflow-hidden">
           <div
-            className="timeout-progress"
+            className="h-full bg-[var(--warning)]"
             id="timeout-progress"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="approval-details">
+        <div
+          className="bg-secondary mb-[20px] min-h-0 flex-[0_1_auto] overflow-y-auto rounded-[8px] px-[16px] py-[12px]"
+          id="approval-details"
+        >
           {row("vault", "approval.vault", request?.vaultName)}
           {row("project", "approval.project", request?.projectName)}
           {row("environment", "approval.environment", request?.environmentName)}
@@ -1955,36 +2214,35 @@ export const ApprovalScreen = () => {
             "approval.keys",
             keyText.length > 100 ? `${keyText.slice(0, 30)}...` : keyText
           )}
-          {row(
-            "action",
-            "approval.action",
-            t(
-              request?.action === "write"
-                ? "approval.actionTextWrite"
-                : "approval.actionTextRead"
-            )
-          )}
+          {row("action", "approval.action", t(actionLabel))}
+          <AgentApprovalDetails request={request} row={row} />
         </div>
-        <div className="approval-actions">
-          <button
+        {agentRequest && (
+          <p className="text-muted-foreground mb-[16px] shrink-0 text-[12px] leading-normal">
+            {t("approval.agentNote")}
+          </p>
+        )}
+        <div className="flex shrink-0 gap-[15px]">
+          <Button
             type="button"
-            className="btn approval-btn deny-btn"
+            className="h-[40px] flex-1 text-[14px]"
+            variant="destructive"
             id="deny-btn"
             disabled={!request || state.responded}
             onClick={() => respond(false)}
           >
             {t("approval.deny")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn approval-btn approve-btn"
+            className="h-[40px] flex-1 text-[14px]"
             id="approve-btn"
             ref={approveRef}
             disabled={!request || state.responded}
             onClick={() => respond(true)}
           >
             {t("approval.approve")}
-          </button>
+          </Button>
         </div>
       </section>
     </main>

@@ -55,19 +55,24 @@ export const ProjectToolbar = ({
   onNewSecret,
   onExport,
 }: ProjectToolbarProps) => (
-  <div className="secrets-toolbar">
-    <div className="secrets-search">
-      <Icon name="search" />
+  <div className="border-border/40 secrets-toolbar flex flex-wrap items-center gap-2 border-b px-6 py-3">
+    <div className="secrets-search relative max-w-[340px] min-w-[200px] flex-1">
+      <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2">
+        <Icon name="search" />
+      </span>
       <Input
         type="search"
         id="searchInput"
-        className="secrets-search-input"
+        className="bg-secondary/40 border-border/80 secrets-search-input h-8 pr-8 pl-9 text-xs"
         placeholder={t("project.searchPlaceholder")}
         aria-label={t("project.a11y.searchLabel")}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
-      <span className="secrets-search-kbd" aria-hidden="true">
+      <span
+        className="text-muted-foreground border-border/80 py-0.2 secrets-search-kbd pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 font-mono text-[10px]"
+        aria-hidden="true"
+      >
         /
       </span>
     </div>
@@ -75,13 +80,13 @@ export const ProjectToolbar = ({
       open={menu === "filter"}
       onOpenChange={(open) => setMenu(open ? "filter" : null)}
     >
-      <div className="dropdown" id="filterDropdown">
+      <div className="dropdown relative" id="filterDropdown">
         <DropdownMenuTrigger asChild>
           <Button
             variant="secondary"
             size="icon"
             type="button"
-            className="sl-btn sl-btn-icon"
+            className="size-8"
             id="filterBtn"
             aria-expanded={menu === "filter"}
             title={t("project.filter")}
@@ -91,22 +96,24 @@ export const ProjectToolbar = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="dropdown-menu"
+          className="bg-card border-border min-w-[180px] rounded-xl border p-2 shadow-xl"
           id="filterMenu"
           align="start"
         >
-          <p className="dropdown-label">{t("project.filterMenu.typeLabel")}</p>
+          <p className="text-muted-foreground px-2 py-1 text-[10px] font-semibold uppercase">
+            {t("project.filterMenu.typeLabel")}
+          </p>
           <DropdownMenuRadioGroup
             value={filterType}
             onValueChange={setFilterType}
           >
             {(["all", "secret", "config"] as const).map((value) => (
               <DropdownMenuRadioItem
-                className="dropdown-item"
+                className="hover:bg-secondary flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
                 key={value}
                 value={value}
               >
-                <span className="item-text">
+                <span>
                   {t(
                     `project.filterMenu.type${value.charAt(0).toUpperCase()}${value.slice(1)}`
                   )}
@@ -115,7 +122,7 @@ export const ProjectToolbar = ({
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          <p className="dropdown-label">
+          <p className="text-muted-foreground mt-2 px-2 py-1 text-[10px] font-semibold uppercase">
             {t("project.filterMenu.statusLabel")}
           </p>
           <DropdownMenuRadioGroup
@@ -124,33 +131,34 @@ export const ProjectToolbar = ({
           >
             {statusOptions.map(([value, label]) => (
               <DropdownMenuRadioItem
-                className="dropdown-item"
+                className="hover:bg-secondary flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
                 key={value}
                 value={value}
               >
-                <span className="item-text">{t(label)}</span>
+                <span>{t(label)}</span>
                 {filterStatus === value && <Icon name="check" />}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          <DropdownMenuSeparator className="dropdown-separator" />
+          <DropdownMenuSeparator className="border-border my-1.5 border-t" />
           <DropdownMenuItem
-            className="dropdown-item"
+            className="hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-2.5 py-1.5 text-xs"
             onSelect={() => {
               setFilterType("all");
               setFilterStatus("all");
             }}
           >
-            <span className="item-text">{t("project.filterMenu.clear")}</span>
+            <span>{t("project.filterMenu.clear")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </div>
     </DropdownMenu>
-    <span className="spacer" />
+    <span className="flex-1" />
     <Button
       variant="secondary"
+      size="sm"
       type="button"
-      className="sl-btn sl-btn-secondary"
+      className="h-8 gap-2 px-3 text-xs font-medium"
       id="importBtn"
       disabled={!targetReady}
       onClick={onImport}
@@ -162,12 +170,13 @@ export const ProjectToolbar = ({
       open={menu === "export"}
       onOpenChange={(open) => setMenu(open ? "export" : null)}
     >
-      <div className="dropdown" id="exportDropdown">
+      <div className="dropdown relative" id="exportDropdown">
         <DropdownMenuTrigger asChild>
           <Button
             variant="secondary"
+            size="sm"
             type="button"
-            className="sl-btn sl-btn-secondary"
+            className="h-8 gap-2 px-3 text-xs font-medium"
             id="exportBtn"
             aria-expanded={menu === "export"}
           >
@@ -176,17 +185,17 @@ export const ProjectToolbar = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="dropdown-menu dropdown-menu-left"
+          className="bg-card border-border min-w-[240px] rounded-xl border p-1.5 shadow-xl"
           id="exportMenu"
           align="end"
         >
           {(["example", "references", "backup", "raw"] as const).map((mode) => (
             <Fragment key={mode}>
               {mode === "raw" && (
-                <DropdownMenuSeparator className="dropdown-separator" />
+                <DropdownMenuSeparator className="border-border my-1.5 border-t" />
               )}
               <DropdownMenuItem
-                className={`dropdown-item${mode === "raw" ? " danger" : ""}`}
+                className={`hover:bg-secondary flex cursor-pointer items-start rounded-lg p-2 text-xs gap-2.5${mode === "raw" ? " text-destructive hover:bg-destructive/10" : ""}`}
                 data-mode={mode}
                 disabled={mode !== "backup" && !targetReady}
                 onSelect={() => {
@@ -194,15 +203,19 @@ export const ProjectToolbar = ({
                 }}
               >
                 <Icon name={exportIcons[mode]} />
-                <span className="item-text">
-                  {t(`project.exportMenu.${mode}`)}
-                  {mode === "example" && (
-                    <span className="rec-badge">
-                      {t("project.exportMenu.recommended")}
-                    </span>
-                  )}
-                  <small>{t(`project.exportMenu.${mode}Desc`)}</small>
-                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span>{t(`project.exportMenu.${mode}`)}</span>
+                    {mode === "example" && (
+                      <span className="py-0.2 bg-primary/10 text-primary rounded px-1.5 font-mono text-[10px]">
+                        {t("project.exportMenu.recommended")}
+                      </span>
+                    )}
+                  </div>
+                  <small className="text-muted-foreground mt-0.5 block text-[11px]">
+                    {t(`project.exportMenu.${mode}Desc`)}
+                  </small>
+                </div>
               </DropdownMenuItem>
             </Fragment>
           ))}
@@ -211,8 +224,9 @@ export const ProjectToolbar = ({
     </DropdownMenu>
     <Button
       variant="default"
+      size="sm"
       type="button"
-      className="sl-btn sl-btn-primary"
+      className="h-8 gap-2 px-3 text-xs font-medium"
       id="newBtn"
       aria-label={t("project.newSecret")}
       title={t("project.newSecret")}

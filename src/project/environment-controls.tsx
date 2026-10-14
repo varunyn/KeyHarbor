@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
+import { cn } from "../renderer/ui/utils";
 import type { EnvironmentSummary, EnvironmentTarget } from "./bridge";
 import { ModalFrame, ModalTitle } from "./components";
 import { useEnvironmentLifetime } from "./environment-lifetime";
@@ -15,14 +16,14 @@ import type { EnvironmentMutation } from "./environment-mutation";
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
 
 interface EnvironmentControlsProps {
-  projectName: string;
-  vaultInstanceId: string | null;
-  lifetimeRevision: number;
-  target: EnvironmentTarget | null;
-  environments: EnvironmentSummary[];
   disabled?: boolean;
+  environments: EnvironmentSummary[];
+  lifetimeRevision: number;
   onSelect: (environmentId: string) => void;
   onStructureChanged: (preferredEnvironmentId?: string) => Promise<void>;
+  projectName: string;
+  target: EnvironmentTarget | null;
+  vaultInstanceId: string | null;
 }
 
 interface ManagerProps {
@@ -169,8 +170,9 @@ const EnvironmentManager = ({
     <>
       <Button
         variant="secondary"
+        size="sm"
         type="button"
-        className="sl-btn sl-btn-secondary environment-manage-button"
+        className="environment-manage-button h-8 px-3 text-xs font-medium"
         onClick={showManager}
         disabled={!target || disabled || busy}
       >
@@ -186,7 +188,7 @@ const EnvironmentManager = ({
           }
           onClose={closeManager}
         >
-          <div className="modal-header">
+          <div className="mb-4">
             <ModalTitle>{t("project.environments.manageTitle")}</ModalTitle>
           </div>
           {confirmingDelete ? (
@@ -251,27 +253,43 @@ export const EnvironmentControls = ({
   return (
     <>
       <fieldset
-        className="environment-tabs"
+        className="bg-secondary/60 border-border environment-tabs inline-flex items-center gap-1 rounded-lg border p-1 max-md:hidden"
         aria-label={t("project.environments.selectorLabel")}
       >
-        {environments.map((environment) => (
-          <Button
-            variant="ghost"
-            type="button"
-            key={environment.id}
-            aria-pressed={environment.id === target?.environmentId}
-            disabled={disabled || busy}
-            title={environment.name}
-            onClick={() => onSelect(environment.id)}
-          >
-            {environment.name}
-          </Button>
-        ))}
+        {environments.map((environment) => {
+          const isActive = environment.id === target?.environmentId;
+          return (
+            <Button
+              variant={isActive ? "secondary" : "ghost"}
+              size="sm"
+              type="button"
+              key={environment.id}
+              className={cn(
+                "h-7 rounded-md px-3 text-xs font-medium transition-all",
+                isActive
+                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-pressed={isActive}
+              disabled={disabled || busy}
+              title={environment.name}
+              onClick={() => onSelect(environment.id)}
+            >
+              {environment.name}
+            </Button>
+          );
+        })}
       </fieldset>
-      <label className="environment-picker-label" htmlFor="environmentPicker">
-        <span>{t("project.environments.label")}</span>
+      <label
+        className="flex items-center gap-2 text-xs md:hidden"
+        htmlFor="environmentPicker"
+      >
+        <span className="text-muted-foreground">
+          {t("project.environments.label")}
+        </span>
         <select
           id="environmentPicker"
+          className="bg-card border-border text-foreground focus:ring-primary rounded-lg border px-2.5 py-1 text-xs focus:ring-1 focus:outline-hidden"
           aria-label={t("project.environments.selectorLabel")}
           value={target?.environmentId ?? ""}
           disabled={!environments.length || disabled || busy}

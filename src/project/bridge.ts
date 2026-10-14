@@ -1,3 +1,5 @@
+import type { CloseBehavior } from "../modules/window-close-controller";
+
 export interface BridgeFailure {
   success: false;
   error?: string;
@@ -75,6 +77,7 @@ export interface ThemeBridge {
 }
 
 export interface AppSettings {
+  closeBehavior: CloseBehavior;
   checkForUpdates: boolean;
   locale: string;
   showStatistics: boolean;
@@ -478,11 +481,24 @@ export interface ApprovalRequest {
   environmentId?: string;
   environmentName?: string;
   keys?: string[];
-  action?: "read" | "write";
+  action?: "read" | "write" | "connect" | "use";
   channel?: string;
+  origin?: string;
+  method?: string;
+  path?: string;
+  bodyPreview?: string;
+  bodyBytes?: number;
+  requestDigest?: string;
+  methods?: string[];
+  pathPrefixes?: string[];
+  allowPrivateNetwork?: boolean;
+  customTrust?: boolean;
 }
 
 export interface SettingsBridge {
+  onCloseBehaviorChanged: (
+    callback: (behavior: AppSettings["closeBehavior"]) => void
+  ) => Unsubscribe;
   get: () => Promise<AppSettings>;
   set: (settings: Partial<AppSettings>) => Promise<BridgeResult>;
 }

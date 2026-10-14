@@ -1,4 +1,30 @@
-import React, { useEffect, useRef } from "react";
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Clipboard,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  Folder,
+  Key,
+  LayoutGrid,
+  List,
+  Lock,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  Star,
+  Upload,
+  X,
+} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
@@ -12,11 +38,11 @@ import {
 } from "../renderer/ui/dropdown-menu";
 import { cn } from "../renderer/ui/utils";
 import type {
-  ReviewTarget,
-  ConfigurationEntry,
   ConfigurationChanges,
-  ImportPreviewEntry,
+  ConfigurationEntry,
   ImportOccurrence,
+  ImportPreviewEntry,
+  ReviewTarget,
   SecretHistory,
   SecretRecord,
 } from "./bridge";
@@ -24,68 +50,68 @@ import type {
 type Status = "config" | "expired" | "rotate" | "healthy";
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
 
-const fmtDate = (value?: string | null) => {
-  if (!value) {
-    return "—";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  try {
-    return date.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return date.toISOString();
-  }
-};
-const relative = (value?: string | null) => {
-  if (!value) {
-    return "—";
-  }
-  const time = Date.parse(value);
-  if (!Number.isFinite(time)) {
-    return "—";
-  }
-  const diff = Date.now() - time;
-  if (diff < 60_000) {
-    return t("project.time.justNow");
-  }
-  const minutes = Math.floor(diff / 60_000);
-  let unit: [number, string];
-  if (minutes < 60) {
-    unit = [minutes, "minute"];
-  } else if (minutes < 1440) {
-    unit = [Math.floor(minutes / 60), "hour"];
-  } else if (minutes < 10_080) {
-    unit = [Math.floor(minutes / 1440), "day"];
-  } else if (minutes < 21_600) {
-    unit = [Math.floor(minutes / 10_080), "week"];
-  } else {
-    unit = [Math.floor(minutes / 43_200), "month"];
-  }
-  return t("project.time.ago", {
-    time: t(`project.time.${unit[1]}`, { count: unit[0] }),
-  });
-};
-const mask = (value: unknown) => {
-  const text = String(value ?? "");
-  return text.length <= 4 ? "••••" : `••••••••${text.slice(-4)}`;
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  activity: Activity,
+  "arrow-left": ArrowLeft,
+  "arrow-right": ArrowRight,
+  check: Check,
+  "chevron-down": ChevronDown,
+  "circle-alert": AlertCircle,
+  clipboard: Clipboard,
+  clock: Clock,
+  download: Download,
+  ellipsis: MoreHorizontal,
+  eye: Eye,
+  "file-text": FileText,
+  folder: Folder,
+  key: Key,
+  "layout-grid": LayoutGrid,
+  list: List,
+  lock: Lock,
+  plus: Plus,
+  search: Search,
+  settings: Settings,
+  "sliders-horizontal": SlidersHorizontal,
+  star: Star,
+  upload: Upload,
+  x: X,
 };
 
-export const Icon = ({ name }: { name: string }) => (
-  <span className={`lk-icon lk-icon-${name}`} aria-hidden="true" />
-);
+export const Icon = ({
+  name,
+  className = "size-4",
+}: {
+  name: string;
+  className?: string;
+}) => {
+  const IconComponent = ICON_MAP[name];
+  if (!IconComponent) {
+    return <span className={`lk-icon lk-icon-${name}`} aria-hidden="true" />;
+  }
+  return <IconComponent className={className} aria-hidden="true" />;
+};
+
+const PILL_STYLES: Record<Status, string> = {
+  config: "bg-muted text-muted-foreground border-border",
+  expired: "bg-rose-500/15 text-rose-400 border-rose-500/20",
+  healthy: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  rotate: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+};
+
 export const Pill = ({ status }: { status: Status }) => (
-  <span className={`pill pill-${status}`}>
-    <span className="pill-dot" aria-hidden="true" />
+  <span
+    className={cn(
+      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+      PILL_STYLES[status]
+    )}
+  >
+    <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
     {t(`project.status.${status === "rotate" ? "rotateSoon" : status}`)}
   </span>
 );
+
 export const ModalTitle = ({ children }: { children: React.ReactNode }) => (
-  <DialogTitle className="mb-1 text-base tracking-[-0.01em]">
+  <DialogTitle className="text-foreground text-base font-semibold tracking-tight">
     {children}
   </DialogTitle>
 );
@@ -128,7 +154,7 @@ export const ModalFrame = ({
         ref={content}
         id={id}
         className={cn(
-          "lk-ui-theme block max-h-[min(88dvh,760px)] max-w-[500px]",
+          "lk-ui-theme bg-card border-border block max-h-[min(88dvh,760px)] max-w-[500px] overflow-y-auto rounded-2xl border p-6 shadow-xl",
           className
         )}
         closeLabel={t("common.close")}
@@ -168,6 +194,71 @@ export const ModalFrame = ({
       </DialogContent>
     </Dialog>
   );
+};
+
+const useNow = (active: boolean) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  return now;
+};
+
+const fmtDate = (value?: string | null) => {
+  if (!value) {
+    return "—";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  try {
+    return date.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return date.toISOString();
+  }
+};
+
+const relative = (value?: string | null) => {
+  if (!value) {
+    return "—";
+  }
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) {
+    return "—";
+  }
+  const diff = Date.now() - time;
+  if (diff < 60_000) {
+    return t("project.time.justNow");
+  }
+  const minutes = Math.floor(diff / 60_000);
+  let unit: [number, string];
+  if (minutes < 60) {
+    unit = [minutes, "minute"];
+  } else if (minutes < 1440) {
+    unit = [Math.floor(minutes / 60), "hour"];
+  } else if (minutes < 10_080) {
+    unit = [Math.floor(minutes / 1440), "day"];
+  } else if (minutes < 21_600) {
+    unit = [Math.floor(minutes / 10_080), "week"];
+  } else {
+    unit = [Math.floor(minutes / 43_200), "month"];
+  }
+  return t("project.time.ago", {
+    time: t(`project.time.${unit[1]}`, { count: unit[0] }),
+  });
+};
+
+const mask = (value: unknown) => {
+  const text = String(value ?? "");
+  return text.length <= 4 ? "••••" : `••••••••${text.slice(-4)}`;
 };
 
 export const SecretTable = ({
@@ -213,27 +304,54 @@ export const SecretTable = ({
 }) => {
   const showRows = loadState === "ready" && entries.length > 0;
   return (
-    <div className="secrets-table-wrap" id="tableWrap">
+    <div
+      className="secrets-table-wrap min-h-0 flex-1 overflow-y-auto px-6 py-4"
+      id="tableWrap"
+    >
       <table
-        className="secrets-table"
+        className="secrets-table w-full border-collapse text-xs"
         id="secretsTable"
         aria-label={t("project.a11y.tableLabel")}
         style={{ display: showRows ? "" : "none" }}
       >
-        <thead>
+        <thead className="bg-background/95 border-border sticky top-0 z-10 border-b backdrop-blur-xs">
           <tr>
-            <th scope="col">{t("project.table.name")}</th>
-            <th scope="col">{t("project.table.value")}</th>
-            <th scope="col">{t("project.table.status")}</th>
-            <th scope="col">{t("project.table.updated")}</th>
-            <th scope="col">
+            <th
+              scope="col"
+              className="text-muted-foreground px-3 py-2.5 text-left font-medium tracking-wider uppercase"
+            >
+              {t("project.table.name")}
+            </th>
+            <th
+              scope="col"
+              className="text-muted-foreground px-3 py-2.5 text-left font-medium tracking-wider uppercase"
+            >
+              {t("project.table.value")}
+            </th>
+            <th
+              scope="col"
+              className="text-muted-foreground px-3 py-2.5 text-left font-medium tracking-wider uppercase"
+            >
+              {t("project.table.status")}
+            </th>
+            <th
+              scope="col"
+              className="text-muted-foreground px-3 py-2.5 text-left font-medium tracking-wider uppercase"
+            >
+              {t("project.table.updated")}
+            </th>
+            <th
+              scope="col"
+              className="text-muted-foreground px-3 py-2.5 text-right font-medium tracking-wider uppercase"
+            >
               <span className="sr-only">{t("project.table.actions")}</span>
             </th>
           </tr>
         </thead>
-        <tbody id="secretsBody">
+        <tbody id="secretsBody" className="divide-border/40 divide-y">
           {entries.map((entry) => {
             const favorite = favorites.includes(entry.key);
+            const isSelected = selected === entry.key;
             const masked =
               entry.type === "secret" ? mask(entry.value) : entry.value;
             const rowMenu = `row:${entry.key}`;
@@ -243,7 +361,7 @@ export const SecretTable = ({
                 data-status={entry.status}
                 data-list-key={entry.key}
                 tabIndex={0}
-                aria-selected={selected === entry.key}
+                aria-selected={isSelected}
                 aria-label={t("project.table.selectRow", { key: entry.key })}
                 onClick={(event) => {
                   if (!(event.target as HTMLElement).closest("button")) {
@@ -260,42 +378,58 @@ export const SecretTable = ({
                     onEnter(entry.key);
                   }
                 }}
+                className={cn(
+                  "group hover:bg-secondary/40 focus:bg-secondary/40 cursor-pointer transition-colors focus:outline-hidden",
+                  isSelected && "bg-primary/10 hover:bg-primary/15"
+                )}
               >
-                <td>
-                  <span className="cell-name">
-                    <span className="type-icon" aria-hidden="true">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="bg-secondary/80 border-border text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border">
                       <Icon
                         name={entry.type === "secret" ? "lock" : "file-text"}
                       />
                     </span>
-                    <span className="secret-row-identity">
-                      <span className="secret-row-heading">
-                        <span className="key-name" title={entry.key}>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-foreground truncate font-mono font-semibold"
+                          title={entry.key}
+                        >
                           {entry.key}
                         </span>
-                        <span className="secret-type-badge">
+                        <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px] uppercase">
                           {t(
                             entry.type === "secret"
                               ? "project.table.typeSecret"
                               : "project.table.typeConfig"
                           )}
                         </span>
-                      </span>
-                      {entry.description || entry.tags?.length ? (
-                        <span className="secret-row-description">
-                          {entry.description}
+                      </div>
+                      {(entry.description || entry.tags?.length) && (
+                        <div className="text-muted-foreground mt-0.5 flex items-center gap-2 truncate text-xs">
+                          {entry.description && (
+                            <span>{entry.description}</span>
+                          )}
                           {entry.tags?.map((tag) => (
-                            <span className="secret-row-tag" key={tag}>
+                            <span
+                              key={tag}
+                              className="text-primary/80 text-[10px]"
+                            >
                               #{tag}
                             </span>
                           ))}
-                        </span>
-                      ) : null}
-                    </span>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
+                      size="icon"
                       type="button"
-                      className={`fav-btn${favorite ? " is-fav" : ""}`}
+                      className={cn(
+                        "size-7 rounded-md opacity-60 hover:opacity-100",
+                        favorite && "text-amber-400 opacity-100"
+                      )}
                       aria-pressed={favorite}
                       aria-label={t(
                         favorite
@@ -312,30 +446,34 @@ export const SecretTable = ({
                         onFavorite(entry.key);
                       }}
                     >
-                      <Icon name="star" />
+                      <Icon
+                        name="star"
+                        className={cn("size-3.5", favorite && "fill-amber-400")}
+                      />
                     </Button>
+                  </div>
+                </td>
+                <td className="px-3 py-3">
+                  <span className="text-muted-foreground block max-w-[240px] truncate font-mono">
+                    {masked}
                   </span>
                 </td>
-                <td>
-                  <span className="cell-value">{masked}</span>
-                </td>
-                <td>
+                <td className="px-3 py-3 whitespace-nowrap">
                   <Pill status={entry.status} />
                 </td>
-                <td>
-                  <span
-                    className="cell-updated"
-                    title={fmtDate(entry.updatedAt)}
-                  >
-                    {relative(entry.updatedAt)}
-                  </span>
+                <td
+                  className="text-muted-foreground px-3 py-3 font-mono whitespace-nowrap"
+                  title={fmtDate(entry.updatedAt)}
+                >
+                  {relative(entry.updatedAt)}
                 </td>
-                <td>
-                  <div className="cell-actions">
+                <td className="px-3 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
                     <Button
                       variant="ghost"
+                      size="icon"
                       type="button"
-                      className="row-action row-copy"
+                      className="text-muted-foreground hover:text-foreground size-7 rounded-md"
                       aria-label={t("project.copyValue")}
                       title={t("project.copyValue")}
                       onClick={(event) => {
@@ -343,7 +481,7 @@ export const SecretTable = ({
                         onCopy(entry.key);
                       }}
                     >
-                      <Icon name="clipboard" />
+                      <Icon name="clipboard" className="size-3.5" />
                     </Button>
                     <DropdownMenu
                       open={menu === rowMenu}
@@ -355,53 +493,49 @@ export const SecretTable = ({
                         }
                       }}
                     >
-                      <div className="dropdown">
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            className="row-action row-more"
-                            aria-expanded={menu === rowMenu}
-                            aria-label={t("project.table.moreActions", {
-                              key: entry.key,
-                            })}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <Icon name="ellipsis" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          className="dropdown-menu dropdown-menu-left"
-                          side={
-                            menuOpenUp && menu === rowMenu ? "top" : "bottom"
-                          }
-                          align="end"
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground size-7 rounded-md"
+                          aria-expanded={menu === rowMenu}
+                          aria-label={t("project.table.moreActions", {
+                            key: entry.key,
+                          })}
+                          onClick={(event) => event.stopPropagation()}
                         >
-                          <DropdownMenuItem
-                            className="dropdown-item"
-                            data-act="edit"
-                            onSelect={() => onEdit(entry.key)}
-                          >
-                            {t("project.edit")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="dropdown-item"
-                            data-act="history"
-                            onSelect={() => onHistory(entry.key)}
-                          >
-                            {t("project.viewHistory")}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="dropdown-separator" />
-                          <DropdownMenuItem
-                            className="dropdown-item danger"
-                            data-act="delete"
-                            onSelect={() => onDelete(entry.key)}
-                          >
-                            {t("project.deleteSecret")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </div>
+                          <Icon name="ellipsis" className="size-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        className="bg-card border-border min-w-[140px] rounded-xl border p-1 shadow-xl"
+                        side={menuOpenUp && menu === rowMenu ? "top" : "bottom"}
+                        align="end"
+                      >
+                        <DropdownMenuItem
+                          className="hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
+                          data-act="edit"
+                          onSelect={() => onEdit(entry.key)}
+                        >
+                          {t("project.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
+                          data-act="history"
+                          onSelect={() => onHistory(entry.key)}
+                        >
+                          {t("project.viewHistory")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="border-border my-1 border-t" />
+                        <DropdownMenuItem
+                          className="text-destructive hover:bg-destructive/10 flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
+                          data-act="delete"
+                          onSelect={() => onDelete(entry.key)}
+                        >
+                          {t("project.deleteSecret")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </td>
@@ -446,12 +580,12 @@ export const Inspector = ({
     },
   ];
   return (
-    <>
+    <div className="space-y-6">
       <section aria-label={t("project.table.value")}>
-        <div className="inspector-value-block">
-          <div className="inspector-value-label">
+        <div className="bg-card border-border space-y-3 rounded-xl border p-4">
+          <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+            <Icon name="lock" className="size-3.5" />
             <span>
-              <Icon name="lock" />
               {t(
                 shown
                   ? "project.inspector.visibleValue"
@@ -459,131 +593,181 @@ export const Inspector = ({
               )}
             </span>
           </div>
-          <div className="inspector-value" id="inspectorValue">
+          <div
+            className="text-foreground bg-secondary/50 border-border/50 flex min-h-[48px] items-center rounded-lg border p-3 font-mono text-xs break-all select-text"
+            id="inspectorValue"
+          >
             {shown ? String(entry.value ?? "") : mask(entry.value)}
           </div>
-          <div className="inspector-value-actions">
+          <div className="flex flex-col gap-2">
             <Button
               variant="default"
               type="button"
-              className="sl-btn sl-btn-primary"
+              className="w-full justify-center text-xs"
               id="inspectorCopy"
               onClick={onCopy}
             >
-              <Icon name="clipboard" />
+              <Icon name="clipboard" className="size-3.5" />
               <span>{t("project.copyValue")}</span>
             </Button>
             {type === "secret" && !reveal && (
               <Button
                 variant="secondary"
                 type="button"
-                className="sl-btn sl-btn-secondary"
+                className="w-full justify-center text-xs"
                 id="inspectorReveal"
                 onClick={onReveal}
               >
-                <Icon name="eye" />
+                <Icon name="eye" className="size-3.5" />
                 <span>{t("project.inspector.reveal")}</span>
               </Button>
             )}
           </div>
           {reveal ? (
-            <p className="inspector-countdown" id="revealCountdown">
+            <p
+              className="font-mono text-xs text-amber-400"
+              id="revealCountdown"
+            >
               {t("project.inspector.hidesIn", { count: reveal.remaining })}
             </p>
           ) : (
             type === "secret" && (
-              <p className="inspector-note">{t("project.copiedDetail")}</p>
+              <p className="text-muted-foreground text-xs">
+                {t("project.copiedDetail")}
+              </p>
             )
           )}
         </div>
       </section>
       {entry.description && (
         <section aria-label={t("project.inspector.description")}>
-          <p className="inspector-desc">{entry.description}</p>
+          <p className="text-muted-foreground bg-secondary/30 border-border/40 rounded-lg border p-3 text-xs leading-relaxed">
+            {entry.description}
+          </p>
         </section>
       )}
       <section
-        className="inspector-section"
+        className="space-y-2"
         aria-label={t("project.inspector.metadata")}
       >
-        <h3>{t("project.inspector.metadata")}</h3>
-        <dl className="meta-grid" id="metaGrid">
-          <div className="meta-row">
-            <dt>{t("project.inspector.created")}</dt>
-            <dd>{fmtDate(entry.createdAt)}</dd>
+        <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {t("project.inspector.metadata")}
+        </h3>
+        <dl
+          className="bg-card border-border grid grid-cols-2 gap-2 rounded-xl border p-3.5 text-xs"
+          id="metaGrid"
+        >
+          <div>
+            <dt className="text-muted-foreground">
+              {t("project.inspector.created")}
+            </dt>
+            <dd className="text-foreground font-medium">
+              {fmtDate(entry.createdAt)}
+            </dd>
           </div>
-          <div className="meta-row">
-            <dt>{t("project.inspector.updated")}</dt>
-            <dd>{fmtDate(entry.updatedAt)}</dd>
+          <div>
+            <dt className="text-muted-foreground">
+              {t("project.inspector.updated")}
+            </dt>
+            <dd className="text-foreground font-medium">
+              {fmtDate(entry.updatedAt)}
+            </dd>
           </div>
-          <div className="meta-row">
-            <dt>{t("project.inspector.version")}</dt>
-            <dd id="metaVersion">{history?.totalVersions ?? "…"}</dd>
+          <div>
+            <dt className="text-muted-foreground">
+              {t("project.inspector.version")}
+            </dt>
+            <dd id="metaVersion" className="text-foreground font-medium">
+              {history?.totalVersions ?? "…"}
+            </dd>
           </div>
-          <div className="meta-row">
-            <dt>{t("project.inspector.expires")}</dt>
-            <dd>
+          <div>
+            <dt className="text-muted-foreground">
+              {t("project.inspector.expires")}
+            </dt>
+            <dd className="text-foreground font-medium">
               {entry.expiresAt
                 ? fmtDate(entry.expiresAt)
                 : t("project.inspector.neverExpires")}
             </dd>
           </div>
-          <div className="meta-row">
-            <dt>{t("project.inspector.vault")}</dt>
-            <dd>{vaultName || "–"}</dd>
+          <div className="border-border/50 col-span-2 border-t pt-1">
+            <dt className="text-muted-foreground">
+              {t("project.inspector.vault")}
+            </dt>
+            <dd className="text-foreground font-medium">{vaultName || "–"}</dd>
           </div>
         </dl>
       </section>
-      <section
-        className="inspector-section"
-        aria-label={t("project.inspector.tags")}
-      >
-        <h3>{t("project.inspector.tags")}</h3>
+      <section className="space-y-2" aria-label={t("project.inspector.tags")}>
+        <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {t("project.inspector.tags")}
+        </h3>
         {entry.tags?.length ? (
-          <div className="tag-list">
+          <div className="flex flex-wrap gap-1.5">
             {entry.tags.map((tag) => (
-              <span className="tag-chip" key={tag}>
-                {tag}
+              <span
+                className="bg-secondary border-border text-primary rounded-full border px-2 py-0.5 font-mono text-[11px]"
+                key={tag}
+              >
+                #{tag}
               </span>
             ))}
           </div>
         ) : (
-          <p className="inspector-empty">{t("project.inspector.noTags")}</p>
+          <p className="text-muted-foreground text-xs italic">
+            {t("project.inspector.noTags")}
+          </p>
         )}
       </section>
-      <section
-        className="inspector-section"
-        aria-label={t("project.inspector.usage")}
-      >
-        <h3>{t("project.inspector.usage")}</h3>
+      <section className="space-y-2" aria-label={t("project.inspector.usage")}>
+        <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {t("project.inspector.usage")}
+        </h3>
         {usage.length ? (
-          <ul className="usage-list">
+          <ul className="divide-border/40 border-border bg-card divide-y overflow-hidden rounded-xl border text-xs">
             {usage.map((item, index) => (
-              <li key={`${item.timestamp}:${index}`}>
-                <span className="entry-text">{item.action}</span>
-                <time>{relative(item.timestamp)}</time>
+              <li
+                key={`${item.timestamp}:${index}`}
+                className="flex items-center justify-between p-2.5"
+              >
+                <span className="text-foreground font-medium">
+                  {item.action}
+                </span>
+                <time className="text-muted-foreground">
+                  {relative(item.timestamp)}
+                </time>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="inspector-empty">{t("project.inspector.noUsage")}</p>
+          <p className="text-muted-foreground text-xs italic">
+            {t("project.inspector.noUsage")}
+          </p>
         )}
       </section>
-      <section
-        className="inspector-section"
-        aria-label={t("project.inspector.audit")}
-      >
-        <h3>{t("project.inspector.audit")}</h3>
-        <ul className="audit-list" id="auditList">
+      <section className="space-y-2" aria-label={t("project.inspector.audit")}>
+        <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {t("project.inspector.audit")}
+        </h3>
+        <ul
+          className="divide-border/40 border-border bg-card divide-y overflow-hidden rounded-xl border text-xs"
+          id="auditList"
+        >
           {audit.map((item, index) => (
-            <li key={`${item.timestamp}:${index}`}>
-              <span className="entry-text">{item.text}</span>
-              <time>{relative(item.timestamp)}</time>
+            <li
+              key={`${item.timestamp}:${index}`}
+              className="flex items-center justify-between p-2.5"
+            >
+              <span className="text-foreground font-medium">{item.text}</span>
+              <time className="text-muted-foreground">
+                {relative(item.timestamp)}
+              </time>
             </li>
           ))}
         </ul>
       </section>
-    </>
+    </div>
   );
 };
 
@@ -614,6 +798,7 @@ interface ConfigurationReviewProps {
   onBack: () => void;
   onCommit: () => void;
 }
+
 const ConfigurationInputStep = ({
   draft,
   targetLabel,
@@ -624,18 +809,25 @@ const ConfigurationInputStep = ({
   ConfigurationReviewProps,
   "draft" | "targetLabel" | "onSource" | "onText" | "onChooseFile"
 >) => (
-  <div className="configuration-step" id="configurationInputStep">
-    <p className="configuration-target" id="configurationInputTarget">
+  <div className="space-y-4" id="configurationInputStep">
+    <p
+      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+      id="configurationInputTarget"
+    >
       {targetLabel}
     </p>
     <section
-      className="import-source-tabs"
+      className="flex gap-2"
       aria-label={t("project.configuration.sourceLabel")}
     >
       <Button
-        variant="secondary"
+        variant={draft.source === "text" ? "secondary" : "ghost"}
         type="button"
-        className={`import-source-btn${draft.source === "text" ? " is-active" : ""}`}
+        size="sm"
+        className={cn(
+          "h-8 px-3 text-xs font-medium",
+          draft.source === "text" && "bg-secondary text-foreground shadow-xs"
+        )}
         id="configurationPasteSource"
         aria-pressed={draft.source === "text"}
         disabled={draft.busy}
@@ -644,9 +836,13 @@ const ConfigurationInputStep = ({
         {t("project.configuration.pasteSource")}
       </Button>
       <Button
-        variant="secondary"
+        variant={draft.source === "file" ? "secondary" : "ghost"}
         type="button"
-        className={`import-source-btn${draft.source === "file" ? " is-active" : ""}`}
+        size="sm"
+        className={cn(
+          "h-8 px-3 text-xs font-medium",
+          draft.source === "file" && "bg-secondary text-foreground shadow-xs"
+        )}
         id="configurationFileSource"
         aria-pressed={draft.source === "file"}
         disabled={draft.busy}
@@ -656,12 +852,15 @@ const ConfigurationInputStep = ({
       </Button>
     </section>
     {draft.source === "text" ? (
-      <div id="configurationPastePanel">
-        <label className="import-input-label" htmlFor="configurationText">
+      <div id="configurationPastePanel" className="space-y-1.5">
+        <label
+          className="text-foreground block text-xs font-medium"
+          htmlFor="configurationText"
+        >
           {t("project.configuration.textLabel")}
         </label>
         <textarea
-          className="import-textarea configuration-textarea"
+          className="bg-secondary/30 border-border focus:ring-primary h-36 w-full rounded-lg border p-3 font-mono text-xs focus:ring-1 focus:outline-hidden"
           id="configurationText"
           spellCheck={false}
           placeholder={t("project.configuration.textPlaceholder")}
@@ -669,13 +868,13 @@ const ConfigurationInputStep = ({
           disabled={draft.busy}
           onChange={(event) => onText(event.target.value)}
         />
-        <p className="import-format-hint">
+        <p className="text-muted-foreground text-xs">
           {t("project.configuration.formatHint")}
         </p>
       </div>
     ) : (
-      <div id="configurationFilePanel">
-        <p className="import-format-hint">
+      <div id="configurationFilePanel" className="space-y-3">
+        <p className="text-muted-foreground text-xs">
           {t("project.configuration.fileHint")}
         </p>
         <Button
@@ -692,7 +891,7 @@ const ConfigurationInputStep = ({
     )}
     {draft.message && (
       <output
-        className="configuration-message"
+        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
         id="configurationMessage"
         aria-live="polite"
       >
@@ -701,15 +900,22 @@ const ConfigurationInputStep = ({
     )}
   </div>
 );
+
 const ConfigurationReviewStep = ({
   draft,
   targetLabel,
 }: Pick<ConfigurationReviewProps, "draft" | "targetLabel">) => (
-  <div className="configuration-step" id="configurationReviewStep">
-    <p className="configuration-target" id="configurationReviewTarget">
+  <div className="space-y-4" id="configurationReviewStep">
+    <p
+      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+      id="configurationReviewTarget"
+    >
       {targetLabel}
     </p>
-    <p className="configuration-review-summary" id="configurationReviewSummary">
+    <p
+      className="text-foreground text-xs font-medium"
+      id="configurationReviewSummary"
+    >
       {t("project.configuration.reviewCounts", {
         added: draft.changes?.added.length || 0,
         removed: draft.changes?.removed.length || 0,
@@ -719,7 +925,7 @@ const ConfigurationReviewStep = ({
     </p>
     {draft.duplicateNames > 0 && (
       <p
-        className="configuration-duplicate-note"
+        className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400"
         id="configurationDuplicateNote"
       >
         {t("project.configuration.duplicates", {
@@ -727,25 +933,35 @@ const ConfigurationReviewStep = ({
         })}
       </p>
     )}
-    <div className="configuration-change-groups" id="configurationChangeGroups">
+    <div
+      className="bg-secondary/30 border-border grid grid-cols-2 gap-2 rounded-lg border p-3 text-xs"
+      id="configurationChangeGroups"
+    >
       {Object.entries(draft.changes || {}).map(([kind, keys]) => (
-        <div className="configuration-change-group" key={kind}>
-          <strong>{t(`project.configuration.change.${kind}`)}</strong>
-          <span>
+        <div key={kind} className="space-y-0.5">
+          <strong className="text-muted-foreground block text-[10px] uppercase">
+            {t(`project.configuration.change.${kind}`)}
+          </strong>
+          <span className="text-foreground block truncate font-mono">
             {keys.length ? keys.join(", ") : t("project.configuration.none")}
           </span>
         </div>
       ))}
     </div>
     <ul
-      className="configuration-review-list"
+      className="divide-border/40 border-border bg-card max-h-[220px] divide-y overflow-hidden overflow-y-auto rounded-xl border text-xs"
       id="configurationReviewList"
       aria-label={t("project.configuration.heading")}
     >
       {draft.entries.map((entry) => (
-        <li className="configuration-review-row" key={entry.key}>
-          <code>{entry.key}</code>
-          <span className="configuration-status" data-status={entry.status}>
+        <li className="flex items-center justify-between p-2.5" key={entry.key}>
+          <code className="text-foreground font-mono font-medium">
+            {entry.key}
+          </code>
+          <span
+            className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 font-mono text-[11px]"
+            data-status={entry.status}
+          >
             {t(`project.configuration.status.${entry.status.toLowerCase()}`)}
           </span>
         </li>
@@ -753,7 +969,7 @@ const ConfigurationReviewStep = ({
     </ul>
     {draft.message && (
       <output
-        className="configuration-message"
+        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
         id="configurationReviewMessage"
         aria-live="polite"
       >
@@ -762,36 +978,43 @@ const ConfigurationReviewStep = ({
     )}
   </div>
 );
+
 const ConfigurationClearStep = ({
   draft,
   targetLabel,
 }: Pick<ConfigurationReviewProps, "draft" | "targetLabel">) => (
-  <div className="configuration-step" id="configurationClearStep">
-    <p className="configuration-target" id="configurationClearTarget">
+  <div className="space-y-4" id="configurationClearStep">
+    <p
+      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+      id="configurationClearTarget"
+    >
       {targetLabel}
     </p>
-    <p className="configuration-clear-warning">
+    <p className="text-destructive bg-destructive/10 border-destructive/20 rounded-lg border p-2.5 text-xs">
       {t("project.configuration.clearWarning")}
     </p>
-    <p className="configuration-review-summary" id="configurationClearSummary">
+    <p
+      className="text-foreground text-xs font-medium"
+      id="configurationClearSummary"
+    >
       {t("project.configuration.clearCount", {
         count: draft.removed.length,
       })}
     </p>
     <ul
-      className="configuration-review-list"
+      className="divide-border/40 border-border bg-card max-h-[220px] divide-y overflow-hidden overflow-y-auto rounded-xl border text-xs"
       id="configurationClearList"
       aria-label={t("project.configuration.heading")}
     >
       {draft.removed.map((key) => (
-        <li className="configuration-review-row" key={key}>
-          <code>{key}</code>
+        <li className="p-2.5" key={key}>
+          <code className="text-foreground font-mono font-medium">{key}</code>
         </li>
       ))}
     </ul>
     {draft.message && (
       <output
-        className="configuration-message"
+        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
         id="configurationClearMessage"
         aria-live="polite"
       >
@@ -800,6 +1023,7 @@ const ConfigurationClearStep = ({
     )}
   </div>
 );
+
 export const ConfigurationReviewDialog = ({
   draft,
   configured,
@@ -826,16 +1050,19 @@ export const ConfigurationReviewDialog = ({
   return (
     <ModalFrame
       id="configurationModalOverlay"
-      className="configuration-modal max-w-[700px]"
+      className="max-w-[700px]"
       initialFocusId={initialFocusId}
       onClose={onClose}
     >
-      <div className="modal-header">
+      <div className="mb-4">
         <ModalTitle>{t("project.configuration.modalTitle")}</ModalTitle>
+        <p
+          className="text-muted-foreground mt-1 text-xs"
+          id="configurationModalDescription"
+        >
+          {t("project.configuration.modalDescription")}
+        </p>
       </div>
-      <p className="modal-sub" id="configurationModalDescription">
-        {t("project.configuration.modalDescription")}
-      </p>
       {draft.step === "input" && (
         <ConfigurationInputStep
           draft={draft}
@@ -851,7 +1078,7 @@ export const ConfigurationReviewDialog = ({
       {draft.step === "clear" && (
         <ConfigurationClearStep draft={draft} targetLabel={targetLabel} />
       )}
-      <div className="modal-actions">
+      <div className="border-border mt-6 flex justify-end gap-2 border-t pt-4">
         {draft.step !== "input" && (
           <Button
             variant="secondary"
@@ -918,13 +1145,415 @@ export interface ImportChoice {
   action: "add" | "replace" | "skip";
   explicit: boolean;
 }
+
 export type ImportRow = ImportPreviewEntry & {
   choice: ImportChoice | null;
 };
+
 export interface ImportReveal {
   value: string;
   expiresAt: number;
 }
+
+const ImportInputSection = ({
+  source,
+  text,
+  targetText,
+  diagnostics,
+  busy,
+  onSource,
+  onText,
+  onPreview,
+}: {
+  source: "text" | "file";
+  text: string;
+  targetText: string;
+  diagnostics: string[];
+  busy: boolean;
+  onSource: (source: "text" | "file") => void;
+  onText: (text: string) => void;
+  onPreview: () => void;
+}) => (
+  <section
+    id="importInputStep"
+    className="space-y-4"
+    aria-labelledby="importInputHeading"
+  >
+    <h3
+      id="importInputHeading"
+      className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
+    >
+      {t("project.importReview.inputHeading")}
+    </h3>
+    <div
+      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+      id="importInputTarget"
+    >
+      {targetText}
+    </div>
+    <section
+      className="flex gap-2"
+      aria-label={t("project.importReview.sourceLabel")}
+    >
+      <Button
+        variant={source === "text" ? "secondary" : "ghost"}
+        type="button"
+        size="sm"
+        className={cn(
+          "h-8 px-3 text-xs font-medium",
+          source === "text" && "bg-secondary text-foreground shadow-xs"
+        )}
+        id="importPasteSource"
+        aria-pressed={source === "text"}
+        disabled={busy}
+        onClick={() => onSource("text")}
+      >
+        {t("project.importReview.pasteSource")}
+      </Button>
+      <Button
+        variant={source === "file" ? "secondary" : "ghost"}
+        type="button"
+        size="sm"
+        className={cn(
+          "h-8 px-3 text-xs font-medium",
+          source === "file" && "bg-secondary text-foreground shadow-xs"
+        )}
+        id="importFileSource"
+        aria-pressed={source === "file"}
+        disabled={busy}
+        onClick={() => onSource("file")}
+      >
+        {t("project.importReview.fileSource")}
+      </Button>
+    </section>
+    {source === "text" ? (
+      <div id="importPastePanel" className="space-y-1.5">
+        <label
+          className="text-foreground block text-xs font-medium"
+          htmlFor="importText"
+        >
+          {t("project.importReview.textLabel")}
+        </label>
+        <textarea
+          className="bg-secondary/30 border-border focus:ring-primary h-36 w-full rounded-lg border p-3 font-mono text-xs focus:ring-1 focus:outline-hidden"
+          id="importText"
+          spellCheck={false}
+          placeholder={t("project.importReview.textPlaceholder")}
+          value={text}
+          onChange={(event) => onText(event.target.value)}
+        />
+        <p className="text-muted-foreground text-xs">
+          {t("project.importReview.formatHint")}
+        </p>
+      </div>
+    ) : (
+      <div id="importFilePanel" className="space-y-3">
+        <p className="text-muted-foreground text-xs">
+          {t("project.importReview.fileHint")}
+        </p>
+        <Button
+          variant="secondary"
+          type="button"
+          id="importChooseFileBtn"
+          disabled={busy}
+          onClick={onPreview}
+        >
+          <Icon name="upload" />
+          <span>{t("project.importReview.chooseFile")}</span>
+        </Button>
+      </div>
+    )}
+    {diagnostics.length > 0 && (
+      <div
+        className="bg-destructive/10 border-destructive/20 text-destructive space-y-1 rounded-lg border p-3 text-xs"
+        id="importDiagnostics"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <strong>
+          {t("project.importReview.diagnosticSummary", {
+            count: diagnostics.length,
+          })}
+        </strong>
+        <ul className="list-inside list-disc">
+          {diagnostics.map((message, index) => (
+            <li key={index}>{message}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </section>
+);
+
+const ImportOccurrenceRow = ({
+  row,
+  index,
+  occurrence,
+  occurrenceIndex,
+  reveal,
+  busy,
+  selected,
+  onReveal,
+  onChoose,
+  onAction,
+}: {
+  row: ImportRow;
+  index: number;
+  occurrence: ImportOccurrence;
+  occurrenceIndex: number;
+  reveal: ImportReveal | undefined;
+  busy: boolean;
+  selected: boolean;
+  onReveal: (entry: ImportRow, occurrence: ImportOccurrence) => void;
+  onChoose: (key: string, occurrenceId: string | null) => void;
+  onAction: (
+    key: string,
+    occurrenceId: string,
+    action: ImportChoice["action"]
+  ) => void;
+}) => {
+  const now = useNow(Boolean(reveal));
+  let actions: string[];
+  let tone: Status;
+  if (occurrence.status === "new") {
+    actions = ["add", "skip"];
+    tone = "healthy";
+  } else if (occurrence.status === "changed") {
+    actions = ["keep", "replace"];
+    tone = "rotate";
+  } else {
+    actions = ["skip"];
+    tone = "config";
+  }
+
+  let chosenAction: string = occurrence.defaultAction;
+  if (selected) {
+    chosenAction = row.choice?.action || "skip";
+    if (chosenAction === "skip" && occurrence.status === "changed") {
+      chosenAction = "keep";
+    }
+  }
+
+  let displayedValue: string;
+  if (occurrence.empty) {
+    displayedValue = t("project.importReview.emptyValue");
+  } else if (reveal?.value) {
+    displayedValue = reveal.value;
+  } else {
+    displayedValue = "••••••••";
+  }
+
+  return (
+    <div
+      className="bg-secondary/30 flex flex-wrap items-center gap-3 rounded-lg p-2 text-xs"
+      data-occurrence={occurrenceIndex}
+      key={occurrence.id}
+    >
+      {row.duplicate ? (
+        <label className="flex cursor-pointer items-center gap-1.5">
+          <input
+            type="radio"
+            name={`import-${index}`}
+            checked={selected}
+            onChange={() => onChoose(row.key, occurrence.id)}
+            aria-label={t("project.importReview.occurrenceLabel", {
+              line: occurrence.line,
+            })}
+          />
+          <span className="text-muted-foreground font-mono">
+            {t("project.importReview.lineNumber", {
+              line: occurrence.line,
+            })}
+          </span>
+        </label>
+      ) : (
+        <span className="text-muted-foreground font-mono">
+          {t("project.importReview.lineNumber", {
+            line: occurrence.line,
+          })}
+        </span>
+      )}
+      <span className="text-foreground flex-1 truncate font-mono">
+        {displayedValue}
+      </span>
+      <Pill status={tone} />
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        className="h-6 px-2 text-[11px]"
+        disabled={busy}
+        aria-label={t(
+          reveal
+            ? "project.importReview.hideOccurrence"
+            : "project.importReview.revealOccurrence",
+          { key: row.key, line: occurrence.line }
+        )}
+        onClick={() => onReveal(row, occurrence)}
+      >
+        {reveal
+          ? t("project.importReview.hideCountdown", {
+              seconds: Math.max(0, Math.ceil((reveal.expiresAt - now) / 1000)),
+            })
+          : t("project.importReview.reveal")}
+      </Button>
+      <select
+        className="bg-card border-border text-foreground rounded-md border px-2 py-1 text-xs focus:outline-hidden"
+        aria-label={t("project.importReview.actionForKey", {
+          key: row.key,
+        })}
+        value={chosenAction}
+        disabled={row.duplicate && !selected}
+        hidden={row.duplicate && !selected}
+        onChange={(event) =>
+          onAction(
+            row.key,
+            occurrence.id,
+            event.target.value === "keep"
+              ? "skip"
+              : (event.target.value as ImportChoice["action"])
+          )
+        }
+      >
+        {actions.map((action) => (
+          <option key={action} value={action === "keep" ? "skip" : action}>
+            {t(`project.importReview.action.${action}`)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+const ImportReviewSection = ({
+  targetText,
+  counts,
+  rows,
+  reveals,
+  diagnostics,
+  busy,
+  onReveal,
+  onChoose,
+  onAction,
+}: {
+  targetText: string;
+  counts: { add: number; replace: number; skip: number; pending: number };
+  rows: ImportRow[];
+  reveals: Record<string, ImportReveal>;
+  diagnostics: string[];
+  busy: boolean;
+  onReveal: (entry: ImportRow, occurrence: ImportOccurrence) => void;
+  onChoose: (key: string, occurrenceId: string | null) => void;
+  onAction: (
+    key: string,
+    occurrenceId: string,
+    action: ImportChoice["action"]
+  ) => void;
+}) => (
+  <section
+    id="importReviewStep"
+    className="space-y-4"
+    aria-labelledby="importReviewHeading"
+  >
+    <h3
+      id="importReviewHeading"
+      className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
+    >
+      {t("project.importReview.reviewHeading")}
+    </h3>
+    <div
+      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+      id="importReviewTarget"
+    >
+      {targetText}
+    </div>
+    <p
+      className="text-foreground text-xs font-medium"
+      id="importSummary"
+      aria-live="polite"
+    >
+      {t("project.importReview.summary", counts)}
+    </p>
+    <div
+      className="border-border divide-border/40 bg-card max-h-[320px] divide-y overflow-y-auto rounded-xl border"
+      id="importList"
+      aria-label={t("project.importReview.reviewListLabel")}
+    >
+      {rows.map((row, index) => (
+        <article
+          className="space-y-2 p-3 text-xs"
+          data-entry={index}
+          key={row.key}
+        >
+          <div className="flex items-center justify-between">
+            <code className="text-foreground font-mono font-semibold">
+              {row.key}
+            </code>
+            {row.duplicate && (
+              <span className="font-mono text-[10px] text-amber-400">
+                {t("project.importReview.duplicateOccurrences", {
+                  count: row.occurrences.length,
+                })}
+              </span>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            {row.occurrences.map((occurrence, occurrenceIndex) => {
+              const revealKey = `${row.key}:${occurrence.id}`;
+              const reveal = reveals[revealKey];
+              const selected = row.choice?.occurrenceId === occurrence.id;
+              return (
+                <ImportOccurrenceRow
+                  key={occurrence.id}
+                  row={row}
+                  index={index}
+                  occurrence={occurrence}
+                  occurrenceIndex={occurrenceIndex}
+                  reveal={reveal}
+                  busy={busy}
+                  selected={selected}
+                  onReveal={onReveal}
+                  onChoose={onChoose}
+                  onAction={onAction}
+                />
+              );
+            })}
+            {row.duplicate && (
+              <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 pt-1 text-xs">
+                <input
+                  type="radio"
+                  name={`import-${index}`}
+                  checked={
+                    row.choice?.explicit === true &&
+                    row.choice.occurrenceId === null
+                  }
+                  aria-label={t("project.importReview.excludeKey", {
+                    key: row.key,
+                  })}
+                  onChange={() => onChoose(row.key, null)}
+                />
+                {t("project.importReview.skipKey")}
+              </label>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+    {diagnostics.length > 0 && (
+      <div
+        className="bg-destructive/10 border-destructive/20 text-destructive space-y-1 rounded-lg border p-3 text-xs"
+        id="importReviewDiagnostics"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {diagnostics.map((message, index) => (
+          <p key={index}>{message}</p>
+        ))}
+      </div>
+    )}
+  </section>
+);
+
 export const ImportReviewDialog = ({
   source,
   text,
@@ -982,321 +1611,52 @@ export const ImportReviewDialog = ({
     }
     previousHandle.current = handle;
   }, [handle]);
+
   const inputFocusId = source === "text" ? "importText" : "importChooseFileBtn";
   const initialFocusId = handle ? "importBackBtn" : inputFocusId;
   const busyCancelLabel = committing
     ? "project.importReview.closeDuringCommit"
     : "project.importReview.cancelRequest";
+
   return (
     <ModalFrame
       id="importModalOverlay"
-      className="import-modal max-w-[760px]"
+      className="max-w-[760px]"
       initialFocusId={initialFocusId}
       onClose={onClose}
     >
-      <div className="modal-header">
+      <div className="mb-4">
         <ModalTitle>{t("project.importReview.title")}</ModalTitle>
+        <p className="text-muted-foreground mt-1 text-xs" id="importSub">
+          {t("project.importReview.subtitle")}
+        </p>
       </div>
-      <p className="modal-sub" id="importSub">
-        {t("project.importReview.subtitle")}
-      </p>
       {!handle && (
-        <section
-          id="importInputStep"
-          className="import-step"
-          aria-labelledby="importInputHeading"
-        >
-          <h3 id="importInputHeading" className="import-step-heading">
-            {t("project.importReview.inputHeading")}
-          </h3>
-          <div className="import-target" id="importInputTarget">
-            {targetText}
-          </div>
-          <section
-            className="import-source-tabs"
-            aria-label={t("project.importReview.sourceLabel")}
-          >
-            <Button
-              variant="secondary"
-              type="button"
-              className={`import-source-btn${source === "text" ? " is-active" : ""}`}
-              id="importPasteSource"
-              aria-pressed={source === "text"}
-              disabled={busy}
-              onClick={() => onSource("text")}
-            >
-              {t("project.importReview.pasteSource")}
-            </Button>
-            <Button
-              variant="secondary"
-              type="button"
-              className={`import-source-btn${source === "file" ? " is-active" : ""}`}
-              id="importFileSource"
-              aria-pressed={source === "file"}
-              disabled={busy}
-              onClick={() => onSource("file")}
-            >
-              {t("project.importReview.fileSource")}
-            </Button>
-          </section>
-          {source === "text" ? (
-            <div id="importPastePanel">
-              <label className="import-input-label" htmlFor="importText">
-                {t("project.importReview.textLabel")}
-              </label>
-              <textarea
-                className="import-textarea"
-                id="importText"
-                spellCheck={false}
-                placeholder={t("project.importReview.textPlaceholder")}
-                value={text}
-                onChange={(event) => onText(event.target.value)}
-              />
-              <p className="import-format-hint">
-                {t("project.importReview.formatHint")}
-              </p>
-            </div>
-          ) : (
-            <div id="importFilePanel">
-              <p className="import-format-hint">
-                {t("project.importReview.fileHint")}
-              </p>
-              <Button
-                variant="secondary"
-                type="button"
-                id="importChooseFileBtn"
-                disabled={busy}
-                onClick={onPreview}
-              >
-                <Icon name="upload" />
-                <span>{t("project.importReview.chooseFile")}</span>
-              </Button>
-            </div>
-          )}
-          {diagnostics.length > 0 && (
-            <div
-              className="import-diagnostics"
-              id="importDiagnostics"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <strong>
-                {t("project.importReview.diagnosticSummary", {
-                  count: diagnostics.length,
-                })}
-              </strong>
-              <ul>
-                {diagnostics.map((message, index) => (
-                  <li key={index}>{message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
+        <ImportInputSection
+          source={source}
+          text={text}
+          targetText={targetText}
+          diagnostics={diagnostics}
+          busy={busy}
+          onSource={onSource}
+          onText={onText}
+          onPreview={onPreview}
+        />
       )}
       {handle && (
-        <section
-          id="importReviewStep"
-          className="import-step"
-          aria-labelledby="importReviewHeading"
-        >
-          <h3 id="importReviewHeading" className="import-step-heading">
-            {t("project.importReview.reviewHeading")}
-          </h3>
-          <div className="import-target" id="importReviewTarget">
-            {targetText}
-          </div>
-          <p
-            className="import-review-summary"
-            id="importSummary"
-            aria-live="polite"
-          >
-            {t("project.importReview.summary", counts)}
-          </p>
-          <div className="import-review-head" aria-hidden="true">
-            <span>{t("project.importReview.columnKey")}</span>
-            <span>{t("project.importReview.columnValue")}</span>
-            <span>{t("project.importReview.columnStatus")}</span>
-          </div>
-          <section
-            className="import-review-list"
-            id="importList"
-            aria-label={t("project.importReview.reviewListLabel")}
-          >
-            {rows.map((row, index) => (
-              <article
-                className="import-review-row"
-                data-entry={index}
-                key={row.key}
-              >
-                <div className="import-review-key">
-                  <code>{row.key}</code>
-                  {row.duplicate && (
-                    <span className="import-duplicate-note">
-                      {t("project.importReview.duplicateOccurrences", {
-                        count: row.occurrences.length,
-                      })}
-                    </span>
-                  )}
-                </div>
-                <div className="import-occurrences">
-                  {row.occurrences.map((occurrence, occurrenceIndex) => {
-                    const revealKey = `${row.key}:${occurrence.id}`;
-                    const reveal = reveals[revealKey];
-                    const selected = row.choice?.occurrenceId === occurrence.id;
-                    let actions: string[];
-                    let tone: string;
-                    if (occurrence.status === "new") {
-                      actions = ["add", "skip"];
-                      tone = "healthy";
-                    } else if (occurrence.status === "changed") {
-                      actions = ["keep", "replace"];
-                      tone = "rotate";
-                    } else {
-                      actions = ["skip"];
-                      tone = "config";
-                    }
-                    let chosenAction: string = occurrence.defaultAction;
-                    if (selected) {
-                      chosenAction = row.choice?.action || "skip";
-                      if (
-                        chosenAction === "skip" &&
-                        occurrence.status === "changed"
-                      ) {
-                        chosenAction = "keep";
-                      }
-                    }
-                    const displayedValue = occurrence.empty
-                      ? t("project.importReview.emptyValue")
-                      : (reveal?.value ?? "••••••••");
-                    return (
-                      <div
-                        className="import-occurrence"
-                        data-occurrence={occurrenceIndex}
-                        key={occurrence.id}
-                      >
-                        {row.duplicate ? (
-                          <label>
-                            <input
-                              type="radio"
-                              name={`import-${index}`}
-                              checked={selected}
-                              onChange={() => onChoose(row.key, occurrence.id)}
-                              aria-label={t(
-                                "project.importReview.occurrenceLabel",
-                                { line: occurrence.line }
-                              )}
-                            />
-                            <span>
-                              {t("project.importReview.lineNumber", {
-                                line: occurrence.line,
-                              })}
-                            </span>
-                          </label>
-                        ) : (
-                          <span className="import-line-number">
-                            {t("project.importReview.lineNumber", {
-                              line: occurrence.line,
-                            })}
-                          </span>
-                        )}
-                        <span className="rev-value">{displayedValue}</span>
-                        <span className={`pill pill-${tone}`}>
-                          <span className="pill-dot" aria-hidden="true" />
-                          {t(
-                            `project.importReview.status.${occurrence.status}`
-                          )}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          type="button"
-                          className="import-reveal-btn"
-                          disabled={busy}
-                          aria-label={t(
-                            reveal
-                              ? "project.importReview.hideOccurrence"
-                              : "project.importReview.revealOccurrence",
-                            { key: row.key, line: occurrence.line }
-                          )}
-                          onClick={() => onReveal(row, occurrence)}
-                        >
-                          {reveal
-                            ? t("project.importReview.hideCountdown", {
-                                seconds: Math.max(
-                                  0,
-                                  Math.ceil(
-                                    (reveal.expiresAt - Date.now()) / 1000
-                                  )
-                                ),
-                              })
-                            : t("project.importReview.reveal")}
-                        </Button>
-                        <select
-                          className="import-action-select"
-                          aria-label={t("project.importReview.actionForKey", {
-                            key: row.key,
-                          })}
-                          value={chosenAction}
-                          disabled={row.duplicate && !selected}
-                          hidden={row.duplicate && !selected}
-                          onChange={(event) =>
-                            onAction(
-                              row.key,
-                              occurrence.id,
-                              event.target.value === "keep"
-                                ? "skip"
-                                : (event.target.value as ImportChoice["action"])
-                            )
-                          }
-                        >
-                          {actions.map((action) => (
-                            <option
-                              key={action}
-                              value={action === "keep" ? "skip" : action}
-                            >
-                              {t(`project.importReview.action.${action}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })}
-                  {row.duplicate && (
-                    <label className="import-skip-key">
-                      <input
-                        type="radio"
-                        name={`import-${index}`}
-                        checked={
-                          row.choice?.explicit === true &&
-                          row.choice.occurrenceId === null
-                        }
-                        aria-label={t("project.importReview.excludeKey", {
-                          key: row.key,
-                        })}
-                        onChange={() => onChoose(row.key, null)}
-                      />
-                      {t("project.importReview.skipKey")}
-                    </label>
-                  )}
-                </div>
-              </article>
-            ))}
-          </section>
-          {diagnostics.length > 0 && (
-            <div
-              className="import-diagnostics"
-              id="importReviewDiagnostics"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {diagnostics.map((message, index) => (
-                <p key={index}>{message}</p>
-              ))}
-            </div>
-          )}
-        </section>
+        <ImportReviewSection
+          targetText={targetText}
+          counts={counts}
+          rows={rows}
+          reveals={reveals}
+          diagnostics={diagnostics}
+          busy={busy}
+          onReveal={onReveal}
+          onChoose={onChoose}
+          onAction={onAction}
+        />
       )}
-      <div className="modal-actions">
+      <div className="border-border mt-6 flex justify-end gap-2 border-t pt-4">
         <Button
           variant="secondary"
           type="button"

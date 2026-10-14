@@ -35,13 +35,16 @@ export const ManagerForm = ({
   replacementId,
 }: ManagerFormProps) => (
   <>
-    <p className="environment-context">
+    <p className="text-muted-foreground mb-4 font-mono text-xs">
       {t("project.environments.current", {
         name: current?.name || t("project.environments.unknown"),
       })}
     </p>
-    <div className={`sl-field${error ? " invalid" : ""}`}>
-      <label htmlFor="environmentNameInput">
+    <div className="mb-3 space-y-1.5">
+      <label
+        htmlFor="environmentNameInput"
+        className="text-foreground block text-xs font-medium"
+      >
         {t("project.environments.nameLabel")}
       </label>
       <Input
@@ -51,11 +54,13 @@ export const ManagerForm = ({
         autoComplete="off"
         onChange={(event) => onNameChange(event.target.value)}
       />
-      <p className="sl-field-error" role="alert">
-        {error}
-      </p>
+      {error && (
+        <p className="text-destructive mt-1 text-xs" role="alert">
+          {error}
+        </p>
+      )}
     </div>
-    <div className="environment-management-actions">
+    <div className="mb-4 flex gap-2">
       <Button
         variant="default"
         type="button"
@@ -74,12 +79,16 @@ export const ManagerForm = ({
       </Button>
     </div>
     {current?.isDefault && alternatives.length > 0 && (
-      <div className="sl-field environment-replacement-field">
-        <label htmlFor="replacementEnvironment">
+      <div className="mb-3 space-y-1.5">
+        <label
+          htmlFor="replacementEnvironment"
+          className="text-foreground block text-xs font-medium"
+        >
           {t("project.environments.replacementLabel")}
         </label>
         <select
           id="replacementEnvironment"
+          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden"
           value={replacementId}
           onChange={(event) => onReplacementChange(event.target.value)}
         >
@@ -89,7 +98,7 @@ export const ManagerForm = ({
             </option>
           ))}
         </select>
-        <p className="environment-warning">
+        <p className="mt-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400">
           {t("project.environments.replacementWarning", {
             name:
               alternatives.find((entry) => entry.id === replacementId)?.name ||
@@ -98,7 +107,7 @@ export const ManagerForm = ({
         </p>
       </div>
     )}
-    <p className="modal-sub environment-delete-details">
+    <p className="text-muted-foreground mb-4 text-xs">
       {current
         ? t("project.environments.deleteDetails", {
             count: current.secretCount,
@@ -107,11 +116,11 @@ export const ManagerForm = ({
         : ""}
     </p>
     {alternatives.length === 0 && (
-      <p className="environment-warning">
+      <p className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400">
         {t("project.environments.lastEnvironment")}
       </p>
     )}
-    <div className="modal-actions">
+    <div className="border-border flex justify-end gap-2 border-t pt-3">
       <Button
         variant="secondary"
         type="button"
@@ -162,19 +171,21 @@ export const EnvironmentDeleteConfirmation = ({
     : "";
   return (
     <>
-      <p className="environment-warning">
+      <p className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400">
         {t("project.environments.deleteConfirm", {
           count: current?.secretCount ?? 0,
           defaultWarning,
           name: current?.name ?? "",
         })}
       </p>
-      <div className={error ? "sl-field invalid" : "sl-field"}>
-        <p className="sl-field-error" role="alert">
-          {error}
-        </p>
-      </div>
-      <div className="modal-actions">
+      {error && (
+        <div className="mb-4">
+          <p className="text-destructive text-xs" role="alert">
+            {error}
+          </p>
+        </div>
+      )}
+      <div className="border-border flex justify-end gap-2 border-t pt-3">
         <Button
           variant="secondary"
           id="environmentDeleteCancelButton"

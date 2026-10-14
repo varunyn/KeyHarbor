@@ -35,33 +35,45 @@ export const SecretDuplicateDialog = ({
   duplicateSecret,
 }: SecretDuplicateDialogProps) => (
   <ModalFrame id="duplicateModalOverlay" onClose={closeModal}>
-    <div className="modal-header">
+    <div className="mb-4">
       <ModalTitle>
         {t("project.duplicateModal.title", { key: actionKey })}
       </ModalTitle>
+      <p className="text-muted-foreground mt-1 font-mono text-xs">
+        {contextLabel}
+      </p>
     </div>
-    <p className="environment-context">{contextLabel}</p>
-    <div className={`sl-field${fieldErrors.duplicate ? " invalid" : ""}`}>
-      <label htmlFor="duplicateTarget">
-        {t("project.duplicateModal.targetLabel")}
-      </label>
-      <select
-        id="duplicateTarget"
-        value={duplicateTarget}
-        onChange={(event) => onProjectChange(event.target.value)}
-      >
-        {otherProjects.map((project) => (
-          <option key={project.name} value={project.name}>
-            {project.name}
-          </option>
-        ))}
-      </select>
-      <div className="sl-field">
-        <label htmlFor="duplicateEnvironment">
+    <div className="mb-6 space-y-4">
+      <div className="space-y-1.5" id="fieldDuplicateTarget">
+        <label
+          htmlFor="duplicateTarget"
+          className="text-foreground block text-xs font-medium"
+        >
+          {t("project.duplicateModal.targetLabel")}
+        </label>
+        <select
+          id="duplicateTarget"
+          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden"
+          value={duplicateTarget}
+          onChange={(event) => onProjectChange(event.target.value)}
+        >
+          {otherProjects.map((project) => (
+            <option key={project.name} value={project.name}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1.5" id="fieldDuplicateEnvironment">
+        <label
+          htmlFor="duplicateEnvironment"
+          className="text-foreground block text-xs font-medium"
+        >
           {t("project.duplicateModal.environmentLabel")}
         </label>
         <select
           id="duplicateEnvironment"
+          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden disabled:opacity-50"
           value={duplicateEnvironmentId}
           disabled={!duplicateEnvironments.length || actionBusy}
           onChange={(event) => setDuplicateEnvironmentId(event.target.value)}
@@ -76,11 +88,13 @@ export const SecretDuplicateDialog = ({
           ))}
         </select>
       </div>
-      <p className="sl-field-error" id="duplicateError">
-        {fieldErrors.duplicate}
-      </p>
+      {fieldErrors.duplicate && (
+        <p className="text-destructive mt-1 text-xs" id="duplicateError">
+          {fieldErrors.duplicate}
+        </p>
+      )}
     </div>
-    <div className="modal-actions">
+    <div className="border-border flex justify-end gap-2 border-t pt-3">
       <DialogCloseButton onClose={closeModal} />
       <Button
         variant="default"
