@@ -36,6 +36,8 @@
     "test/**/*.cts",
     "test/**/*.ts",
     "scripts/copy-backend-resources.mts",
+    "scripts/build-agent-proxy.mts",
+    "scripts/macho-uuid.mts",
     "scripts/lint-inline-js.mts",
     "scripts/lint.mts"
   ],

@@ -2,7 +2,10 @@
 "use strict";
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const keyHarborClient = require("./keyharbor-client");
+const agentProxyClient = require("./agent-proxy-client");
 
 const { KEYHARBOR_DIR, getServerInfo, isElectronAppRunning, sendRequest } =
   keyHarborClient;
@@ -115,11 +118,15 @@ Commands:
   environments <project>            List the Project's Environments (metadata only)
   vaults                            List all vaults
   mcp                               Start the local MCP v2 stdio server
+  agent --project=<name> --key=<key> --origin=https://api.example.com -- <command> [args]
+                                    Run one command with a scoped approved HTTPS proxy
   help                              Show this help message
 
 Options:
   --vault=<name>                    Specify vault (default: System)
   --env=<name>                      Select an Environment (default: Project default)
+  --auth-header=<header>            Agent mode credential header (default: Authorization)
+  --auth-prefix=<prefix>            Agent mode header prefix (empty for raw API keys)
 
   KeyHarbor options are only parsed before "--". Everything after "--" is
   forwarded to the child command untouched.
@@ -136,7 +143,146 @@ Examples:
   keyharbor --vault="Work" get api API_KEY
   keyharbor vaults
   keyharbor mcp
+  keyharbor agent --project=myapp --key=API_KEY --origin=https://api.example.com -- npm start
 `);
+};
+
+// eslint-disable-next-line complexity -- This handler owns approval, child lifetime, revocation, and CA cleanup.
+const handleAgent = async () => {
+  const { separatorIndex } = parsed;
+  if (separatorIndex === -1 || parsed.childArgs.length === 0) {
+    console.error(
+      "Usage: keyharbor agent --project=<name> --key=<key> --origin=https://api.example.com -- <command> [args]"
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const { argv } = process;
+  const options = argv.slice(2, 2 + separatorIndex).slice(1);
+  const getOption = (name) =>
+    options.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+  const projectName = getOption("project");
+  const key = getOption("key");
+  const origin = getOption("origin");
+  if (
+    !projectName ||
+    !key ||
+    !origin ||
+    options.filter((arg) => arg.startsWith("--project=")).length !== 1 ||
+    options.filter((arg) => arg.startsWith("--key=")).length !== 1 ||
+    options.filter((arg) => arg.startsWith("--origin=")).length !== 1
+  ) {
+    console.error(
+      "Error: agent requires exactly one --project, --key, and --origin option before --."
+    );
+    process.exitCode = 1;
+    return;
+  }
+  let originUrl;
+  try {
+    originUrl = new URL(origin);
+  } catch {
+    originUrl = null;
+  }
+  if (
+    !originUrl ||
+    originUrl.protocol !== "https:" ||
+    originUrl.pathname !== "/" ||
+    originUrl.search ||
+    originUrl.hash ||
+    originUrl.username ||
+    originUrl.password
+  ) {
+    console.error(
+      "Error: --origin must be an HTTPS origin, such as https://api.example.com."
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const request = {
+    key,
+    origin: originUrl.origin,
+    projectName,
+    ...(environmentName ? { environmentName } : {}),
+    ...(vaultName ? { vaultName } : {}),
+    ...(options.some((arg) => arg.startsWith("--auth-header="))
+      ? { authHeader: getOption("auth-header") }
+      : {}),
+    ...(options.some((arg) => arg.startsWith("--auth-prefix="))
+      ? { authPrefix: getOption("auth-prefix") }
+      : {}),
+  };
+  let session;
+  let directory;
+  let child;
+  const signalHandlers = new Map();
+  try {
+    const response = await sendRequest("createAgentSession", request);
+    if (!response.success) {
+      throw new Error(
+        "Agent session approval was denied or could not be created."
+      );
+    }
+    session = response.data;
+    if (
+      !session ||
+      typeof session.sessionId !== "string" ||
+      typeof session.proxyUrl !== "string" ||
+      typeof session.caCertificate !== "string" ||
+      typeof session.placeholder !== "string"
+    ) {
+      throw new Error("KeyHarbor returned an invalid approved session.");
+    }
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), "keyharbor-agent-"));
+    fs.chmodSync(directory, 0o700);
+    const caPath = agentProxyClient.writePublicCa(
+      directory,
+      session.caCertificate
+    );
+    const env = agentProxyClient.createAgentEnvironment(session);
+    agentProxyClient.addCaEnvironment(env, caPath);
+    env[key] = session.placeholder;
+    const [cmd, ...cmdArgs] = parsed.childArgs;
+    child = spawn(cmd, cmdArgs, { env, shell: false, stdio: "inherit" });
+    const forwardSignal = (signal) => {
+      child?.kill(signal);
+      const killTimer = setTimeout(() => child?.kill("SIGKILL"), 5000);
+      killTimer.unref();
+    };
+    for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+      const handler = () => forwardSignal(signal);
+      signalHandlers.set(signal, handler);
+      process.on(signal, handler);
+    }
+    const exit: { code: number | null; signal: NodeJS.Signals | null } =
+      // eslint-disable-next-line promise/avoid-new -- ChildProcess exposes close/error events.
+      await new Promise((resolve, reject) => {
+        child.once("error", reject);
+        child.once("close", (code, signal) =>
+          resolve({ code, signal } as {
+            code: number | null;
+            signal: NodeJS.Signals | null;
+          })
+        );
+      });
+    process.exitCode =
+      exit.signal || typeof exit.code !== "number" ? 1 : exit.code;
+  } catch (error) {
+    console.error(
+      `Error: ${error instanceof Error ? error.message : "Agent command failed."}`
+    );
+    process.exitCode = 1;
+  } finally {
+    for (const [signal, handler] of signalHandlers) {
+      process.off(signal, handler);
+    }
+    if (session?.sessionId) {
+      await agentProxyClient.closeAgentSession(sendRequest, session.sessionId);
+    }
+    if (directory) {
+      fs.rmSync(directory, { force: true, recursive: true });
+    }
+  }
 };
 const handleRun = async () => {
   const projectIndex = args.findIndex((arg) => arg.startsWith("--project="));
@@ -384,7 +530,7 @@ const main = async () => {
   }
   if (command === "mcp") {
     const { runKeyHarborMcpServer } = await import("./keyharbor-mcp.mjs");
-    runKeyHarborMcpServer();
+    runKeyHarborMcpServer(args.includes("--secretless"));
     return;
   }
   if (!fs.existsSync(KEYHARBOR_DIR)) {
@@ -401,6 +547,10 @@ const main = async () => {
     process.exit(1);
   }
   switch (command) {
+    case "agent": {
+      await handleAgent();
+      break;
+    }
     case "run": {
       await handleRun();
       break;

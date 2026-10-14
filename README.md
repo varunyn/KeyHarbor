@@ -109,6 +109,7 @@ The installers include their runtime; Node.js and npm are only needed when runni
 
 - **Node.js**: `20.19+` or `>= 22.12`
 - **npm**: `10+`
+- **Go**: `1.25+` to build the bundled credential proxy from source. Set `KEYHARBOR_GO_BINARY` if Go is not on your PATH. Installed desktop packages include the helper and do not require Go.
 - **OS**: macOS 13+ (Apple Silicon & Intel), Windows 10+ (x64 / arm64), or Linux (64-bit)
 
 ### Running from Source
@@ -168,6 +169,50 @@ keyharbor run --project=myapp -- docker compose up
 ## AI Assistant & MCP Integration
 
 KeyHarbor ships with a Model Context Protocol (MCP v2) server over stdio. AI coding agents can inspect configuration requirements and read or set secrets under strict user approval.
+
+### Use credentials without returning their values
+
+Start the MCP server with `keyharbor mcp --secretless` to expose metadata and credential-use tools without the raw-secret read/write tools. The existing MCP mode remains available for workflows that deliberately need secret values.
+
+The `authenticated_request` tool takes a project, secret key name, HTTPS origin, method, and path. KeyHarbor asks you to approve the temporary connection, then asks you to approve the individual request. Its local helper adds the credential internally and returns a bounded text/JSON response with credential filtering.
+
+Each approval allows two minutes. Configure your MCP client's tool-call timeout to at least five minutes so it can wait for both prompts and the response. With the MCP v2 JavaScript SDK, pass `{ timeout: 300_000 }` as the second argument to `client.callTool(params, options)`. The server cannot override a client-side timeout.
+
+Pending approvals send a desktop notification; clicking it opens the review prompt. On macOS, the Dock also requests attention. Allow KeyHarbor notifications in **System Settings → Notifications** if banners are disabled; Focus settings can also suppress them. Notifications contain no project, key, destination, or request details. Dismissing a notification does not approve or deny the request; the desktop prompt remains the approval gate.
+
+Closing the main window asks whether to **Keep Running**, **Quit KeyHarbor**, or **Cancel**. You can remember your choice and change it under **Settings → When closing the window**. Background mode leaves KeyHarbor in the macOS menu bar or system tray; your current vault state and auto-lock policy still apply. The menu shows vault status and pending approvals, and provides Show, Review approvals, Settings, Lock Vault, and Quit. Quit (including Cmd+Q on macOS) locks the vault and revokes agent sessions through normal shutdown. If the tray icon is unavailable, the app offers Quit or Cancel instead of hiding the window.
+
+For example, a tool call can request:
+
+```json
+{
+  "projectName": "myapp",
+  "environmentName": "dev",
+  "key": "GITHUB_TOKEN",
+  "origin": "https://api.github.com",
+  "method": "GET",
+  "path": "/repos/owner/repository/issues?state=open"
+}
+```
+
+To launch a proxy-aware CLI or SDK with a placeholder in place of its key:
+
+```bash
+keyharbor agent --project=myapp --env=dev --key=GITHUB_TOKEN \
+  --origin=https://api.github.com -- node my-agent.mjs
+```
+
+The child receives proxy settings, an ephemeral public CA certificate, and a placeholder for the selected key. Each matching HTTPS request requires desktop approval. Closing the command revokes its session; locking the vault revokes all sessions. The proxy token is a temporary capability, so keep it private. The helper holds the real credential briefly in memory and never persists a second secret collection.
+
+For a local development checkout, use `node backend-build/cli/keyharbor.js` in place of the installed `keyharbor` command. MCP clients can run `node backend-build/cli/keyharbor-mcp.mjs --secretless` directly. Agent sessions can also be created and revoked with `create_agent_session` and `close_agent_session`.
+
+This initial scope supports HTTPS over HTTP/1.1, configurable authentication headers, request bodies up to 256 KiB, and text/JSON responses up to 1 MiB. Redirects, compressed/binary responses, WebSockets, SSH, and database protocols are not supported. Clients must honor the proxy settings; Node's environment-proxy support depends on the child Node version. Use `authenticated_request` when a client does not support proxy configuration.
+
+Private-network access and additional upstream CA certificates require explicit connection approval. Proxy configuration does not sandbox an agent: a process with unrestricted access to your user account can still access unrelated environment variables, files, and general CLI/MCP interfaces. Use a sandbox or separate identity for stronger isolation. Existing `keyharbor run` continues to inject real secret values into child environments; use `agent` for the placeholder/proxy workflow.
+
+For a service on your LAN, macOS may also require **System Settings → Privacy & Security → Local Network → KeyHarbor**. This OS permission is separate from KeyHarbor's per-connection private-network approval. The app declares its local-network usage so macOS can explain the request; it does not enable the permission automatically. Proxy-generated upstream failures include a safe code in the response body and `X-KeyHarbor-Proxy-Error` header, such as `network_permission_denied`, `network_unreachable`, `network_policy_denied`, `tls_untrusted_certificate`, `dns_failure`, or `connection_refused`. Raw transport error text is never returned. A successful unauthenticated request from Terminal does not prove that the desktop app has macOS LAN permission.
+
+The helper selectively adapts MIT-licensed Infisical Agent Vault code. Its pinned source provenance and redistribution notice are in [native/agent-proxy](native/agent-proxy).
 
 ### 1. Enable CLI / MCP in Settings
 

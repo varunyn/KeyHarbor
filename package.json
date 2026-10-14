@@ -19,8 +19,10 @@
   "main": "backend-build/src/main.js",
   "scripts": {
     "start": "electron .",
-    "prestart": "npm run build:renderer && npm run build:backend -- --require-renderer",
-    "test": "npm run build:backend && node --test --test-concurrency=1 backend-build/test/*.test.js backend-build/test/*.test.mjs",
+    "prestart": "npm run build:desktop",
+    "test": "npm run build:backend && node backend-build/scripts/build-agent-proxy.mjs && node --test --test-concurrency=1 backend-build/test/*.test.js backend-build/test/*.test.mjs",
+    "build:proxy": "npm run build:backend && node backend-build/scripts/build-agent-proxy.mjs",
+    "test:proxy": "cd native/agent-proxy && go test -race ./...",
     "build:backend": "node -e \"require('node:fs').rmSync('backend-build', { recursive: true, force: true })\" && tsc -p tsconfig.backend.json && node backend-build/scripts/copy-backend-resources.mjs",
     "lint": "npm run build:backend && node backend-build/scripts/lint.mjs",
     "lint:js": "ultracite check",
@@ -29,10 +31,10 @@
     "build": "npm run build:mac && npm run build:win",
     "build:renderer": "npm run typecheck:renderer && vite build",
     "typecheck:renderer": "tsc --noEmit",
-    "build:desktop": "npm run build:renderer && npm run build:backend -- --require-renderer",
-    "build:mac": "npm run build:desktop && electron-builder --mac",
-    "build:win": "npm run build:desktop && electron-builder --win",
-    "build:linux": "npm run build:desktop && electron-builder --linux",
+    "build:desktop": "npm run build:renderer && npm run build:backend -- --require-renderer && node backend-build/scripts/build-agent-proxy.mjs",
+    "build:mac": "npm run build:desktop && node backend-build/scripts/build-agent-proxy.mjs --platform=darwin --all-arch && electron-builder --mac",
+    "build:win": "npm run build:desktop && node backend-build/scripts/build-agent-proxy.mjs --platform=win32 --all-arch && electron-builder --win",
+    "build:linux": "npm run build:desktop && node backend-build/scripts/build-agent-proxy.mjs --platform=linux --all-arch && electron-builder --linux",
     "check": "ultracite check",
     "check:backend": "ultracite check src/main.ts src/preload.ts src/modules cli scripts test && tsc -p tsconfig.backend.json --noEmit",
     "fix": "oxfmt --write"
@@ -103,6 +105,15 @@
       "**/node_modules/ext-name/**"
     ],
     "mac": {
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "KeyHarbor connects to services on your local network only after you approve a credential-use request."
+      },
+      "extraResources": [
+        {
+          "from": "native/agent-proxy/bin/darwin-${arch}",
+          "to": "agent-proxy"
+        }
+      ],
       "category": "public.app-category.developer-tools",
       "icon": "src/assets/macicon.png",
       "identity": null
@@ -111,6 +122,12 @@
       "artifactName": "${productName}-macOS-${version}.${ext}"
     },
     "win": {
+      "extraResources": [
+        {
+          "from": "native/agent-proxy/bin/win32-${arch}",
+          "to": "agent-proxy"
+        }
+      ],
       "target": "nsis",
       "icon": "src/assets/icon.png"
     },
@@ -118,6 +135,12 @@
       "artifactName": "${productName}-Windows-${version}.${ext}"
     },
     "linux": {
+      "extraResources": [
+        {
+          "from": "native/agent-proxy/bin/linux-${arch}",
+          "to": "agent-proxy"
+        }
+      ],
       "target": "AppImage",
       "icon": "src/assets/icon.png"
     },

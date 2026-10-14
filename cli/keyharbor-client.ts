@@ -3,6 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { AGENT_CONNECTION_TIMEOUT_MS } from "../src/modules/agent-proxy-timeouts.js";
 import { getAppDataPath } from "../src/modules/app-data-path.js";
 
 /** Environment protocol version required for explicit Environment requests. */
@@ -164,9 +165,14 @@ const postRequestWithCallback = (
   req.on("error", (error) => {
     complete(new Error(`Could not connect to KeyHarbor: ${error.message}`));
   });
-  req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-    req.destroy(new Error("KeyHarbor request timed out"));
-  });
+  req.setTimeout(
+    action === "createAgentSession"
+      ? AGENT_CONNECTION_TIMEOUT_MS
+      : REQUEST_TIMEOUT_MS,
+    () => {
+      req.destroy(new Error("KeyHarbor request timed out"));
+    }
+  );
   req.end(requestData);
 };
 

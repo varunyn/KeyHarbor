@@ -1,5 +1,7 @@
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 
+import type { AgentProxySessionInfo } from "./agent-proxy-contracts";
+
 const http = require("node:http");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -61,6 +63,8 @@ const SENSITIVE_ACTIONS = new Set<string>([
   "createProject",
   "setBatchSecrets",
   "listVaults",
+  "createAgentSession",
+  "closeAgentSession",
 ]);
 /** External selector: a Project plus an optional Environment name, or no Environment at all. */
 type ActionData = Record<string, unknown>;
@@ -187,6 +191,10 @@ class HttpServer {
   host: string;
   authToken: string;
   approvalCallback: ApprovalCallbackShape | null;
+  agentProxy: {
+    close: (sessionId: string) => void;
+    createSession: (data: unknown) => Promise<AgentProxySessionInfo>;
+  } | null;
   constructor(
     vaultManager: HttpManager | null,
     logger: HttpLogger | null,
@@ -202,6 +210,7 @@ class HttpServer {
     this.host = "localhost";
     this.authToken = this.generateAuthToken();
     this.approvalCallback = null;
+    this.agentProxy = null;
     if (vaultSession) {
       this.bindVaultSession(vaultSession);
     }
@@ -217,6 +226,10 @@ class HttpServer {
       );
     }
     this.vaultSession = vaultSession;
+    return this;
+  }
+  bindAgentProxy(coordinator: NonNullable<HttpServer["agentProxy"]>) {
+    this.agentProxy = coordinator;
     return this;
   }
   // Keep the existing instance API for callers and subclasses.
@@ -463,6 +476,22 @@ class HttpServer {
         const error = new Error("Vault is locked");
         error.code = "VAULT_SESSION_LOCKED";
         throw error;
+      }
+      if (action === "createAgentSession" || action === "closeAgentSession") {
+        if (!this.agentProxy) {
+          return { error: "Agent proxy is unavailable", success: false };
+        }
+        if (action === "createAgentSession") {
+          return {
+            data: await this.agentProxy.createSession(safeData),
+            success: true,
+          };
+        }
+        if (typeof safeData.sessionId !== "string") {
+          return { error: "An agent session ID is required", success: false };
+        }
+        this.agentProxy.close(safeData.sessionId);
+        return { success: true };
       }
       return await this.vaultSession.withActiveSession(
         async (sessionContext: HttpSessionContext) => {

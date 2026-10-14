@@ -3,5 +3,6 @@ Icon
 /dist
 /backend-build/
 /src/renderer-build/
+/native/agent-proxy/bin/
 .DS_Store
 /supabase/.temp/
