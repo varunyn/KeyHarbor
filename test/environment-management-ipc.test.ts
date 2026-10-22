@@ -6,7 +6,7 @@ import { after, before, test } from "node:test";
 
 import { registerEnvironmentManagementIpc } from "../src/modules/environment-management-ipc";
 import VaultManager = require("../src/modules/vault-manager");
-import VaultRecoveryStore from "../src/modules/vault-recovery-store";
+import VaultRecoveryStore = require("../src/modules/vault-recovery-store");
 import VaultSession = require("../src/modules/vault-session");
 
 const password = "environment-management-test-password";
