@@ -1,3 +1,5 @@
+import type { FolderScanSummary } from "../project/bridge";
+import { scanProjectFolder } from "./project-folder-scan";
 import type { ReviewVault, ReviewSession } from "./review-contracts";
 
 const crypto = require("node:crypto");
@@ -314,6 +316,19 @@ class EnvTextImportCoordinator {
   _previews: Map<string, ImportPreview>;
   _targetBindings: Map<string, TargetBinding>;
   _generation: number;
+  _folderHandoff: {
+    directory: string;
+    target: TargetBinding;
+    expiresAt: number;
+  } | null = null;
+  _folderScans = new Map<
+    string,
+    {
+      target: TargetBinding;
+      selector: { projectName: string; environmentId: string };
+      contents: Map<string, string>;
+    }
+  >();
 
   constructor({ session }: { session?: ReviewSession } = {}) {
     if (!session || typeof session.withActiveSession !== "function") {
@@ -361,6 +376,155 @@ class EnvTextImportCoordinator {
       return failure(
         error.code || "VAULT_SESSION_LOCKED",
         safeErrorMessage(error)
+      );
+    }
+  }
+
+  async stageFolder(target: unknown, directory: string) {
+    this._folderHandoff = null;
+    const captured = await this.captureTarget(target);
+    if (!captured.success) {
+      return captured;
+    }
+    const binding = this._targetBindings.get(captured.binding);
+    this._targetBindings.delete(captured.binding);
+    if (!binding) {
+      return failure("IMPORT_STALE", "Choose the folder again.");
+    }
+    this._folderHandoff = {
+      directory,
+      expiresAt: Date.now() + 120_000,
+      target: binding,
+    };
+    return { success: true as const };
+  }
+
+  async resumeFolder(target: unknown) {
+    const handoff = this._folderHandoff;
+    this._folderHandoff = null;
+    if (!handoff || Date.now() > handoff.expiresAt || !validTarget(target)) {
+      return failure("IMPORT_STALE", "Choose the folder again.");
+    }
+    const captured = await this.captureTarget(target);
+    if (!captured.success) {
+      return captured;
+    }
+    const current = this._targetBindings.get(captured.binding);
+    if (!current || !sameTarget(handoff.target, current)) {
+      this._targetBindings.delete(captured.binding);
+      return failure(
+        "IMPORT_STALE",
+        "Target changed. Choose the folder again."
+      );
+    }
+    return this.scanFolder(target, handoff.directory, captured.binding);
+  }
+
+  async scanFolder(
+    target: unknown,
+    directory: string,
+    capturedBinding: string
+  ) {
+    const generation = this._generation;
+    const binding = this._targetBindings.get(capturedBinding);
+    this._targetBindings.delete(capturedBinding);
+    this._folderScans.clear();
+    if (!validTarget(target) || !binding) {
+      return failure("IMPORT_STALE", "Choose the folder again.");
+    }
+    try {
+      const result = await scanProjectFolder(directory);
+      return await this.session.withActiveSession(({ activeVault }) => {
+        const current = this._targetDescriptorOrNull(
+          activeVault,
+          target,
+          binding.projectIncarnation
+        );
+        if (
+          generation !== this._generation ||
+          !current ||
+          !sameTarget(binding, current)
+        ) {
+          return failure(
+            "IMPORT_STALE",
+            "Target changed. Choose the folder again."
+          );
+        }
+        const scanId = randomHandle();
+        this._folderScans.set(scanId, {
+          contents: result.contents,
+          selector: target,
+          target: binding,
+        });
+        return {
+          scan: { ...result.summary, scanId } satisfies FolderScanSummary,
+          success: true as const,
+        };
+      });
+    } catch {
+      return failure(
+        "IMPORT_FOLDER_UNAVAILABLE",
+        "The selected folder could not be scanned."
+      );
+    }
+  }
+
+  async previewFolderFile(
+    target: unknown,
+    scanId: unknown,
+    fileId: unknown
+  ): Promise<ImportPreviewResult> {
+    const scan =
+      typeof scanId === "string" ? this._folderScans.get(scanId) : undefined;
+    const content =
+      typeof fileId === "string" ? scan?.contents.get(fileId) : undefined;
+    if (
+      !validTarget(target) ||
+      !scan ||
+      content === undefined ||
+      target.projectName !== scan.target.projectName
+    ) {
+      return failure("IMPORT_STALE", "Choose the folder again.");
+    }
+    const generation = this._generation;
+    try {
+      const bindingHandle = await this.session.withActiveSession(
+        ({ activeVault }) => {
+          const current = this._targetDescriptorOrNull(
+            activeVault,
+            scan.selector,
+            scan.target.projectIncarnation
+          );
+          if (
+            generation !== this._generation ||
+            !current ||
+            !sameTarget(scan.target, current) ||
+            !activeVault
+          ) {
+            throw safeError("IMPORT_STALE");
+          }
+          const snapshot = activeVault.getImportProjectSnapshot(target, []);
+          if (!snapshot.exists) {
+            throw safeError("IMPORT_STALE");
+          }
+          const handle = randomHandle();
+          remember(
+            this._targetBindings,
+            handle,
+            this._targetDescriptor(activeVault, target, snapshot)
+          );
+          return handle;
+        }
+      );
+      return await this.preview(
+        target,
+        { content, source: "text" },
+        bindingHandle
+      );
+    } catch {
+      return failure(
+        "IMPORT_STALE",
+        "Target changed. Choose the folder again."
       );
     }
   }
@@ -706,10 +870,14 @@ class EnvTextImportCoordinator {
     return { success: true };
   }
 
-  clear() {
+  clear({ preserveFolderHandoff = false } = {}) {
+    if (!preserveFolderHandoff) {
+      this._folderHandoff = null;
+    }
     this._generation += 1;
     this._previews.clear();
     this._targetBindings.clear();
+    this._folderScans.clear();
   }
 
   /**
@@ -812,6 +980,7 @@ class EnvTextImportCoordinator {
     if (typeof handle !== "string") {
       return;
     }
+    this._folderScans.delete(handle);
     this._previews.delete(handle);
     this._targetBindings.delete(handle);
   }

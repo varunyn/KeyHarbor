@@ -1020,3 +1020,140 @@ test("a queued commit revalidates session target, clear generation, and relevant
   assert.equal(finalSecrets.OTHER.value, "independent");
   await session.close({ reason: "manual" });
 });
+
+test("folder imports keep values in main, retain scanned bytes, isolate targets, and retire scans", async (t) => {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "keyharbor-folder-import-")
+  );
+  t.after(() => fs.rmSync(directory, { force: true, recursive: true }));
+  const folder = path.join(directory, "project");
+  fs.mkdirSync(folder);
+  fs.writeFileSync(path.join(folder, ".env"), "TOKEN=folder-private-value\n");
+  const { session } = createRuntime(directory);
+  await session.open({
+    credential: PASSWORD,
+    method: "setup",
+    reason: "setup",
+  });
+  t.after(() => session.close({ reason: "manual" }));
+  await session.withActiveSession(({ activeVault }) =>
+    activeVault.createProject("service")
+  );
+  const target = await defaultTarget(session, "service");
+  const staging = await session.withActiveSession(({ activeVault }) =>
+    activeVault.createEnvironment("service", "staging")
+  );
+  const stagingTarget = { environmentId: staging.id, projectName: "service" };
+  const coordinator = new EnvTextImportCoordinator({ session });
+  const captured = await coordinator.captureTarget(target);
+  const result = await coordinator.scanFolder(target, folder, captured.binding);
+  assert.equal(result.success, true);
+  assert.equal(JSON.stringify(result).includes("folder-private-value"), false);
+  const { scanId, files } = result.scan;
+  fs.writeFileSync(path.join(folder, ".env"), "TOKEN=changed-after-scan\n");
+  const preview = await coordinator.previewFolderFile(
+    stagingTarget,
+    scanId,
+    files[0].id
+  );
+  assert.equal(preview.success, true);
+  assert.equal(preview.target.environmentId, staging.id);
+  assert.equal(JSON.stringify(preview).includes("folder-private-value"), false);
+  const commit = await coordinator.commit(preview.handle, [
+    {
+      action: "add",
+      key: "TOKEN",
+      occurrenceId: preview.entries[0].occurrences[0].id,
+    },
+  ]);
+  assert.equal(commit.success, true);
+  const stored = await session.withActiveSession(({ activeVault }) =>
+    activeVault.getSecrets(stagingTarget)
+  );
+  assert.equal(stored.TOKEN.value, "folder-private-value");
+  const defaultSecrets = await session.withActiveSession(({ activeVault }) =>
+    activeVault.getSecrets(target)
+  );
+  assert.equal(Object.hasOwn(defaultSecrets, "TOKEN"), false);
+  const another = await coordinator.previewFolderFile(
+    target,
+    scanId,
+    files[0].id
+  );
+  assert.equal(another.success, true);
+  assert.equal(another.entries[0].occurrences[0].status, "new");
+  const unknownFile = await coordinator.previewFolderFile(
+    target,
+    scanId,
+    "unknown-file"
+  );
+  assert.equal(unknownFile.success, false);
+  await coordinator.discard(scanId);
+  const discarded = await coordinator.previewFolderFile(
+    target,
+    scanId,
+    files[0].id
+  );
+  assert.equal(discarded.success, false);
+  const capturedAgain = await coordinator.captureTarget(target);
+  const scannedAgain = await coordinator.scanFolder(
+    target,
+    folder,
+    capturedAgain.binding
+  );
+  coordinator.clear();
+  const cleared = await coordinator.previewFolderFile(
+    target,
+    scannedAgain.scan.scanId,
+    scannedAgain.scan.files[0].id
+  );
+  assert.equal(cleared.success, false);
+});
+
+test("home folder handoff survives navigation once and rejects changed targets or a cleared session", async (t) => {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "keyharbor-home-folder-")
+  );
+  t.after(() => fs.rmSync(directory, { force: true, recursive: true }));
+  const source = path.join(directory, "source");
+  fs.mkdirSync(source);
+  fs.writeFileSync(
+    path.join(source, ".env"),
+    "HOME_DROP_TOKEN=private-test-value\n"
+  );
+  const { session } = createRuntime(directory);
+  await session.open({
+    credential: PASSWORD,
+    method: "setup",
+    reason: "setup",
+  });
+  await session.withActiveSession(({ activeVault }) => {
+    activeVault.createProject("first");
+    activeVault.createProject("second");
+  });
+  const first = await defaultTarget(session, "first");
+  const second = await defaultTarget(session, "second");
+  const coordinator = new EnvTextImportCoordinator({ session });
+  const staged = await coordinator.stageFolder(first, source);
+  assert.equal(staged.success, true);
+  coordinator.clear({ preserveFolderHandoff: true });
+  const scan = await coordinator.resumeFolder(first);
+  assert.equal(scan.success, true);
+  assert.equal(scan.scan.files.length, 1);
+  assert.equal(JSON.stringify(scan).includes("private-test-value"), false);
+  const rejected0 = await coordinator.resumeFolder(first);
+  assert.equal(rejected0.success, false);
+  await coordinator.stageFolder(first, source);
+  const rejected1 = await coordinator.resumeFolder(second);
+  assert.equal(rejected1.success, false);
+  await coordinator.stageFolder(first, source);
+  coordinator.clear();
+  const rejected2 = await coordinator.resumeFolder(first);
+  assert.equal(rejected2.success, false);
+  await coordinator.stageFolder(first, source);
+  const now = Date.now();
+  t.mock.method(Date, "now", () => now + 120_001);
+  const rejected3 = await coordinator.resumeFolder(first);
+  assert.equal(rejected3.success, false);
+  await session.close({ reason: "manual" });
+});

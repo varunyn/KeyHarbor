@@ -54,7 +54,7 @@ const registerEnvImportIpc = ({
         "did-start-navigation",
         (_event, _url, _inPlace, isMainFrame) => {
           if (isMainFrame) {
-            coordinator.clear();
+            coordinator.clear({ preserveFolderHandoff: true });
           }
         }
       );
@@ -72,6 +72,31 @@ const registerEnvImportIpc = ({
       event?.sender?.id === window.webContents?.id
     );
   };
+
+  ipcMain.handle("secrets:importFolderStage", (event, target, directory) => {
+    if (
+      !admitted(event) ||
+      event.senderFrame !== getWindow()?.webContents.mainFrame ||
+      !validTarget(target) ||
+      typeof directory !== "string" ||
+      !directory ||
+      directory.length > 32_768 ||
+      directory.includes("\0")
+    ) {
+      return failure("IMPORT_INVALID_INPUT", "Choose a project folder.");
+    }
+    return coordinator.stageFolder(target, directory);
+  });
+  ipcMain.handle("secrets:importFolderResume", (event, target) => {
+    if (
+      !admitted(event) ||
+      event.senderFrame !== getWindow()?.webContents.mainFrame ||
+      !validTarget(target)
+    ) {
+      return failure("IMPORT_INVALID_INPUT", "Choose a project folder.");
+    }
+    return coordinator.resumeFolder(target);
+  });
 
   ipcMain.handle("secrets:importPreview", async (event, target, input) => {
     if (!admitted(event)) {
@@ -128,6 +153,85 @@ const registerEnvImportIpc = ({
       );
     }
   });
+
+  ipcMain.handle(
+    "secrets:importFolderScan",
+    async (event, target, folderPath) => {
+      if (!admitted(event)) {
+        return failure(
+          "IMPORT_INVALID_SENDER",
+          "Import could not be completed."
+        );
+      }
+      if (
+        !validTarget(target) ||
+        (folderPath !== undefined &&
+          (typeof folderPath !== "string" ||
+            !folderPath ||
+            folderPath.length > 32_768 ||
+            folderPath.includes("\0")))
+      ) {
+        return failure("IMPORT_INVALID_INPUT", "Choose a project folder.");
+      }
+      const captured = await coordinator.captureTarget(target);
+      if (!captured.success) {
+        return safeFailure(captured);
+      }
+      try {
+        let directory = folderPath;
+        if (directory === undefined) {
+          const result = await dialog.showOpenDialog(getWindow(), {
+            buttonLabel: "Scan folder",
+            properties: ["openDirectory"],
+            title: "Choose a project folder",
+          });
+          if (result.canceled || !result.filePaths?.[0]) {
+            await coordinator.discard(captured.binding);
+            return { cancelled: true, success: false };
+          }
+          [directory] = result.filePaths;
+        }
+        if (!admitted(event)) {
+          await coordinator.discard(captured.binding);
+          return failure("IMPORT_STALE", "Import was closed.");
+        }
+        return await coordinator.scanFolder(
+          target,
+          directory,
+          captured.binding
+        );
+      } catch {
+        await coordinator.discard(captured.binding);
+        return failure(
+          "IMPORT_FOLDER_UNAVAILABLE",
+          "The selected folder could not be scanned."
+        );
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "secrets:importFolderPreview",
+    (event, target, scanId, fileId) => {
+      if (!admitted(event)) {
+        return failure(
+          "IMPORT_INVALID_SENDER",
+          "Import could not be completed."
+        );
+      }
+      if (
+        !validTarget(target) ||
+        typeof scanId !== "string" ||
+        typeof fileId !== "string"
+      ) {
+        return failure(
+          "IMPORT_INVALID_INPUT",
+          "Choose a file from the scanned folder."
+        );
+      }
+      return coordinator.previewFolderFile(target, scanId, fileId);
+    }
+  );
 
   ipcMain.handle("secrets:importReveal", (event, handle, key, occurrenceId) => {
     if (!admitted(event)) {

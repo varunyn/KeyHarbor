@@ -147,6 +147,29 @@ export type ImportInput =
   | { source: "text"; content: string }
   | { source: "file" };
 
+export interface FolderScanFile {
+  id: string;
+  path: string;
+  keyCount: number;
+  gitStatus: "ignored" | "tracked" | "unignored" | "unknown";
+  missingKeys: string[] | null;
+  templatePath: string | null;
+  valid: boolean;
+  suggestedEnvironment: string | null;
+}
+
+export interface FolderScanSummary {
+  scanId: string;
+  folderName: string;
+  files: FolderScanFile[];
+  templates: string[];
+  warnings: {
+    path: string;
+    code: "unreadable" | "symlink" | "invalidTemplate";
+  }[];
+  limited: boolean;
+}
+
 export interface ReviewDiagnostic {
   line: number;
   code: string;
@@ -268,6 +291,22 @@ export interface ProjectBridge {
       mode?: ExportMode,
       options?: ExportOptions
     ) => Promise<BridgeResult<{ path: string }>>;
+    importFolderScan: (
+      target: EnvironmentTarget,
+      folder?: File
+    ) => Promise<BridgeResult<{ scan: FolderScanSummary }>>;
+    importFolderStage: (
+      target: EnvironmentTarget,
+      folder: File
+    ) => Promise<BridgeResult>;
+    importFolderResume: (
+      target: EnvironmentTarget
+    ) => Promise<BridgeResult<{ scan: FolderScanSummary }>>;
+    importFolderPreview: (
+      target: EnvironmentTarget,
+      scanId: string,
+      fileId: string
+    ) => Promise<ImportPreviewResult>;
     importPreview: (
       target: EnvironmentTarget,
       input: ImportInput

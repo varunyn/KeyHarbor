@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 const api = {
   app: {
@@ -97,6 +97,29 @@ const api = {
       ipcRenderer.invoke("secrets:importCommit", handle, decisions),
     importDiscard: (handle) =>
       ipcRenderer.invoke("secrets:importDiscard", handle),
+    importFolderPreview: (target, scanId, fileId) =>
+      ipcRenderer.invoke("secrets:importFolderPreview", target, scanId, fileId),
+    importFolderResume: (target) =>
+      ipcRenderer.invoke("secrets:importFolderResume", target),
+    importFolderScan: (target, folder) => {
+      if (folder === undefined) {
+        return ipcRenderer.invoke("secrets:importFolderScan", target);
+      }
+      const folderPath = webUtils.getPathForFile(folder);
+      if (!folderPath) {
+        return Promise.resolve({
+          code: "IMPORT_INVALID_FOLDER",
+          success: false,
+        });
+      }
+      return ipcRenderer.invoke("secrets:importFolderScan", target, folderPath);
+    },
+    importFolderStage: (target, folder) =>
+      ipcRenderer.invoke(
+        "secrets:importFolderStage",
+        target,
+        webUtils.getPathForFile(folder)
+      ),
     importPreview: (target, input) =>
       ipcRenderer.invoke("secrets:importPreview", target, input),
     importReveal: (handle, key, occurrenceId) =>

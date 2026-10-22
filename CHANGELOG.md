@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Import from a project folder with bounded .env discovery, Git-ignore and tracked-file warnings, nearby-template missing-key checks, and masked per-file review into an explicitly selected environment.
+
 ### Changed
 
 - Collapsed sidebar icons now stay clear of overlapping count bubbles; counts remain beside expanded labels and in navigation tooltips.
