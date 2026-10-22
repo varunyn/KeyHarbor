@@ -36,6 +36,7 @@
     "build:win": "npm run build:desktop && node backend-build/scripts/build-agent-proxy.mjs --platform=win32 --all-arch && electron-builder --win",
     "build:linux": "npm run build:desktop && node backend-build/scripts/build-agent-proxy.mjs --platform=linux --all-arch && electron-builder --linux",
     "check": "ultracite check",
+    "check:anti-slop": "oxlint -c oxlint.audit.config.mts",
     "check:backend": "ultracite check src/main.ts src/preload.ts src/modules cli scripts test && tsc -p tsconfig.backend.json --noEmit",
     "fix": "oxfmt --write"
   },

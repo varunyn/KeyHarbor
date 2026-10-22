@@ -75,9 +75,20 @@ KeyHarbor is an Electron desktop app with a React renderer and separate Node.js 
 ### Code Quality & Formatting
 
 - **Linting & Formatting Presets**: Managed via Ultracite and Oxfmt.
+- **File Size**: JavaScript and TypeScript files (including React components and tests) must stay at or below 500 physical lines, counting comments and blank lines. Oxlint enforces this through `npm run check` and CI. Existing oversized files have explicit temporary ceilings in `oxlint.config.mts`; do not raise them, add new exceptions, or suppress `max-lines`. Lower ceilings as files shrink and remove exceptions once files fit the default limit.
+- **Module Ownership**: Split by responsibility before reaching the limit: extract cohesive components, hooks, domain operations, or transport adapters into descriptive files. Keep entrypoints focused on composition. Avoid arbitrary numbered file chunks, compressed formatting, and moving unrelated logic into a generic utility file just to satisfy the limit.
+- **Anti-slop Rules**: The bundled `ultracite/oxlint/anti-slop` preset enforces compatible rules now; deferred rules are explicitly listed in `oxlint.config.mts`. Run `npm run check:anti-slop` for the full migration audit (currently expected to fail). See [code quality](docs/code-quality.md) for the rollout policy. Do not weaken input validation or replace `unknown` with `any` to silence a rule.
 - **Check (Read-only)**: Run `npm run check` for read-only linting and style verification.
 - **Backend Verification**: Run `npm run check:backend` to validate TypeScript types and backend lint rules.
 - **Formatting a File**: Run `npm run fix -- <path/to/file>`. This command runs Oxfmt formatting only. Do not use broad unused-code autofix on converted CommonJS modules, where exports may be consumed through `module.exports`.
+
+### Required Agent Workflow
+
+1. **Before editing code**: Read `oxlint.config.mts` and [code quality](docs/code-quality.md). Run `npm run check` to establish the current baseline. Check the physical line counts of files you plan to change against the 500-line default or their explicit existing ceilings. Plan a responsibility-based extraction before adding code to a file at its limit.
+2. **During implementation**: After each cohesive change, run `npm run check -- <changed-file> [other-changed-files...]`. Include new modules and tests. Fix new lint or formatting failures before building further changes on top of them; do not defer these checks until the end.
+3. **Audit anti-slop rules early**: For JavaScript or TypeScript changes, run `npm run check:anti-slop -- <affected-file> [other-affected-files...]` before editing and again after the change. This includes deferred rules. Existing findings are migration debt, not a requirement to refactor unrelated code; do not introduce new findings. Resolve new findings without weakening boundary validation or type safety. Report any finding that cannot be safely resolved within scope.
+4. **Before finishing**: Run `npm run check` across the repository. For backend, CLI, or tooling changes, also run `npm run check:backend`; for renderer changes, run `npm run typecheck:renderer`. Run the tests required below. Report the checks performed and distinguish pre-existing failures from failures introduced by the change.
+5. **Preserve enforcement**: Do not disable rules, add lint suppressions, or increase file ceilings to make a change pass. Extract cohesive modules when necessary. Any proposed exception must include a concrete rationale for user review before changing the policy.
 
 ### Testing
 
