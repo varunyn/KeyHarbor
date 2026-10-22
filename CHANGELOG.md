@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) (2026-10-22)
+
+
+### Features
+
+* **security:** add native credential proxy helper for secretless agent access ([3c156ec](https://github.com/varunyn/KeyHarbor/commit/3c156ecc62f1c32f5c72963a8f29111f4ed826ec))
+* **window:** add window close behavior controller and background tray persistence ([27bd86a](https://github.com/varunyn/KeyHarbor/commit/27bd86ae95d18b0125e485e5a7da00c1214d799c))
+
+
+### Bug Fixes
+
+* **ui:** restore secret interactions and improve import review ([8b22a5d](https://github.com/varunyn/KeyHarbor/commit/8b22a5d8abf75b570618e8d1389d2e7b1ed2bc0f))
+
 ## [Unreleased]
 
 ### Added
