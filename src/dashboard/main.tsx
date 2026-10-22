@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ChevronDown,
   Clock,
+  Database,
   Folder,
   Key,
   LayoutGrid,
@@ -16,7 +17,6 @@ import {
   Search,
   Settings,
   Star,
-  Vault,
 } from "lucide-react";
 import React, {
   useCallback,
@@ -129,7 +129,7 @@ const ICON_MAP: Record<
   search: Search,
   settings: Settings,
   star: Star,
-  vault: Vault,
+  vault: Database,
 };
 
 const Icon = ({
