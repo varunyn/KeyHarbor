@@ -67,6 +67,7 @@ export interface EnvironmentSummary {
 export type AppTheme = "system" | "light" | "dark";
 
 export interface ThemeChangePayload {
+  macWindowMaterial?: "glass" | "vibrancy" | "opaque" | null;
   theme: AppTheme;
   shouldUseDarkColors: boolean;
 }

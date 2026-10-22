@@ -9,7 +9,7 @@ const existingFileLineLimits: Record<string, number> = {
   "cli/keyharbor-mcp.mts": 624,
   "cli/keyharbor.ts": 615,
   "src/dashboard/main.tsx": 3009,
-  "src/main.ts": 3369,
+  "src/main.ts": 3359,
   "src/modules/agent-proxy-coordinator.ts": 990,
   "src/modules/env-text-import-coordinator.ts": 1003,
   "src/modules/project-configuration-coordinator.ts": 987,

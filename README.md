@@ -330,3 +330,9 @@ tool_timeout_sec = 60
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+### Native macOS window materials
+
+On macOS, KeyHarbor uses the system interface font, a draggable unified title bar, standard window controls, and translucent navigation. macOS 26 and later use Apple's public Liquid Glass API when available; older systems use native sidebar vibrancy. Reduce Transparency or Increase Contrast uses solid surfaces. Secret tables, inspectors, and dialogs remain opaque.
+
+Mac builds require Xcode command-line tools. `npm run build:desktop` builds the local Node-API window bridge; `npm run build:mac` builds it for both Apple Silicon and Intel. A macOS 26 or later SDK enables Liquid Glass; earlier SDKs compile the native-vibrancy fallback. The bridge uses public AppKit APIs and carries no third-party runtime dependency.

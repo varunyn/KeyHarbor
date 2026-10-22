@@ -1,3 +1,7 @@
+import {
+  getMacWindowMaterial,
+  updateMacWindowMaterial,
+} from "./modules/mac-window";
 import { configureWorkspaceNavigation } from "./modules/workspace-navigation";
 import type Vault = require("./modules/vault");
 import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts";
@@ -397,8 +401,13 @@ const applyTheme = (theme: AppTheme) => {
   const bg = getThemeBackgroundColor(shouldUseDarkColors);
   for (const win of BrowserWindow.getAllWindows()) {
     try {
-      win.setBackgroundColor(bg);
+      if (win === mainWindow && process.platform === "darwin") {
+        updateMacWindowMaterial(win);
+      } else {
+        win.setBackgroundColor(bg);
+      }
       win.webContents.send("theme:changed", {
+        macWindowMaterial: getMacWindowMaterial(win),
         shouldUseDarkColors,
         theme,
       });
@@ -917,14 +926,23 @@ const createWindow = () => {
 
   mainWindow = new BrowserWindow({
     acceptFirstMouse: true,
-    backgroundColor: getThemeBackgroundColor(nativeTheme.shouldUseDarkColors),
+    backgroundColor:
+      process.platform === "darwin"
+        ? "#00000000"
+        : getThemeBackgroundColor(nativeTheme.shouldUseDarkColors),
     height: mainWindowState.height,
     icon: path.join(__dirname, "assets", "icon.png"),
     menuBarVisible: false,
     minHeight: 500,
     minWidth: 680,
     show: false,
-    titleBarStyle: "default",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
+    ...(process.platform === "darwin"
+      ? {
+          trafficLightPosition: { x: 20, y: 18 },
+          transparent: true,
+        }
+      : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -935,6 +953,10 @@ const createWindow = () => {
     y: mainWindowState.y,
   });
 
+  if (process.platform === "darwin") {
+    mainWindow.setWindowButtonVisibility(true);
+  }
+  updateMacWindowMaterial(mainWindow);
   envTextImportCoordinator?.clear();
   projectConfigurationCoordinator?.clear();
   attachEnvImportWindowCleanup();
@@ -1685,7 +1707,6 @@ const setupIpcHandlers = () => {
     return;
   }
   ipcHandlersInitialized = true;
-
   registerEnvironmentManagementIpc({ ipcMain, session: vaultSession });
 
   ipcMain.handle("vault:instanceIdentity", async () => {
@@ -3022,9 +3043,12 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle("settings:get", () => loadSettings());
 
-  ipcMain.handle("theme:get", () => {
+  ipcMain.handle("theme:get", (event) => {
     const settings = loadSettings();
     return {
+      macWindowMaterial: getMacWindowMaterial(
+        BrowserWindow.fromWebContents(event.sender)
+      ),
       shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
       theme: settings.theme,
     };
@@ -3272,19 +3296,22 @@ app.whenReady().then(async () => {
 
   nativeTheme.on("updated", () => {
     const settings = loadSettings();
-    if (settings.theme === "system") {
-      const { shouldUseDarkColors } = nativeTheme;
-      const bg = getThemeBackgroundColor(shouldUseDarkColors);
-      for (const win of BrowserWindow.getAllWindows()) {
-        try {
+    const { shouldUseDarkColors } = nativeTheme;
+    const bg = getThemeBackgroundColor(shouldUseDarkColors);
+    for (const win of BrowserWindow.getAllWindows()) {
+      try {
+        if (win === mainWindow && process.platform === "darwin") {
+          updateMacWindowMaterial(win);
+        } else {
           win.setBackgroundColor(bg);
-          win.webContents.send("theme:changed", {
-            shouldUseDarkColors,
-            theme: "system",
-          });
-        } catch {
-          // Best-effort desktop cleanup must not replace the primary action result.
         }
+        win.webContents.send("theme:changed", {
+          macWindowMaterial: getMacWindowMaterial(win),
+          shouldUseDarkColors,
+          theme: settings.theme,
+        });
+      } catch {
+        // Best-effort desktop cleanup must not replace the primary action result.
       }
     }
   });

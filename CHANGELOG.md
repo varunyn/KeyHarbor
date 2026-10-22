@@ -4,6 +4,8 @@
 
 ### Added
 
+- macOS now uses a unified native title bar and translucent navigation, with Apple Liquid Glass on macOS 26 or later, native vibrancy on older versions, and solid materials when accessibility settings require them.
+
 - Import from a project folder with bounded .env discovery, Git-ignore and tracked-file warnings, nearby-template missing-key checks, and masked per-file review into an explicitly selected environment.
 
 ### Changed

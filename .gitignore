@@ -6,3 +6,4 @@ Icon
 /native/agent-proxy/bin/
 .DS_Store
 /supabase/.temp/
+/native/mac-window/bin/
