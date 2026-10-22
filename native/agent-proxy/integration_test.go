@@ -341,14 +341,20 @@ func TestCancelAndTTLTerminateHelper(t *testing.T) {
 	binary := buildHelper(t)
 	cmd, reader, parent, ready := startHelper(t, binary, origin, ca, 30)
 	client := proxyClient(t, ready)
-	clientResult := make(chan error, 1)
+	type requestResult struct {
+		status int
+		err    error
+	}
+	clientResult := make(chan requestResult, 1)
 	go func() {
 		req, _ := http.NewRequest(http.MethodGet, origin+"/v1/cancel", nil)
 		resp, err := client.Do(req)
+		status := 0
 		if resp != nil {
+			status = resp.StatusCode
 			_ = resp.Body.Close()
 		}
-		clientResult <- err
+		clientResult <- requestResult{status: status, err: err}
 	}()
 	var authorization wire
 	if err := readWireWithin(reader, &authorization, 5*time.Second); err != nil {
@@ -367,9 +373,10 @@ func TestCancelAndTTLTerminateHelper(t *testing.T) {
 		t.Fatal("helper did not exit after cancellation")
 	}
 	select {
-	case err := <-clientResult:
-		if err == nil {
-			t.Fatal("cancelled proxy request unexpectedly succeeded")
+	case result := <-clientResult:
+		// Cancellation can return a denial before the helper closes the socket.
+		if result.err == nil && result.status != http.StatusForbidden {
+			t.Fatalf("cancelled proxy request was not refused: HTTP %d", result.status)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("client request remained open after helper cancellation")

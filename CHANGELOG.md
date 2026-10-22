@@ -2,11 +2,19 @@
 
 ## [Unreleased]
 
+## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) - 2026-10-21
+
 ### Added
+
+- Approved agents can use credentials through the native proxy without receiving the secret value.
+
+- Window close behavior now supports keeping KeyHarbor running in the system tray.
 
 - Import review now accepts drag-and-drop .env files, shows the selected filename, and offers inline per-secret action choices.
 
 ### Fixed
+
+- Windows proxy requests now report the correct safe diagnostic when an upstream service refuses a connection.
 
 - Selecting a secret now opens its details panel, and row action menus stay open reliably with mouse and keyboard navigation.
 
