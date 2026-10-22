@@ -1269,7 +1269,7 @@ const DashboardSidebar = ({
             : "relative size-10 items-center justify-center p-0"
         )}
         aria-current="page"
-        aria-label={t("dashboard.sidebar.navProjects")}
+        aria-label={`${t("dashboard.sidebar.navProjects")} (${projectsCount})`}
         title={`${t("dashboard.sidebar.navProjects")} (${projectsCount})`}
       >
         <Icon name="folder" className={sidebarOpen ? "size-4" : "size-4.5"} />
@@ -1282,11 +1282,6 @@ const DashboardSidebar = ({
               {projectsCount}
             </span>
           </>
-        )}
-        {!sidebarOpen && projectsCount > 0 && (
-          <span className="bg-primary text-primary-foreground ring-card absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full font-mono text-[10px] font-bold ring-2">
-            {projectsCount}
-          </span>
         )}
       </Button>
       <Button

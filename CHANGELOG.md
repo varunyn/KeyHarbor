@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Collapsed sidebar icons now stay clear of overlapping count bubbles; counts remain beside expanded labels and in navigation tooltips.
+
 - Sidebar controls now sit beside the top navigation breadcrumbs on the Projects and secrets screens, with distinct expand and collapse icons.
 
 ### Fixed
