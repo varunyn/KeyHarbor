@@ -1,17 +1,49 @@
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
 
 const KEY_HEX_PATTERN = /^[a-f0-9]{64}$/iu;
 
+interface SystemPreferences {
+  canPromptTouchID: () => boolean;
+  promptTouchID: (reason: string) => Promise<void>;
+}
+
+interface SafeStorage {
+  encryptString: (value: string) => Buffer;
+  decryptString: (value: Buffer) => string;
+  isEncryptionAvailable: () => boolean;
+}
+
+interface TouchIdUnlockOptions {
+  platform: NodeJS.Platform | string;
+  systemPreferences: SystemPreferences;
+  safeStorage: SafeStorage;
+  credentialPath: string;
+}
+
+interface TouchIdCredentialError extends Error {
+  code?: string;
+}
+
 class TouchIdUnlock {
-  constructor({ platform, systemPreferences, safeStorage, credentialPath }) {
+  platform: NodeJS.Platform | string;
+  systemPreferences: SystemPreferences;
+  safeStorage: SafeStorage;
+  credentialPath: string;
+
+  constructor({
+    platform,
+    systemPreferences,
+    safeStorage,
+    credentialPath,
+  }: TouchIdUnlockOptions) {
     this.platform = platform;
     this.systemPreferences = systemPreferences;
     this.safeStorage = safeStorage;
     this.credentialPath = credentialPath;
   }
 
-  isAvailable() {
+  isAvailable(): boolean {
     if (this.platform !== "darwin") {
       return false;
     }
@@ -24,7 +56,7 @@ class TouchIdUnlock {
     }
   }
 
-  hasCredential() {
+  hasCredential(): boolean {
     try {
       return fs.existsSync(this.credentialPath);
     } catch {
@@ -32,7 +64,7 @@ class TouchIdUnlock {
     }
   }
 
-  getStatus(configured) {
+  getStatus(configured: boolean) {
     const available = this.isAvailable();
     return {
       available,
@@ -40,7 +72,7 @@ class TouchIdUnlock {
     };
   }
 
-  async enable(key) {
+  async enable(key: Buffer): Promise<void> {
     this._assertAvailable();
     await this.systemPreferences.promptTouchID(
       "enable Touch ID unlock for KeyHarbor"
@@ -48,7 +80,7 @@ class TouchIdUnlock {
     this.refresh(key);
   }
 
-  refresh(key) {
+  refresh(key: Buffer): void {
     this._assertAvailable();
     this._assertEncryptionAvailable();
     const keyHex = this._validateKey(key).toString("hex");
@@ -77,7 +109,7 @@ class TouchIdUnlock {
     }
   }
 
-  disable() {
+  disable(): void {
     try {
       if (fs.existsSync(this.credentialPath)) {
         fs.unlinkSync(this.credentialPath);
@@ -90,7 +122,7 @@ class TouchIdUnlock {
     }
   }
 
-  async unlockKey() {
+  async unlockKey(): Promise<Buffer> {
     this._assertAvailable();
     if (!this.hasCredential()) {
       throw new Error("Touch ID unlock is not enabled");
@@ -107,19 +139,21 @@ class TouchIdUnlock {
       }
       return Buffer.from(keyHex, "hex");
     } catch {
-      const error = new Error("The saved Touch ID credential is invalid");
+      const error: TouchIdCredentialError = new Error(
+        "The saved Touch ID credential is invalid"
+      );
       error.code = "TOUCH_ID_CREDENTIAL_INVALID";
       throw error;
     }
   }
 
-  _assertEncryptionAvailable() {
+  _assertEncryptionAvailable(): void {
     if (!this.safeStorage.isEncryptionAvailable()) {
       throw new Error("Keychain encryption is not available on this Mac");
     }
   }
 
-  _assertAvailable() {
+  _assertAvailable(): void {
     if (!this.isAvailable()) {
       throw new Error("Touch ID is not available on this Mac");
     }
@@ -127,7 +161,7 @@ class TouchIdUnlock {
 
   // Keep key validation on the existing instance API for callers and subclasses.
   // eslint-disable-next-line class-methods-use-this
-  _validateKey(key) {
+  _validateKey(key: Buffer): Buffer {
     if (!Buffer.isBuffer(key) || key.length !== 32) {
       throw new Error("Vault encryption key is unavailable");
     }
@@ -135,4 +169,4 @@ class TouchIdUnlock {
   }
 }
 
-module.exports = TouchIdUnlock;
+export = TouchIdUnlock;

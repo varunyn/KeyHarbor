@@ -3,7 +3,10 @@ import fs from "node:fs";
 import CryptoUtil = require("./crypto");
 import VaultReconciliation = require("./vault-reconciliation");
 import { isObjectRecord, isString, sha256Hex } from "./vault-helpers";
-import { VAULT_FORMAT_VERSION } from "./vault-normalization";
+import {
+  normalizeVaultDataValue,
+  VAULT_FORMAT_VERSION,
+} from "./vault-normalization";
 import type {
   VaultBoundaryValue,
   VaultData,
@@ -27,6 +30,7 @@ export interface VaultAuthHost {
   isLocked: boolean;
   key: Buffer | null;
   data: VaultData;
+  _needsFormatMigration: boolean;
   vaultInstanceId: string | null;
   saveTimeout: NodeJS.Timeout | null;
   currentRevision: number;
@@ -179,13 +183,19 @@ export const loadVaultData = (
     // Best-effort cleanup or recovery probing must preserve the primary result.
   }
 
-  vault.key = Buffer.from(key);
+  const unlockedKey = Buffer.from(key);
+  vault.key = unlockedKey;
 
   try {
     const encryptedData = fs.readFileSync(vault.vaultPath);
     vault._setDiskHashFromCiphertext(encryptedData);
-    vault.data = CryptoUtil.decryptJson(encryptedData, vault.key);
-    vault._normalizeData();
+    const decryptedData = CryptoUtil.decryptJson(encryptedData, unlockedKey);
+    if (!isObjectRecord(decryptedData)) {
+      throw new Error("Invalid vault data");
+    }
+    const normalized = normalizeVaultDataValue(decryptedData);
+    vault.data = normalized.data;
+    vault._needsFormatMigration ||= normalized.needsFormatMigration;
     vault.vaultInstanceId = vault.data.vaultInstanceId || null;
     vault.isLocked = false;
     vault._resetProjectIncarnations();

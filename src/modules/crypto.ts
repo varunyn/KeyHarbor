@@ -1,17 +1,22 @@
-const crypto = require("node:crypto");
+import crypto = require("node:crypto");
 
 // Preserve the exported constructor and static method API used by consumers.
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class, unicorn/no-static-only-class
 class CryptoUtil {
-  static deriveKey(password, salt, iterations = 4_000_000, keyLength = 32) {
+  static deriveKey(
+    password: crypto.BinaryLike,
+    salt: crypto.BinaryLike,
+    iterations = 4_000_000,
+    keyLength = 32
+  ): Buffer {
     return crypto.pbkdf2Sync(password, salt, iterations, keyLength, "sha256");
   }
 
-  static generateSalt(length = 32) {
+  static generateSalt(length = 32): Buffer {
     return crypto.randomBytes(length);
   }
 
-  static encrypt(data, key) {
+  static encrypt(data: string, key: Buffer): Buffer {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
 
@@ -23,7 +28,7 @@ class CryptoUtil {
     return Buffer.concat([iv, authTag, encrypted]);
   }
 
-  static decrypt(encryptedData, key) {
+  static decrypt(encryptedData: Buffer, key: Buffer): string {
     const iv = encryptedData.slice(0, 16);
     const authTag = encryptedData.slice(16, 32);
     const ciphertext = encryptedData.slice(32);
@@ -37,17 +42,20 @@ class CryptoUtil {
     return decrypted.toString("utf-8");
   }
 
-  static encryptJson(jsonData, key) {
+  static encryptJson(jsonData: unknown, key: Buffer): Buffer {
     const jsonString = JSON.stringify(jsonData);
+    if (jsonString === undefined) {
+      throw new TypeError("The JSON value cannot be serialized");
+    }
     return this.encrypt(jsonString, key);
   }
 
-  static decryptJson(encryptedData, key) {
+  static decryptJson(encryptedData: Buffer, key: Buffer): unknown {
     const jsonString = this.decrypt(encryptedData, key);
     return JSON.parse(jsonString);
   }
 
-  static maskSensitiveValue(value, visibleChars = 3) {
+  static maskSensitiveValue(value: string, visibleChars = 3): string {
     if (!value || value.length <= visibleChars) {
       return "***";
     }
@@ -57,7 +65,7 @@ class CryptoUtil {
     return visible + masked;
   }
 
-  static generateRandomString(length = 16) {
+  static generateRandomString(length = 16): string {
     return crypto
       .randomBytes(length)
       .toString("base64")
@@ -66,4 +74,4 @@ class CryptoUtil {
   }
 }
 
-module.exports = CryptoUtil;
+export = CryptoUtil;

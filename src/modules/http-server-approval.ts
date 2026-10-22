@@ -125,12 +125,14 @@ export const httpCaptureTarget = (
   ) {
     throw invalidTargetError();
   }
-  const selector = Object.hasOwn(data, "environmentName")
-    ? {
-        environmentName: data.environmentName as string,
-        projectName: data.projectName,
-      }
-    : { projectName: data.projectName };
+  const selector =
+    Object.hasOwn(data, "environmentName") &&
+    typeof data.environmentName === "string"
+      ? {
+          environmentName: data.environmentName,
+          projectName: data.projectName,
+        }
+      : { projectName: data.projectName };
   const target = vault.resolveEnvironmentTarget(selector);
   const identity = vault.getEnvironmentTargetIdentity(target);
   const vaultId = vault.getVaultId?.() || null;

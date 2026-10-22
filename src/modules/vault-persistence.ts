@@ -6,8 +6,10 @@ import {
   copyJsonData,
   isObjectRecord,
   isString,
+  requireVaultKey,
   sha256Hex,
 } from "./vault-helpers";
+import { normalizeVaultDataValue } from "./vault-normalization";
 import type {
   PeriodicDiskSyncResult,
   PrepareForCloseResult,
@@ -40,6 +42,7 @@ export interface VaultPersistenceHost {
   _installData: (data: VaultData) => void;
   _refreshSyncBaseline: () => void;
   _normalizeData: () => void;
+  _needsFormatMigration: boolean;
   _save: () => Promise<VaultReconcileExternalResult | undefined>;
   _atomicWriteData: (
     nextData: VaultData,
@@ -161,7 +164,8 @@ export const writeData = async (
     throw error;
   }
   const normalizedData = copyJsonData(nextData);
-  const encryptedData = CryptoUtil.encryptJson(normalizedData, vault.key);
+  const encryptionKey = requireVaultKey(vault.key);
+  const encryptedData = CryptoUtil.encryptJson(normalizedData, encryptionKey);
   const temporaryPath = `${vault.vaultPath}.${process.pid}.${crypto.randomBytes(8).toString("hex")}.tmp`;
   const expectedDiskFingerprint =
     options.expectedDiskFingerprint ?? vault._diskContentHash;
@@ -424,15 +428,13 @@ export const getNormalizedCopyOfData = (
   incoming: VaultBoundaryValue
 ): VaultData => {
   vault._ensureUnlocked();
-  const prev = vault.data;
-  // SAFETY: Raw incoming data payload is deep-copied before mutation and normalization.
-  vault.data = copyJsonData(incoming as VaultData);
-  try {
-    vault._normalizeData();
-    return copyJsonData(vault.data);
-  } finally {
-    vault.data = prev;
+  const copiedIncoming = copyJsonData(incoming);
+  if (!isObjectRecord(copiedIncoming)) {
+    throw new Error("Invalid vault data");
   }
+  const normalized = normalizeVaultDataValue(copiedIncoming);
+  vault._needsFormatMigration ||= normalized.needsFormatMigration;
+  return copyJsonData(normalized.data);
 };
 
 export const getNormalizedCopyWhileLocked = (

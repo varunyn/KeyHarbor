@@ -72,6 +72,7 @@ export const httpHandleAction = async (
     return { error: "Unknown action", success: false };
   }
   try {
+    // SAFETY: The guard admits only non-array objects; action handlers validate each unknown field.
     const safeData =
       data && typeof data === "object" && !Array.isArray(data)
         ? (data as ActionData)

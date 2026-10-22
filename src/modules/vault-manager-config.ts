@@ -46,14 +46,27 @@ const assertLegacyConfigUnchanged = (
   }
 };
 
-const validateVaultsConfig = (
-  config: ManagerConfig | RecoveryPayload | undefined,
-  legacy = false
-): void => {
+const isConfigRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const isString = (value: unknown): value is string => typeof value === "string";
+
+type LegacyManagerConfig = Omit<
+  ManagerConfig,
+  "managerFormatVersion" | "legacySourceFingerprint"
+>;
+
+function validateVaultsConfig(
+  config: unknown,
+  legacy: true
+): asserts config is LegacyManagerConfig;
+function validateVaultsConfig(
+  config: unknown,
+  legacy?: false
+): asserts config is ManagerConfig;
+function validateVaultsConfig(config: unknown, legacy = false): void {
   if (
-    !config ||
-    typeof config !== "object" ||
-    Array.isArray(config) ||
+    !isConfigRecord(config) ||
     config.version !== 1 ||
     !Array.isArray(config.otherVaults)
   ) {
@@ -62,7 +75,7 @@ const validateVaultsConfig = (
   if (
     !legacy &&
     (config.managerFormatVersion !== 2 ||
-      typeof config.legacySourceFingerprint !== "string")
+      !isString(config.legacySourceFingerprint))
   ) {
     throw new Error("Invalid Vault configuration format");
   }
@@ -81,20 +94,19 @@ const validateVaultsConfig = (
   if (
     config.systemVaultInstanceId !== undefined &&
     config.systemVaultInstanceId !== null &&
-    (typeof config.systemVaultInstanceId !== "string" ||
+    (!isString(config.systemVaultInstanceId) ||
       !/^[a-f0-9]{64}$/iu.test(config.systemVaultInstanceId))
   ) {
     throw new Error("Invalid system Vault instance identity");
   }
   const ids = new Set();
   const paths = new Set();
-  const validateVaultEntry = (entry) => {
+  const validateVaultEntry = (entry: unknown): void => {
     if (
-      !entry ||
-      typeof entry !== "object" ||
-      typeof entry.id !== "string" ||
-      typeof entry.name !== "string" ||
-      typeof entry.path !== "string"
+      !isConfigRecord(entry) ||
+      !isString(entry.id) ||
+      !isString(entry.name) ||
+      !isString(entry.path)
     ) {
       throw new Error("Invalid Vault configuration entry");
     }
@@ -109,12 +121,12 @@ const validateVaultsConfig = (
     if (Object.keys(entry).some((field) => !allowedEntryFields.has(field))) {
       throw new Error("Invalid Vault configuration entry fields");
     }
-    if (!/^[a-f0-9]{64}$/iu.test(entry.encryptionKey || "")) {
+    if (!/^[a-f0-9]{64}$/iu.test(String(entry.encryptionKey || ""))) {
       throw new Error("Invalid Vault configuration key");
     }
     if (
       entry.vaultInstanceId !== undefined &&
-      !/^[a-f0-9]{64}$/iu.test(entry.vaultInstanceId || "")
+      !/^[a-f0-9]{64}$/iu.test(String(entry.vaultInstanceId || ""))
     ) {
       throw new Error("Invalid Vault instance identity");
     }
@@ -127,7 +139,7 @@ const validateVaultsConfig = (
   for (const entry of config.otherVaults) {
     validateVaultEntry(entry);
   }
-};
+}
 
 const defaultVaultsConfig = (manager: VaultManagerHost): ManagerConfig =>
   // Preserve field order in existing serialized, fingerprinted, or encrypted records.
@@ -146,8 +158,7 @@ const normalizeRecoveredVaultsConfig = (
 ): ManagerConfig => {
   if (config?.managerFormatVersion === 2) {
     validateVaultsConfig(config);
-    // SAFETY: validateVaultsConfig accepted the payload as a v2 configuration.
-    return config as ManagerConfig;
+    return config;
   }
   validateVaultsConfig(config, true);
   const legacyBytes = fs.existsSync(manager.legacyConfigPath)
@@ -167,9 +178,7 @@ const normalizeRecoveredVaultsConfig = (
     legacySourceFingerprint: legacyBytes ? hashBytes(legacyBytes) : "missing",
   };
   validateVaultsConfig(normalized);
-  // SAFETY: validateVaultsConfig accepted the normalized legacy payload as a
-  // v2 configuration once the migration fingerprint was attached.
-  return normalized as ManagerConfig;
+  return normalized;
 };
 
 const saveConfig = (manager: VaultManagerHost): ConfigSaveResult => {

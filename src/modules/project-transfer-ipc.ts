@@ -26,6 +26,8 @@ export interface ProjectBackupIdentity {
 
 const EXPORT_MODES = ["example", "references", "raw"] as const;
 type ExportMode = (typeof EXPORT_MODES)[number];
+const isExportMode = (value: unknown): value is ExportMode =>
+  EXPORT_MODES.some((mode) => mode === value);
 
 const TARGET_REQUIRED_FAILURE: BridgeFailure = Object.freeze({
   error: "A Project and Environment are required",
@@ -103,6 +105,7 @@ const canonicalValue = (value: unknown): string => {
   if (Array.isArray(value)) {
     return `[${value.map(canonicalValue).join(",")}]`;
   }
+  // SAFETY: The branch above excludes primitives and arrays; values remain unknown for recursive serialization.
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record)
     // eslint-disable-next-line unicorn/no-array-sort
@@ -187,24 +190,20 @@ export const registerProjectTransferIpc = ({
       if (!validEnvironmentTarget(target)) {
         return TARGET_REQUIRED_FAILURE;
       }
-      if (
-        typeof mode !== "string" ||
-        !EXPORT_MODES.includes(mode as ExportMode)
-      ) {
+      if (!isExportMode(mode)) {
         return {
           code: "EXPORT_MODE_UNSUPPORTED",
           error: `Unsupported export mode. Use one of: ${EXPORT_MODES.join(", ")}.`,
           success: false,
         };
       }
-      const exportMode = mode as ExportMode;
-      const exportOptions =
-        options && typeof options === "object"
-          ? (options as Record<string, unknown>)
-          : {};
+      const exportMode = mode;
       const password =
-        typeof exportOptions.password === "string"
-          ? exportOptions.password
+        options &&
+        typeof options === "object" &&
+        "password" in options &&
+        typeof options.password === "string"
+          ? options.password
           : "";
 
       let admission: {

@@ -327,11 +327,11 @@ export const httpActionSetBatchSecrets = async (
           ? safeData.projectName.trim()
           : "";
       const rawSecrets = safeData.secrets;
-      const entries =
+      const entries: [string, unknown][] =
         rawSecrets &&
         typeof rawSecrets === "object" &&
         !Array.isArray(rawSecrets)
-          ? (Object.entries(rawSecrets) as [string, unknown][])
+          ? Object.entries(rawSecrets)
           : [];
       const invalid = entries.some(
         ([key, value]) =>

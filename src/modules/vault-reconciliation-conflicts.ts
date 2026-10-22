@@ -49,8 +49,8 @@ const environmentConflictCandidates = (
   disk,
   baselineEnvironments,
   environmentId,
-  sessionEnvironments,
-  diskEnvironments
+  sessionEnvironments: Record<string, { id: string; name: string }>,
+  diskEnvironments: Record<string, { id: string; name: string }>
 ) => {
   let sessionCandidate = session;
   let diskCandidate = disk;
@@ -59,19 +59,12 @@ const environmentConflictCandidates = (
       session?.name || disk?.name || baselineEnvironments[environmentId]?.name;
     if (name) {
       sessionCandidate =
-        (
-          Object.values(sessionEnvironments) as {
-            id: string;
-            name: string;
-          }[]
-        ).find((entry) => entry.name === name) || session;
+        Object.values(sessionEnvironments).find(
+          (entry) => entry.name === name
+        ) || session;
       diskCandidate =
-        (
-          Object.values(diskEnvironments) as {
-            id: string;
-            name: string;
-          }[]
-        ).find((entry) => entry.name === name) || disk;
+        Object.values(diskEnvironments).find((entry) => entry.name === name) ||
+        disk;
     }
   }
   // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.

@@ -130,13 +130,15 @@ export const validEnvironmentTarget = (
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     return false;
   }
-  const candidate = target as Record<string, unknown>;
+  const candidate = target;
   return (
     Object.keys(candidate).length === 2 &&
     Object.hasOwn(candidate, "projectName") &&
     Object.hasOwn(candidate, "environmentId") &&
+    "projectName" in candidate &&
     typeof candidate.projectName === "string" &&
     candidate.projectName.trim().length > 0 &&
+    "environmentId" in candidate &&
     typeof candidate.environmentId === "string" &&
     candidate.environmentId.length > 0
   );

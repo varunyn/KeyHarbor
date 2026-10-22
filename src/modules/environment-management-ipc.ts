@@ -50,11 +50,13 @@ const validTarget = (value: unknown): value is EnvironmentTarget => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
-  const target = value as Record<string, unknown>;
+  const target = value;
   return (
     Object.keys(target).length === 2 &&
+    "projectName" in target &&
     typeof target.projectName === "string" &&
     target.projectName.length > 0 &&
+    "environmentId" in target &&
     typeof target.environmentId === "string" &&
     target.environmentId.length > 0
   );

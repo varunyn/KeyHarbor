@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Reject malformed Vault metadata when unlocking or restoring encrypted data, keeping invalid records out of the active Vault.
+
 - Zoom In, Zoom Out, and Actual Size now keep one scale across Home, projects, Access Logs, and Settings instead of restoring different page zoom levels.
 
 - Home and project screens now share a consistent interface icon scale; project icons retain their size when color classes are added, and secret rows use readable 13px text.

@@ -25,9 +25,14 @@ export const isString = (
   value: VaultBoundaryValue | SecretRecord
 ): value is string => typeof value === "string";
 
-export const isObjectRecord = (
-  value: VaultBoundaryValue | VaultData | Error | { code?: string }
-): value is VaultBoundaryRecord =>
+export const requireVaultKey = (key: Buffer | null): Buffer => {
+  if (!Buffer.isBuffer(key)) {
+    throw new TypeError("Vault is locked");
+  }
+  return key;
+};
+
+export const isObjectRecord = <T>(value: T): value is T & VaultBoundaryRecord =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const isSecretHistoryEntry = (

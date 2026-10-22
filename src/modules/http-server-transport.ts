@@ -151,12 +151,12 @@ export const httpHandleRequest = async (
     }
     const body = await bridge.parseRequestBody(req);
     const action =
-      body && typeof body === "object"
-        ? (body as Record<string, unknown>).action
+      body && typeof body === "object" && "action" in body
+        ? body.action
         : undefined;
     const data =
-      body && typeof body === "object"
-        ? (body as Record<string, unknown>).data
+      body && typeof body === "object" && "data" in body
+        ? body.data
         : undefined;
     const result = await bridge.handleAction(action, data);
     res.writeHead(200, { "Content-Type": "application/json" });

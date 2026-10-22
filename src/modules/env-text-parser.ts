@@ -1,10 +1,63 @@
-"use strict";
-
 const MAX_INPUT_BYTES = 1024 * 1024;
 const MAX_ASSIGNMENTS = 5000;
 const KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 
-const extractFence = (lines, diagnostics) => {
+type DiagnosticCode =
+  | "invalid_input"
+  | "input_too_large"
+  | "nul_character"
+  | "unsupported_fence"
+  | "unterminated_fence"
+  | "unsupported_content"
+  | "invalid_assignment"
+  | "invalid_key"
+  | "unterminated_quote"
+  | "trailing_material"
+  | "empty_input"
+  | "too_many_assignments";
+
+interface Diagnostic {
+  line: number;
+  code: DiagnosticCode;
+  message: string;
+}
+
+interface SourceLine {
+  text: string;
+  line: number;
+}
+
+interface Assignment {
+  key: string;
+  value: string;
+  line: number;
+}
+
+interface ParseResult {
+  assignments: Assignment[];
+  diagnostics: Diagnostic[];
+}
+
+type AssignmentParseResult =
+  | { key: string; value: string; lastIndex: number }
+  | { error: AssignmentError; lastIndex: number };
+
+type AssignmentError =
+  | "invalid_assignment"
+  | "trailing_material"
+  | "unterminated_quote";
+
+interface EscapeDecodeResult {
+  value: string;
+  nextCursor: number;
+}
+
+const isText = (value: unknown): value is string => typeof value === "string";
+
+const extractFence = (
+  lines: string[],
+  diagnostics: Diagnostic[]
+): SourceLine[] => {
   const nonblank = lines
     // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
     .map((text, index) => ({ text, line: index + 1 }))
@@ -55,7 +108,37 @@ const extractFence = (lines, diagnostics) => {
   );
 };
 
-const parseAssignment = (lines, startIndex) => {
+const decodeEscape = (
+  text: string,
+  cursor: number,
+  slash: string
+): EscapeDecodeResult => {
+  if (cursor + 1 >= text.length) {
+    return { nextCursor: cursor + 1, value: slash };
+  }
+  const next = text[cursor + 1];
+  let value: string;
+  if (next === "n") {
+    value = "\n";
+  } else if (next === "r") {
+    value = "\r";
+  } else if (next === "t") {
+    value = "\t";
+  } else if (next === '"' || next === "\\") {
+    value = next;
+  } else {
+    value = `\\${next}`;
+  }
+  return {
+    nextCursor: cursor + 2,
+    value,
+  };
+};
+
+const parseAssignment = (
+  lines: SourceLine[],
+  startIndex: number
+): AssignmentParseResult => {
   const firstLine = lines[startIndex];
   const prefix = /^\s*(?:export\s+)?(?<key>[A-Za-z_][A-Za-z0-9_]*)\s*=/u.exec(
     firstLine.text
@@ -63,7 +146,10 @@ const parseAssignment = (lines, startIndex) => {
   if (!prefix) {
     return { error: "invalid_assignment", lastIndex: startIndex };
   }
-  const [, key] = prefix;
+  const key = prefix.groups?.key;
+  if (key === undefined) {
+    return { error: "invalid_assignment", lastIndex: startIndex };
+  }
   let rest = firstLine.text.slice(prefix[0].length);
   let value = "";
   rest = rest.replace(/^\s+/u, "");
@@ -85,16 +171,9 @@ const parseAssignment = (lines, startIndex) => {
         return { key, value, lastIndex: index };
       }
       if (quote === '"' && char === "\\") {
-        if (cursor + 1 >= rest.length) {
-          value += char;
-          cursor += 1;
-          continue;
-        }
-        const next = rest[cursor + 1];
-        // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
-        const escaped = { n: "\n", r: "\r", t: "\t", '"': '"', "\\": "\\" };
-        value += Object.hasOwn(escaped, next) ? escaped[next] : `\\${next}`;
-        cursor += 2;
+        const decoded = decodeEscape(rest, cursor, char);
+        value += decoded.value;
+        cursor = decoded.nextCursor;
         continue;
       }
       if (
@@ -121,7 +200,7 @@ const parseAssignment = (lines, startIndex) => {
   }
 };
 
-const diagnosticMessage = (code) =>
+const diagnosticMessage = (code: AssignmentError | "invalid_key"): string =>
   // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
   ({
     invalid_assignment: "Line must contain a supported KEY=value assignment.",
@@ -132,9 +211,9 @@ const diagnosticMessage = (code) =>
       "Only whitespace or a comment may follow a quoted value.",
   })[code] || "Input could not be parsed.";
 
-const parseEnvironmentText = (source) => {
-  const diagnostics = [];
-  if (typeof source !== "string") {
+const parseEnvironmentText = (source: unknown): ParseResult => {
+  const diagnostics: Diagnostic[] = [];
+  if (!isText(source)) {
     return {
       assignments: [],
       diagnostics: [
@@ -175,7 +254,7 @@ const parseEnvironmentText = (source) => {
 
   const originalLines = source.replace(/^\uFEFF/u, "").split(/\r\n|\n|\r/u);
   const lines = extractFence(originalLines, diagnostics);
-  const assignments = [];
+  const assignments: Assignment[] = [];
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].text;
     const lineNumber = lines[index].line;
@@ -184,7 +263,7 @@ const parseEnvironmentText = (source) => {
       continue;
     }
     const parsed = parseAssignment(lines, index);
-    if (parsed.error) {
+    if ("error" in parsed) {
       // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
       diagnostics.push({
         line: lineNumber,
@@ -236,4 +315,4 @@ const parseEnvironmentText = (source) => {
 };
 
 // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
-module.exports = { parseEnvironmentText, MAX_INPUT_BYTES, MAX_ASSIGNMENTS };
+export = { parseEnvironmentText, MAX_INPUT_BYTES, MAX_ASSIGNMENTS };

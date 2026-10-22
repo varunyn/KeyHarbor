@@ -5,9 +5,8 @@ import react from "ultracite/oxlint/react";
 
 // Temporary ceilings for existing oversized files. Lower these as modules are split;
 // never raise a ceiling or add an exception to accommodate new code.
-const existingFileLineLimits: Record<string, number> = {
+const existingFileLineLimits = {
   "cli/keyharbor-mcp.mts": 624,
-  "cli/keyharbor.ts": 615,
   "src/dashboard/main.tsx": 2992,
   "src/main.ts": 2703,
   "src/modules/agent-proxy-coordinator.ts": 990,
@@ -22,7 +21,7 @@ const existingFileLineLimits: Record<string, number> = {
   "test/vault-reconciliation.test.ts": 778,
   "test/vault-session-integration.test.ts": 545,
   "test/vault-session.test.js": 704,
-};
+} satisfies Record<string, number>;
 
 export default defineConfig({
   extends: [core, react, antiSlop],
@@ -57,7 +56,6 @@ export default defineConfig({
     "anti-slop/no-object-parameters": "off",
     "anti-slop/no-reflect-apply": "off",
     "anti-slop/no-runtime-typeof": "off",
-    "anti-slop/no-shape-in-symbol-names": "off",
     "anti-slop/no-unknown-parameters": "off",
     "anti-slop/no-unknown-returns": "off",
     "anti-slop/no-unsafe-dictionary-type": "off",

@@ -1,6 +1,7 @@
 import crypto = require("node:crypto");
 import fs = require("node:fs");
 import CryptoUtil = require("./crypto");
+import { requireVaultKey } from "./vault-helpers";
 import {
   clone,
   createBaseline,
@@ -76,7 +77,10 @@ class VaultReconciliation {
 
     const diskFingerprint = fingerprint(bytes);
     try {
-      const decrypted = CryptoUtil.decryptJson(bytes, this.vault.key);
+      const decrypted = CryptoUtil.decryptJson(
+        bytes,
+        requireVaultKey(this.vault.key)
+      );
       const validated = validateAndCloneVaultData(decrypted);
       const data = this.vault._getNormalizedCopyOfData(validated);
       // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.

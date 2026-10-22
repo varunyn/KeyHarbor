@@ -3,6 +3,7 @@ import ProjectConfigurationBaseline = require("./project-configuration-baseline"
 import { normalizeEnvironmentName } from "./vault-environments";
 import {
   isObjectRecord,
+  isSafeInteger,
   isString,
   readStringOrNull,
   unsupportedVaultFormat,
@@ -13,6 +14,7 @@ import type {
   ProjectRecord,
   SecretRecord,
   StoredConfigurationBaseline,
+  VaultBoundaryRecord,
   VaultBoundaryValue,
   VaultData,
   VaultDictionary,
@@ -25,14 +27,97 @@ export interface VaultNormalizationHost {
   _needsFormatMigration: boolean;
 }
 
-export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
-  if (!vault.data || !isObjectRecord(vault.data)) {
+export interface NormalizedVaultData {
+  data: VaultData;
+  needsFormatMigration: boolean;
+}
+
+const buildNormalizedVaultData = (
+  rawData: VaultBoundaryRecord | VaultData,
+  projects: Record<string, ProjectRecord>,
+  favorites: VaultData["favorites"],
+  legacy: boolean
+): VaultData => {
+  // SAFETY: This ordinary output record is populated only with normalized project and favorite
+  // records, and optional metadata is copied only after its runtime type is checked.
+  const normalizedData: Partial<VaultData> = {};
+  for (const [key, value] of Object.entries(rawData)) {
+    switch (key) {
+      case "vaultFormatVersion": {
+        normalizedData.vaultFormatVersion = VAULT_FORMAT_VERSION;
+        break;
+      }
+      case "projects": {
+        normalizedData.projects = projects;
+        break;
+      }
+      case "favorites": {
+        normalizedData.favorites = favorites;
+        break;
+      }
+      case "version":
+      case "vaultInstanceId":
+      case "createdAt":
+      case "updatedAt": {
+        if (
+          key === "version"
+            ? !isString(value) && !isSafeInteger(value)
+            : !isString(value)
+        ) {
+          throw new Error("Invalid Vault metadata");
+        }
+        normalizedData[key] = value;
+        break;
+      }
+      case "legacySourceFingerprint": {
+        if (
+          !isObjectRecord(value) ||
+          !isString(value.vault) ||
+          !isString(value.salt) ||
+          Object.keys(value).some(
+            (field) => field !== "vault" && field !== "salt"
+          )
+        ) {
+          throw new Error("Invalid Vault metadata");
+        }
+        // Preserve the established serialized field order.
+        // eslint-disable-next-line sort-keys
+        normalizedData.legacySourceFingerprint = {
+          vault: value.vault,
+          salt: value.salt,
+        };
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+  if (legacy) {
+    normalizedData.vaultFormatVersion = VAULT_FORMAT_VERSION;
+  }
+  if (!Object.hasOwn(rawData, "favorites")) {
+    normalizedData.favorites = favorites;
+  }
+  // SAFETY: Required VaultData fields are present and all copied optional fields were validated.
+  return normalizedData as VaultData;
+};
+
+export const normalizeVaultDataValue = (
+  input: VaultBoundaryRecord | VaultData
+): NormalizedVaultData => {
+  if (!isObjectRecord(input)) {
     throw new Error("Invalid vault data");
   }
-  if (!vault.data.projects || !isObjectRecord(vault.data.projects)) {
+  const rawData = input;
+  if (
+    !Object.hasOwn(rawData, "projects") ||
+    !rawData.projects ||
+    !isObjectRecord(rawData.projects)
+  ) {
     throw new Error("Invalid vault projects");
   }
-  const formatVersion = vault.data.vaultFormatVersion;
+  const formatVersion = rawData.vaultFormatVersion;
   if (formatVersion !== undefined && formatVersion !== VAULT_FORMAT_VERSION) {
     const error = new Error(
       `Unsupported Vault format version: ${formatVersion}`
@@ -51,12 +136,12 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
     "favorites",
     "projects",
   ]);
-  if (Object.keys(vault.data).some((key) => !allowedRootFields.has(key))) {
+  if (Object.keys(rawData).some((key) => !allowedRootFields.has(key))) {
     throw legacy
       ? unsupportedVaultFormat("Unsupported legacy Vault fields")
       : new Error("Invalid Vault v2 fields");
   }
-  const legacyFavoritesRecord = vault.data.favorites;
+  const legacyFavoritesRecord = rawData.favorites;
   if (
     legacy &&
     legacyFavoritesRecord &&
@@ -67,16 +152,21 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
     throw unsupportedVaultFormat("Unsupported legacy Vault favorite fields");
   }
   const normalizedProjects: Record<string, ProjectRecord> = Object.create(null);
-  const legacyFavorites = vault.data.favorites?.secrets || Object.create(null);
-  const normalizeProject = (
-    name: string,
-    project: ProjectRecord | VaultBoundaryValue
-  ) => {
+  const rawFavorites = isObjectRecord(rawData.favorites)
+    ? rawData.favorites
+    : Object.create(null);
+  const legacyFavorites = isObjectRecord(rawFavorites.secrets)
+    ? rawFavorites.secrets
+    : Object.create(null);
+  const normalizeProject = (name: string, project: VaultBoundaryValue) => {
     if (!project || !isObjectRecord(project)) {
       throw new Error("Invalid vault project");
     }
-    // SAFETY: project verified as valid object record before field extraction.
-    const normalizedProject: VaultDictionary = { ...project };
+    // SAFETY: project was verified as an object record before its entries are copied.
+    const normalizedProject: VaultDictionary = Object.create(null);
+    for (const [key, value] of Object.entries(project)) {
+      normalizedProject[key] = value;
+    }
     if (legacy) {
       const migrateLegacyProject = () => {
         const allowedLegacyProjectFields = new Set([
@@ -150,6 +240,9 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
       }
     }
     const environments: Record<string, EnvironmentRecord> = Object.create(null);
+    const projectEnvironments = isObjectRecord(normalizedProject.environments)
+      ? normalizedProject.environments
+      : Object.create(null);
     const normalizeEnvironment = (
       id: string,
       environment: VaultBoundaryValue
@@ -211,10 +304,8 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
       }
       environments[id] = normalizedEnvironment;
     };
-    for (const [id, environment] of Object.entries(
-      normalizedProject.environments || {}
-    )) {
-      normalizeEnvironment(id, environment);
+    for (const id of Object.keys(projectEnvironments)) {
+      normalizeEnvironment(id, projectEnvironments[id]);
     }
     const defaultEnvId = isString(normalizedProject.defaultEnvironmentId)
       ? normalizedProject.defaultEnvironmentId
@@ -247,21 +338,16 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
       environments,
     };
   };
-  for (const [name, project] of Object.entries(vault.data.projects)) {
+  for (const [name, project] of Object.entries(rawData.projects)) {
     normalizeProject(name, project);
   }
-  if (legacy) {
-    vault._needsFormatMigration = true;
-    vault.data.vaultFormatVersion = VAULT_FORMAT_VERSION;
-  }
-  vault.data.projects = normalizedProjects;
 
-  const normalizeFavorites = () => {
+  const normalizeFavorites = (): VaultData["favorites"] => {
     const normalizedFavorites: VaultData["favorites"] = {
       projects: [],
       secrets: Object.create(null),
     };
-    const favorites = vault.data.favorites || {};
+    const favorites = rawFavorites;
     if (
       !legacy &&
       Object.keys(favorites).some(
@@ -271,14 +357,11 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
       throw new Error("Invalid Vault favorites fields");
     }
     if (Array.isArray(favorites.projects)) {
-      normalizedFavorites.projects = [
-        ...new Set(
-          favorites.projects.filter(
-            (name: unknown): name is string =>
-              typeof name === "string" && Boolean(normalizedProjects[name])
-          )
-        ),
-      ];
+      const projectFavorites = favorites.projects.filter(
+        (name: unknown): name is string =>
+          typeof name === "string" && Boolean(normalizedProjects[name])
+      );
+      normalizedFavorites.projects = [...new Set<string>(projectFavorites)];
     }
     const normalizeProjectFavorites = (
       projectName: string,
@@ -300,8 +383,8 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
         ) {
           throw new Error("Invalid Vault favorite Environment");
         }
-        for (const [id, keys] of Object.entries(incoming)) {
-          perEnvironment[id] = keys;
+        for (const id of Object.keys(incoming)) {
+          perEnvironment[id] = incoming[id];
         }
       } else if (Array.isArray(incoming)) {
         // Preserve the established validation Error class exposed by the Vault API.
@@ -346,7 +429,23 @@ export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
     ) {
       throw new Error("Invalid Vault favorite Project");
     }
-    vault.data.favorites = normalizedFavorites;
+    return normalizedFavorites;
   };
-  normalizeFavorites();
+  const normalizedFavorites = normalizeFavorites();
+
+  const data = buildNormalizedVaultData(
+    rawData,
+    normalizedProjects,
+    normalizedFavorites,
+    legacy
+  );
+  return { data, needsFormatMigration: legacy };
+};
+
+export const normalizeVaultData = (vault: VaultNormalizationHost): void => {
+  const normalized = normalizeVaultDataValue(vault.data);
+  vault.data = normalized.data;
+  if (normalized.needsFormatMigration) {
+    vault._needsFormatMigration = true;
+  }
 };

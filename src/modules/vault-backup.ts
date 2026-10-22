@@ -6,6 +6,7 @@ import {
   cloneVaultData,
   isObjectRecord,
   isString,
+  requireVaultKey,
   sha256Hex,
   validateEnvironmentSecrets,
 } from "./vault-helpers";
@@ -30,7 +31,7 @@ export interface VaultBackupHost {
   _scheduleAutoSave: () => void;
   getVaultId: () => string | null;
   createEncryptedProjectBackup: (projectName: string) => Buffer;
-  _getNormalizedCopyOfData: (data: VaultData) => VaultData;
+  _getNormalizedCopyOfData: (data: VaultBoundaryValue) => VaultData;
   _installData: (data: VaultData) => void;
   _setEnvironmentIncarnation: (
     projectName: string,
@@ -92,6 +93,7 @@ export const createEncryptedProjectBackup = (
   if (!project) {
     throw new Error(`Project '${projectName}' does not exist`);
   }
+  const key = requireVaultKey(vault.key);
   const favorites =
     vault.data.favorites.secrets[projectName] || Object.create(null);
   return CryptoUtil.encryptJson(
@@ -105,7 +107,7 @@ export const createEncryptedProjectBackup = (
       projectRecord: project,
       favoriteSecrets: favorites,
     },
-    vault.key
+    key
   );
 };
 
@@ -118,9 +120,13 @@ export const restoreEncryptedProjectBackup = (
   if (!Buffer.isBuffer(encryptedBackup) || encryptedBackup.length === 0) {
     throw new TypeError("Encrypted Project backup is required");
   }
-  const backup = CryptoUtil.decryptJson(encryptedBackup, vault.key);
+  const backup = CryptoUtil.decryptJson(
+    encryptedBackup,
+    requireVaultKey(vault.key)
+  );
   if (
     !backup ||
+    !isObjectRecord(backup) ||
     backup.format !== "localkeys-backup" ||
     (backup.version !== 1 && backup.version !== 2) ||
     !isString(backup.project)
@@ -180,14 +186,18 @@ export const restoreEncryptedProjectBackup = (
     ) {
       throw new Error("Invalid Project backup");
     }
-    // SAFETY: Cast backup object to VaultData for normalization and validation check.
+    const projectRecord: VaultBoundaryRecord = Object.create(null);
+    for (const [field, value] of Object.entries(backup.projectRecord)) {
+      projectRecord[field] = value;
+    }
+    projectRecord.name = name;
     // Preserve field order in existing serialized, fingerprinted, or encrypted records.
     // eslint-disable-next-line sort-keys
-    const backupData = {
+    const backupData: VaultBoundaryValue = {
       vaultFormatVersion: VAULT_FORMAT_VERSION,
       favorites: { projects: [], secrets: Object.create(null) },
-      projects: { [name]: { ...backup.projectRecord, name } },
-    } as VaultData;
+      projects: { [name]: projectRecord },
+    };
     const validated = vault._getNormalizedCopyOfData(backupData);
     ({ [name]: restoredProject } = validated.projects);
   }

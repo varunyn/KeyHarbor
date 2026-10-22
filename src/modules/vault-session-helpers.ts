@@ -3,11 +3,11 @@ import type {
   CloseReason,
   CloseRequest,
   DestroyRequest,
+  ArtifactEntry,
   MonitorScheduler,
   OpenRequest,
   RecoveryDecision,
   RecoveryEntry,
-  RecoveryKind,
   RecoveryRequest,
   SessionPolicy,
   SessionPolicyInput,
@@ -55,13 +55,16 @@ export const sanitizeDetails = (
       continue;
     }
     if (value && typeof value === "object" && !Array.isArray(value)) {
+      // SAFETY: This branch excludes null and arrays, and sanitizeDetails only enumerates own string-keyed fields.
       result[key] = sanitizeDetails(value as Record<string, unknown>);
     } else if (Array.isArray(value)) {
-      result[key] = value.map((item) =>
-        item && typeof item === "object"
-          ? sanitizeDetails(item as Record<string, unknown>)
-          : item
-      );
+      result[key] = value.map((item) => {
+        if (item && typeof item === "object") {
+          // SAFETY: Object entries safely enumerate array indices and own fields without reading inherited properties.
+          return sanitizeDetails(item as Record<string, unknown>);
+        }
+        return item;
+      });
     } else {
       result[key] = value;
     }
@@ -96,6 +99,7 @@ export const sessionError = (
 
 export const defaultScheduler = (): MonitorScheduler => ({
   clearInterval: (handle: unknown) => {
+    // SAFETY: This scheduler only clears handles returned by its own Node.js setInterval call.
     clearInterval(handle as NodeJS.Timeout);
   },
   getIdleTimeSeconds: () => 0,
@@ -109,14 +113,22 @@ const DEFAULT_SESSION_POLICY: SessionPolicy = Object.freeze({
   diskSyncIntervalMs: 5000,
 });
 
+interface PolicyInputCandidate {
+  autoLockEnabled?: unknown;
+  autoLockTimeoutSeconds?: unknown;
+  diskSyncIntervalMs?: unknown;
+}
+
+const isPolicyInputCandidate = (
+  value: unknown
+): value is PolicyInputCandidate =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
 export const normalizePolicy = (
   input: unknown,
   fallback: SessionPolicy = DEFAULT_SESSION_POLICY
 ): SessionPolicy => {
-  const source =
-    input && typeof input === "object" && !Array.isArray(input)
-      ? (input as SessionPolicyInput)
-      : {};
+  const source = isPolicyInputCandidate(input) ? input : {};
   const autoLockEnabled =
     source.autoLockEnabled ?? fallback.autoLockEnabled ?? false;
   const autoLockTimeoutSeconds =
@@ -127,10 +139,18 @@ export const normalizePolicy = (
   if (typeof autoLockEnabled !== "boolean") {
     throw new TypeError("autoLockEnabled must be boolean");
   }
-  if (!Number.isFinite(autoLockTimeoutSeconds) || autoLockTimeoutSeconds <= 0) {
+  if (
+    typeof autoLockTimeoutSeconds !== "number" ||
+    !Number.isFinite(autoLockTimeoutSeconds) ||
+    autoLockTimeoutSeconds <= 0
+  ) {
     throw new TypeError("autoLockTimeoutSeconds must be positive");
   }
-  if (!Number.isFinite(diskSyncIntervalMs) || diskSyncIntervalMs < 0) {
+  if (
+    typeof diskSyncIntervalMs !== "number" ||
+    !Number.isFinite(diskSyncIntervalMs) ||
+    diskSyncIntervalMs < 0
+  ) {
     throw new TypeError("diskSyncIntervalMs must be non-negative");
   }
 
@@ -141,30 +161,37 @@ export const normalizePolicy = (
   });
 };
 
+interface PolicyGetter {
+  getPolicy: () => SessionPolicyInput;
+}
+
+const hasPolicyGetter = (value: unknown): value is PolicyGetter =>
+  value !== null &&
+  typeof value === "object" &&
+  "getPolicy" in value &&
+  typeof value.getPolicy === "function";
+
+const isPolicyFactory = (value: unknown): value is () => SessionPolicyInput =>
+  typeof value === "function";
+
 export const readInitialPolicy = (provider: unknown): SessionPolicyInput => {
   if (!provider) {
     return {};
   }
-  if (
-    typeof provider === "object" &&
-    "getPolicy" in provider &&
-    typeof (provider as { getPolicy: unknown }).getPolicy === "function"
-  ) {
-    return (
-      (provider as { getPolicy: () => SessionPolicyInput }).getPolicy() || {}
-    );
+  if (hasPolicyGetter(provider)) {
+    return provider.getPolicy() || {};
   }
-  if (typeof provider === "function") {
-    return (provider as () => SessionPolicyInput)() || {};
+  if (isPolicyFactory(provider)) {
+    return provider() || {};
   }
   return {};
 };
 
 export const validateOpenRequest = (request: Partial<OpenRequest>): void => {
-  if (!OPEN_METHODS.has(request.method as string)) {
+  if (!OPEN_METHODS.has(request.method ?? "")) {
     throw new TypeError("Invalid Vault session open method");
   }
-  if (!OPEN_REASONS.has(request.reason as string)) {
+  if (!OPEN_REASONS.has(request.reason ?? "")) {
     throw new TypeError("Invalid Vault session open reason");
   }
   if (request.credential === null || request.credential === undefined) {
@@ -173,7 +200,7 @@ export const validateOpenRequest = (request: Partial<OpenRequest>): void => {
 };
 
 export const validateCloseRequest = (request: Partial<CloseRequest>): void => {
-  if (!CLOSE_REASONS.has(request.reason as string)) {
+  if (!CLOSE_REASONS.has(request.reason ?? "")) {
     throw new TypeError("Invalid Vault session close reason");
   }
   if (
@@ -210,7 +237,7 @@ export const validateRecoveryRequest = (
   if (typeof request.capsuleId !== "string" || !request.capsuleId) {
     throw new TypeError("capsuleId is required");
   }
-  if (!RECOVERY_DECISIONS.has(request.decision as string)) {
+  if (!RECOVERY_DECISIONS.has(request.decision ?? "")) {
     throw new TypeError("Invalid recovery decision");
   }
 };
@@ -228,12 +255,14 @@ export const requireMethod = (
   target: unknown,
   name: string
 ): ((...args: unknown[]) => any) => {
+  // SAFETY: The following lookup reads the named own or inherited member and rejects it unless JavaScript reports it callable.
   if (
     !target ||
     typeof (target as Record<string, unknown>)[name] !== "function"
   ) {
     throw new TypeError(`Target must implement ${name}()`);
   }
+  // SAFETY: The lookup above verifies this exact property is callable; callers use .call(target, ...) to preserve its receiver.
   return (target as Record<string, (...args: unknown[]) => any>)[name];
 };
 
@@ -243,14 +272,22 @@ export const safeString = (value: unknown, fallback: string): string =>
 export const safeOptionalString = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
-export const compact = <T extends Record<string, unknown>>(object: T): T => {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(object)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
+export const compact = (object: {
+  code?: string;
+  status: string;
+  vaultId: string;
+}): VaultStatusEntry => {
+  if (object.code !== undefined) {
+    return {
+      code: object.code,
+      status: object.status,
+      vaultId: object.vaultId,
+    };
   }
-  return result as T;
+  return {
+    status: object.status,
+    vaultId: object.vaultId,
+  };
 };
 
 export const sanitizeVaultStatuses = (
@@ -259,7 +296,7 @@ export const sanitizeVaultStatuses = (
   if (!Array.isArray(entries)) {
     return [];
   }
-  return entries.map((entry: any) => {
+  return entries.map((entry: any): VaultStatusEntry => {
     const status =
       typeof entry?.status === "string"
         ? entry.status
@@ -276,12 +313,16 @@ export const sanitizeWarnings = (entries: unknown[]): WarningEntry[] => {
   if (!Array.isArray(entries)) {
     return [];
   }
-  return entries.map((entry: any) =>
-    compact({
+  return entries.map((entry: any): WarningEntry => {
+    const result: WarningEntry = {
       code: safeString(entry?.code, "UNKNOWN_WARNING"),
-      vaultId: safeOptionalString(entry?.vaultId),
-    })
-  );
+    };
+    const vaultId = safeOptionalString(entry?.vaultId);
+    if (vaultId !== undefined) {
+      result.vaultId = vaultId;
+    }
+    return result;
+  });
 };
 
 export const sanitizeRecovery = (entries: unknown[]): RecoveryEntry[] => {
@@ -297,24 +338,29 @@ export const sanitizeRecovery = (entries: unknown[]): RecoveryEntry[] => {
       : [],
     artifactId: safeString(entry?.artifactId, "unknown"),
     capsuleId: safeString(entry?.capsuleId, "unknown"),
-    kind: (entry?.kind === "manager_config"
-      ? "manager_config"
-      : "vault") as RecoveryKind,
+    kind: entry?.kind === "manager_config" ? "manager_config" : "vault",
     reason: safeString(entry?.reason, "recovery_required"),
   }));
 };
 
-export const sanitizeArtifacts = (entries: unknown[]): any[] => {
+export const sanitizeArtifacts = (entries: unknown[]): ArtifactEntry[] => {
   if (!Array.isArray(entries)) {
     return [];
   }
-  return entries.map((entry: any) =>
-    compact({
-      code: safeOptionalString(entry?.code),
+  return entries.map((entry: any): ArtifactEntry => {
+    const code = safeOptionalString(entry?.code);
+    if (code !== undefined) {
+      return {
+        code,
+        kind: safeString(entry?.kind, "unknown"),
+        status: safeString(entry?.status, "failed"),
+      };
+    }
+    return {
       kind: safeString(entry?.kind, "unknown"),
       status: safeString(entry?.status, "failed"),
-    })
-  );
+    };
+  });
 };
 
 export const deepFreeze = <T>(object: T): T => {

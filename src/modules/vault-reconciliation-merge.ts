@@ -163,12 +163,16 @@ const mergeProjectDefault = (
   }
 };
 
-const validateMergedEnvironments = (projectName, project, conflicts) => {
+const validateMergedEnvironments = (
+  projectName,
+  project: {
+    defaultEnvironmentId: string;
+    environments: Record<string, { id: string; name: string }>;
+  },
+  conflicts
+) => {
   const namesByEnvironment = new Map();
-  for (const environment of Object.values(project.environments) as {
-    id: string;
-    name: string;
-  }[]) {
+  for (const environment of Object.values(project.environments)) {
     const existing = namesByEnvironment.get(environment.name);
     if (existing && existing !== environment.id) {
       // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.

@@ -1,22 +1,56 @@
-const { app } = require("electron");
-const path = require("node:path");
-const fs = require("node:fs");
+import fs from "node:fs";
+import path from "node:path";
 
-const escapeRegExp = (value) =>
+import { app } from "electron";
+
+const escapeRegExp = (value: string): string =>
   String(value).replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\class I18n {");
+
+const isString = (value: unknown): value is string => typeof value === "string";
+
+type LocaleValue =
+  | string
+  | number
+  | boolean
+  | null
+  | LocaleValue[]
+  | { [key: string]: LocaleValue };
+
+const isLocaleValue = (value: unknown): value is LocaleValue => {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isLocaleValue);
+  }
+  return typeof value === "object" && Object.values(value).every(isLocaleValue);
+};
+
+type LocaleContainer = { [key: string]: LocaleValue } | LocaleValue[];
+
+const isLocaleContainer = (
+  value: LocaleValue | undefined
+): value is LocaleContainer => value !== null && typeof value === "object";
+
+const isText = (value: LocaleValue | undefined): value is string =>
+  typeof value === "string";
 
 class I18n {
   currentLocale = "en";
-  translations = {};
-  fallbackTranslations = {};
+  translations: LocaleValue = {};
+  fallbackTranslations: LocaleValue = {};
   fallbackLocale = "en";
   supportedLocales = ["en"];
 
-  resolveLocale(preferredLocale) {
-    const normalized =
-      typeof preferredLocale === "string"
-        ? preferredLocale.trim().toLowerCase()
-        : "";
+  resolveLocale(preferredLocale: unknown): string {
+    const normalized = isString(preferredLocale)
+      ? preferredLocale.trim().toLowerCase()
+      : "";
 
     if (normalized && normalized !== "system") {
       if (this.supportedLocales.includes(normalized)) {
@@ -32,7 +66,7 @@ class I18n {
       : this.fallbackLocale;
   }
 
-  initialize(preferredLocale = null) {
+  initialize(preferredLocale: string | null = null): string {
     this.currentLocale = this.resolveLocale(preferredLocale);
 
     this.loadTranslations();
@@ -40,7 +74,7 @@ class I18n {
     return this.currentLocale;
   }
 
-  loadTranslations() {
+  loadTranslations(): void {
     const localesDir = path.join(__dirname, "..", "locales");
 
     if (!fs.existsSync(localesDir)) {
@@ -58,9 +92,12 @@ class I18n {
 
     try {
       if (fs.existsSync(currentLocalePath)) {
-        this.translations = JSON.parse(
+        const parsed: unknown = JSON.parse(
           fs.readFileSync(currentLocalePath, "utf-8")
         );
+        if (isLocaleValue(parsed)) {
+          this.translations = parsed;
+        }
       }
     } catch (error) {
       console.error(`Failed to load locale ${this.currentLocale}:`, error);
@@ -70,9 +107,12 @@ class I18n {
     if (this.currentLocale !== this.fallbackLocale) {
       try {
         if (fs.existsSync(fallbackLocalePath)) {
-          this.fallbackTranslations = JSON.parse(
+          const parsed: unknown = JSON.parse(
             fs.readFileSync(fallbackLocalePath, "utf-8")
           );
+          if (isLocaleValue(parsed)) {
+            this.fallbackTranslations = parsed;
+          }
         }
       } catch (error) {
         console.error(`Failed to load fallback locale:`, error);
@@ -80,12 +120,12 @@ class I18n {
     }
   }
 
-  t(key, replacements = {}) {
+  t(key: string, replacements: Record<string, unknown> = {}): string {
     const keys = key.split(".");
-    let translation = this.translations;
+    let translation: LocaleValue | undefined = this.translations;
 
     for (const k of keys) {
-      if (translation && typeof translation === "object") {
+      if (isLocaleContainer(translation)) {
         translation = translation[k];
       } else {
         translation = undefined;
@@ -96,7 +136,7 @@ class I18n {
     if (translation === undefined && this.fallbackTranslations) {
       translation = this.fallbackTranslations;
       for (const k of keys) {
-        if (translation && typeof translation === "object") {
+        if (isLocaleContainer(translation)) {
           translation = translation[k];
         } else {
           translation = undefined;
@@ -109,7 +149,7 @@ class I18n {
       return key;
     }
 
-    if (typeof translation !== "string") {
+    if (!isText(translation)) {
       return key;
     }
 
@@ -125,11 +165,11 @@ class I18n {
     return result;
   }
 
-  getLocale() {
+  getLocale(): string {
     return this.currentLocale;
   }
 
-  setLocale(locale) {
+  setLocale(locale: string): void {
     this.currentLocale = this.resolveLocale(locale);
     this.loadTranslations();
   }
@@ -142,4 +182,4 @@ class I18n {
   }
 }
 
-module.exports = I18n;
+export = I18n;

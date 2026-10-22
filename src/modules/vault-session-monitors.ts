@@ -7,8 +7,8 @@ export const isStateError = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
   "code" in error &&
-  typeof (error as { code: unknown }).code === "string" &&
-  STATE_ERROR_CODE_SET.has((error as { code: string }).code);
+  typeof error.code === "string" &&
+  STATE_ERROR_CODE_SET.has(error.code);
 
 export const runMonitorTick = (
   session: VaultSessionHost,
@@ -114,6 +114,7 @@ export const startMonitors = (
             ) {
               return context.vaults.syncAll();
             }
+            // SAFETY: Only the optional method is accessed, and its callability is checked below.
             const manager = session.vaultManager as {
               syncAllVaults?: () => unknown;
             };

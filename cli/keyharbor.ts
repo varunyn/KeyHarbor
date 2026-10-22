@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 "use strict";
+import {
+  CHILD_SEPARATOR,
+  ENVIRONMENT_NAME_PATTERN,
+  parseArguments,
+} from "./keyharbor-arguments";
+import { showHelp } from "./keyharbor-help";
+
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -9,88 +16,7 @@ const agentProxyClient = require("./agent-proxy-client");
 
 const { KEYHARBOR_DIR, getServerInfo, isElectronAppRunning, sendRequest } =
   keyHarborClient;
-/** Environment names follow the domain rule so a typo can never resolve to another Environment. */
-const ENVIRONMENT_NAME_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/u;
-const CHILD_SEPARATOR = "--";
-
-interface ParsedArguments {
-  vaultName: string | null;
-  environmentName: string | null;
-  args: string[];
-  childArgs: string[];
-  separatorIndex: number;
-  error: string | null;
-}
-
 type SecretView = { value?: string | null } | string;
-
-const parseArguments = (rawArgs: string[]): ParsedArguments => {
-  const separatorIndex = rawArgs.indexOf(CHILD_SEPARATOR);
-  const localOptionLimit =
-    separatorIndex === -1 ? rawArgs.length : separatorIndex;
-  const args: string[] = [];
-  let vaultName: string | null = null;
-  let environmentName: string | null = null;
-  let error: string | null = null;
-  for (const [index, arg] of rawArgs.entries()) {
-    // Everything at or after `--` belongs to the child command and is never
-    // interpreted as a KeyHarbor selector.
-    if (index >= localOptionLimit) {
-      args.push(arg);
-      continue;
-    }
-    if (arg === "--vault" || arg === "--env") {
-      error = `${arg} requires a value, for example ${arg}=name`;
-      continue;
-    }
-    if (arg.startsWith("--vault=")) {
-      const value = arg.slice("--vault=".length);
-      if (!value.trim()) {
-        error ||= "--vault requires a non-empty name";
-        vaultName = null;
-        continue;
-      }
-      if (vaultName !== null) {
-        error = "--vault was provided more than once";
-        vaultName = null;
-        continue;
-      }
-      vaultName = value;
-      continue;
-    }
-    if (arg.startsWith("--env=")) {
-      const value = arg.slice("--env=".length);
-      if (!value.trim()) {
-        error ||= "--env requires a non-empty Environment name";
-        environmentName = null;
-        continue;
-      }
-      if (!ENVIRONMENT_NAME_PATTERN.test(value)) {
-        // An explicit malformed selector must never silently degrade to
-        // the Project default.
-        error = `Invalid Environment name "${value}". Use lowercase letters, digits, hyphen, or underscore, starting with a letter.`;
-        environmentName = null;
-        continue;
-      }
-      if (environmentName !== null) {
-        error = "--env was provided more than once";
-        environmentName = null;
-        continue;
-      }
-      environmentName = value;
-      continue;
-    }
-    args.push(arg);
-  }
-  return {
-    args,
-    childArgs: separatorIndex === -1 ? [] : rawArgs.slice(separatorIndex + 1),
-    environmentName,
-    error,
-    separatorIndex,
-    vaultName,
-  };
-};
 const parsed = parseArguments(process.argv.slice(2));
 const { vaultName } = parsed;
 const { environmentName } = parsed;
@@ -102,51 +28,6 @@ const withSelectors = (data) => ({
   ...withVault(data),
   ...(environmentName ? { environmentName } : {}),
 });
-const showHelp = () => {
-  console.log(`
-KeyHarbor
-
-Usage:
-  keyharbor [--vault=<name>] [--env=<name>] <command> [options]
-
-Commands:
-  run --project=<name> <command>    Run command with environment variables
-  get <project> <key>               Get a secret value
-  set <project> <key> <value>       Set a secret value
-  create <project>                  Create a new project (succeeds if it already exists)
-  list                              List all projects
-  environments <project>            List the Project's Environments (metadata only)
-  vaults                            List all vaults
-  mcp                               Start the local MCP v2 stdio server
-  agent --project=<name> --key=<key> --origin=https://api.example.com -- <command> [args]
-                                    Run one command with a scoped approved HTTPS proxy
-  help                              Show this help message
-
-Options:
-  --vault=<name>                    Specify vault (default: System)
-  --env=<name>                      Select an Environment (default: Project default)
-  --auth-header=<header>            Agent mode credential header (default: Authorization)
-  --auth-prefix=<prefix>            Agent mode header prefix (empty for raw API keys)
-
-  KeyHarbor options are only parsed before "--". Everything after "--" is
-  forwarded to the child command untouched.
-
-Examples:
-  keyharbor run --project=myapp --env=dev -- npm start
-  keyharbor get myapp API_KEY --env=prod
-  keyharbor get myapp API_KEY
-  keyharbor set myapp API_KEY "sk-1234567890" --env=dev
-  keyharbor create myapp
-  keyharbor list
-  keyharbor environments myapp
-  keyharbor --vault="Work" list
-  keyharbor --vault="Work" get api API_KEY
-  keyharbor vaults
-  keyharbor mcp
-  keyharbor agent --project=myapp --key=API_KEY --origin=https://api.example.com -- npm start
-`);
-};
-
 // eslint-disable-next-line complexity -- This handler owns approval, child lifetime, revocation, and CA cleanup.
 const handleAgent = async () => {
   const { separatorIndex } = parsed;

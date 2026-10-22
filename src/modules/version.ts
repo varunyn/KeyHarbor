@@ -1,23 +1,33 @@
+interface ParsedVersion {
+  core: [number, number, number];
+  prerelease: string[];
+}
+
 const SEMVER_PATTERN =
   /^(?:v)?(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 
 const DIGITS_PATTERN = /^\d+$/u;
 
-const parseVersion = (value) => {
-  if (typeof value !== "string") {
+const isString = (value: unknown): value is string => typeof value === "string";
+
+const parseVersion = (value: unknown): ParsedVersion | null => {
+  if (!isString(value)) {
     return null;
   }
   const match = SEMVER_PATTERN.exec(value.trim());
   if (!match) {
     return null;
   }
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  const patch = Number(match[3]);
   return {
-    core: match.slice(1, 4).map(Number),
+    core: [major, minor, patch],
     prerelease: match[4] ? match[4].split(".") : [],
   };
 };
 
-const comparePrerelease = (left, right) => {
+const comparePrerelease = (left: string[], right: string[]): number => {
   if (left.length === 0 || right.length === 0) {
     if (left.length === right.length) {
       return 0;
@@ -26,29 +36,34 @@ const comparePrerelease = (left, right) => {
   }
   const length = Math.max(left.length, right.length);
   for (let index = 0; index < length; index += 1) {
-    if (left[index] === undefined) {
+    const leftPart = left[index];
+    const rightPart = right[index];
+    if (leftPart === undefined) {
       return -1;
     }
-    if (right[index] === undefined) {
+    if (rightPart === undefined) {
       return 1;
     }
-    if (left[index] === right[index]) {
+    if (leftPart === rightPart) {
       continue;
     }
-    const leftNumeric = DIGITS_PATTERN.test(left[index]);
-    const rightNumeric = DIGITS_PATTERN.test(right[index]);
+    const leftNumeric = DIGITS_PATTERN.test(leftPart);
+    const rightNumeric = DIGITS_PATTERN.test(rightPart);
     if (leftNumeric && rightNumeric) {
-      return Number(left[index]) > Number(right[index]) ? 1 : -1;
+      return Number(leftPart) > Number(rightPart) ? 1 : -1;
     }
     if (leftNumeric !== rightNumeric) {
       return leftNumeric ? -1 : 1;
     }
-    return left[index] > right[index] ? 1 : -1;
+    return leftPart > rightPart ? 1 : -1;
   }
   return 0;
 };
 
-const compareVersions = (leftValue, rightValue) => {
+export const compareVersions = (
+  leftValue: unknown,
+  rightValue: unknown
+): number | null => {
   const left = parseVersion(leftValue);
   const right = parseVersion(rightValue);
   if (!left || !right) {
@@ -62,7 +77,5 @@ const compareVersions = (leftValue, rightValue) => {
   return comparePrerelease(left.prerelease, right.prerelease);
 };
 
-const isNewerVersion = (candidate, current) =>
+export const isNewerVersion = (candidate: unknown, current: unknown): boolean =>
   compareVersions(candidate, current) === 1;
-
-module.exports = { compareVersions, isNewerVersion };

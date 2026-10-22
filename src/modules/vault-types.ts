@@ -136,7 +136,7 @@ export interface ProjectRecord {
 
 export interface VaultData {
   vaultFormatVersion: number;
-  version?: string;
+  version?: string | number;
   vaultInstanceId?: string;
   createdAt?: string;
   updatedAt?: string;
