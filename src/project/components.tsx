@@ -93,9 +93,9 @@ export const Icon = ({
 
 const PILL_STYLES: Record<Status, string> = {
   config: "bg-muted text-muted-foreground border-border",
-  expired: "bg-rose-500/15 text-rose-400 border-rose-500/20",
-  healthy: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  rotate: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  expired: "bg-destructive/15 text-destructive border-destructive/20",
+  healthy: "bg-success/15 text-success border-success/20",
+  rotate: "bg-warning/15 text-warning border-warning/20",
 };
 
 export const Pill = ({ status }: { status: Status }) => (
@@ -426,7 +426,7 @@ export const SecretTable = ({
                       type="button"
                       className={cn(
                         "size-7 rounded-md opacity-60 hover:opacity-100",
-                        favorite && "text-amber-400 opacity-100"
+                        favorite && "text-warning opacity-100"
                       )}
                       aria-pressed={favorite}
                       aria-label={t(
@@ -446,7 +446,7 @@ export const SecretTable = ({
                     >
                       <Icon
                         name="star"
-                        className={cn("size-3.5", favorite && "fill-amber-400")}
+                        className={cn("size-3.5", favorite && "fill-warning")}
                       />
                     </Button>
                   </div>
@@ -619,7 +619,7 @@ export const Inspector = ({
           </div>
           {reveal ? (
             <p
-              className="font-mono text-xs text-amber-400"
+              className="text-warning text-xs tabular-nums"
               id="revealCountdown"
             >
               {t("project.inspector.hidesIn", { count: reveal.remaining })}
@@ -885,7 +885,7 @@ const ConfigurationInputStep = ({
     )}
     {draft.message && (
       <output
-        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
+        className="border-warning/20 bg-warning/10 text-warning block rounded-lg border p-3 text-xs"
         id="configurationMessage"
         aria-live="polite"
       >
@@ -919,7 +919,7 @@ const ConfigurationReviewStep = ({
     </p>
     {draft.duplicateNames > 0 && (
       <p
-        className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400"
+        className="border-warning/20 bg-warning/10 text-warning rounded-lg border p-2.5 text-xs"
         id="configurationDuplicateNote"
       >
         {t("project.configuration.duplicates", {
@@ -963,7 +963,7 @@ const ConfigurationReviewStep = ({
     </ul>
     {draft.message && (
       <output
-        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
+        className="border-warning/20 bg-warning/10 text-warning block rounded-lg border p-3 text-xs"
         id="configurationReviewMessage"
         aria-live="polite"
       >
@@ -1008,7 +1008,7 @@ const ConfigurationClearStep = ({
     </ul>
     {draft.message && (
       <output
-        className="block rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400"
+        className="border-warning/20 bg-warning/10 text-warning block rounded-lg border p-3 text-xs"
         id="configurationClearMessage"
         aria-live="polite"
       >

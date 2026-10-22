@@ -370,7 +370,7 @@ const ProjectSummary = ({
     <span
       className={cn(
         "font-medium",
-        attention > 0 ? "text-amber-400" : "text-muted-foreground"
+        attention > 0 ? "text-warning" : "text-muted-foreground"
       )}
     >
       {t("project.summary.needsAttention", { count: attention })}

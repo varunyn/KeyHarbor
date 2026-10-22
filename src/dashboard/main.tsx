@@ -158,11 +158,11 @@ const Icon = ({
 
 const MONOGRAM_TONES = [
   "bg-sky-500/15 text-sky-400 border border-sky-500/30",
-  "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
-  "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  "bg-success/15 text-success border border-success/30",
+  "bg-warning/15 text-warning border border-warning/30",
   "bg-purple-500/15 text-purple-400 border border-purple-500/30",
   "bg-teal-500/15 text-teal-400 border border-teal-500/30",
-  "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30",
+  "bg-muted text-muted-foreground border border-border",
 ];
 
 const monogram = (name: string) => {
@@ -288,10 +288,10 @@ const requireProjectData = (
 };
 
 const TONE_CLASSES: Record<string, string> = {
-  "text-amber-400": "text-amber-400",
-  "text-rose-400": "text-rose-400",
-  "tone-amber": "text-amber-400",
-  "tone-red": "text-rose-400",
+  "text-destructive": "text-destructive",
+  "text-warning": "text-warning",
+  "tone-amber": "text-warning",
+  "tone-red": "text-destructive",
 };
 
 const ProjectActions = ({
@@ -316,7 +316,7 @@ const ProjectActions = ({
       type="button"
       className={cn(
         "dash-icon-btn text-muted-foreground hover:bg-secondary hover:text-foreground size-8 rounded-lg transition-colors",
-        favorite && "is-fav text-amber-400 hover:text-amber-300"
+        favorite && "is-fav text-warning"
       )}
       aria-pressed={favorite}
       aria-label={t(
@@ -432,9 +432,9 @@ const ProjectCard = ({
       </p>
       <div className="dash-card-status bg-secondary/60 text-muted-foreground my-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs">
         {activeToday ? (
-          <span className="active-pill inline-flex items-center gap-1.5 font-medium text-emerald-400">
+          <span className="active-pill text-success inline-flex items-center gap-1.5 font-medium">
             <span
-              className="pill-dot size-1.5 rounded-full bg-emerald-400"
+              className="pill-dot bg-success size-1.5 rounded-full"
               aria-hidden="true"
             />
             {t("dashboard.card.activeToday")}
@@ -569,7 +569,7 @@ const StatisticsStrip = ({ statistics }: { statistics: ProjectStatistics }) => {
   const expiring = statistics.expiringSecrets > 0;
   let expiryTone = "";
   if (expiring) {
-    expiryTone = statistics.hasExpired ? "text-rose-400" : "text-amber-400";
+    expiryTone = statistics.hasExpired ? "text-destructive" : "text-warning";
   }
   const expired = statistics.hasExpired;
   const metrics = [
@@ -1183,7 +1183,7 @@ const DashboardSidebar = ({
                     {vault.status === "offline" && (
                       <Icon
                         name="circle-alert"
-                        className="dropdown-item-icon status-offline size-3.5 shrink-0 text-amber-400"
+                        className="dropdown-item-icon status-offline text-warning size-3.5 shrink-0"
                       />
                     )}
                     <span
@@ -1371,7 +1371,7 @@ const DashboardSidebar = ({
       )}`}
     >
       <span
-        className="dash-sync-dot size-2 shrink-0 animate-pulse rounded-full bg-emerald-400"
+        className="dash-sync-dot bg-success size-2 shrink-0 animate-pulse rounded-full"
         aria-hidden="true"
       />
       {sidebarOpen ? (
@@ -3009,7 +3009,7 @@ const App = () => {
           </span>
           <span className="dash-footer-local hidden items-center gap-1.5 min-[1001px]:inline-flex">
             <span
-              className="dash-sync-dot size-1.5 rounded-full bg-emerald-400"
+              className="dash-sync-dot bg-success size-1.5 rounded-full"
               aria-hidden="true"
             />
             {t("dashboard.card.storedLocally")}

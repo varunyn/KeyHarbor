@@ -98,7 +98,7 @@ export const ManagerForm = ({
             </option>
           ))}
         </select>
-        <p className="mt-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400">
+        <p className="border-warning/20 bg-warning/10 text-warning mt-1 rounded-lg border p-2.5 text-xs">
           {t("project.environments.replacementWarning", {
             name:
               alternatives.find((entry) => entry.id === replacementId)?.name ||
@@ -116,7 +116,7 @@ export const ManagerForm = ({
         : ""}
     </p>
     {alternatives.length === 0 && (
-      <p className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-400">
+      <p className="border-warning/20 bg-warning/10 text-warning mb-4 rounded-lg border p-2.5 text-xs">
         {t("project.environments.lastEnvironment")}
       </p>
     )}
@@ -171,7 +171,7 @@ export const EnvironmentDeleteConfirmation = ({
     : "";
   return (
     <>
-      <p className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-400">
+      <p className="border-warning/20 bg-warning/10 text-warning mb-4 rounded-lg border p-3 text-xs">
         {t("project.environments.deleteConfirm", {
           count: current?.secretCount ?? 0,
           defaultWarning,

@@ -26,6 +26,8 @@
   --color-accent-foreground: var(--ui-foreground);
   --color-destructive: var(--ui-destructive);
   --color-destructive-foreground: var(--ui-background);
+  --color-success: var(--ui-success);
+  --color-warning: var(--ui-warning);
   --color-border: var(--ui-border);
   --color-input: var(--ui-border);
   --color-ring: var(--ui-primary);

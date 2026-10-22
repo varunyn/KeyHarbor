@@ -1321,7 +1321,7 @@ export const SetupScreen = () => {
                   "mb-4 rounded-md p-3 text-[13px]",
                   message.kind === "error"
                     ? "border-destructive/30 bg-destructive/10 text-destructive border"
-                    : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-success/30 bg-success/10 text-success border"
                 )}
                 role={message.kind === "error" ? "alert" : "status"}
               >
@@ -1483,12 +1483,12 @@ export const SetupScreen = () => {
   );
 };
 const CATEGORY_BADGE_CLASSES: Record<string, string> = {
-  access: "bg-emerald-500/20 text-emerald-400",
-  app: "bg-zinc-500/20 text-zinc-400",
-  error: "bg-rose-500/20 text-rose-400",
+  access: "bg-success/20 text-success",
+  app: "bg-muted text-muted-foreground",
+  error: "bg-destructive/15 text-destructive",
   info: "bg-sky-500/20 text-sky-400",
-  lock: "bg-amber-500/20 text-amber-400",
-  warning: "bg-amber-500/20 text-amber-400",
+  lock: "bg-warning/20 text-warning",
+  warning: "bg-warning/20 text-warning",
 };
 
 const categoryBadgeClass = (category: string) =>
