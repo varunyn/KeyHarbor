@@ -1,4 +1,8 @@
 import type { CloseBehavior } from "../modules/window-close-controller";
+import type { AppTheme, ThemeBridge } from "./theme-bridge";
+import type { UpdatesBridge } from "./updates-bridge";
+
+export type { AppTheme, ThemeBridge, ThemeChangePayload } from "./theme-bridge";
 
 export interface BridgeFailure {
   success: false;
@@ -62,19 +66,6 @@ export interface EnvironmentSummary {
   updatedAt: string;
   secretCount: number;
   isDefault: boolean;
-}
-
-export type AppTheme = "system" | "light" | "dark";
-
-export interface ThemeChangePayload {
-  macWindowMaterial?: "glass" | "vibrancy" | "opaque" | null;
-  theme: AppTheme;
-  shouldUseDarkColors: boolean;
-}
-
-export interface ThemeBridge {
-  get: () => Promise<ThemeChangePayload>;
-  onThemeChanged: (callback: (data: ThemeChangePayload) => void) => Unsubscribe;
 }
 
 export interface AppSettings {
@@ -449,6 +440,7 @@ export interface ProjectBridge {
   };
   theme: ThemeBridge;
   settings: { get: () => Promise<AppSettings> };
+  updates: UpdatesBridge;
   dialog: { selectFolder: () => Promise<DataResult<string | null>> };
   cli: {
     check: () => Promise<CliCheckResult>;

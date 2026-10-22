@@ -33,7 +33,6 @@ const path = require("node:path");
 const fs = require("node:fs");
 const os = require("node:os");
 const crypto = require("node:crypto");
-const https = require("node:https");
 const { URL } = require("node:url");
 const windowStateKeeper = require("electron-window-state");
 
@@ -51,7 +50,10 @@ const EnvTextImportCoordinator = require("./modules/env-text-import-coordinator"
 const registerEnvTextImportIpc = require("./modules/env-text-import-ipc");
 const ProjectConfigurationCoordinator = require("./modules/project-configuration-coordinator");
 const registerProjectConfigurationIpc = require("./modules/project-configuration-ipc");
-const { isNewerVersion } = require("./modules/version");
+const {
+  checkForUpdate,
+  startUpdatePolling,
+} = require("./modules/update-checker");
 const {
   registerEnvironmentManagementIpc,
 } = require("./modules/environment-management-ipc");
@@ -1098,66 +1100,36 @@ const createTray = () => {
 
 // Preserve the asynchronous update-check API and its existing rejection behavior.
 // eslint-disable-next-line require-await
-const checkVersion = async () => {
-  try {
-    // Node HTTPS reports completion through response/error events, requiring a Promise adapter.
-    // eslint-disable-next-line promise/avoid-new
-    return new Promise((resolve) => {
-      const url = new URL(
-        "https://api.github.com/repos/varunyn/KeyHarbor/releases/latest"
-      );
+const queryLatestUpdate = async (): Promise<string | null> => {
+  const outcome = await checkForUpdate(APP_VERSION);
+  return outcome.status === "newer" ? outcome.version : null;
+};
 
-      const options = {
-        headers: {
-          "User-Agent": `KeyHarbor-App/${APP_VERSION}`,
-        },
-        method: "GET",
-        timeout: 5000,
-      };
+let stopUpdatePolling: (() => void) | null = null;
+let lastNotifiedUpdateVersion: string | null = null;
 
-      const req = https.request(url, options, (res) => {
-        let data = "";
-
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-
-        res.on("end", () => {
-          try {
-            if (res.statusCode === 200) {
-              const response = JSON.parse(data);
-              const serverVersion =
-                typeof response.tag_name === "string"
-                  ? response.tag_name.trim().replace(/^v/u, "")
-                  : "";
-              resolve(
-                isNewerVersion(serverVersion, APP_VERSION)
-                  ? serverVersion
-                  : null
-              );
-            } else {
-              resolve(null);
-            }
-          } catch {
-            resolve(null);
-          }
-        });
-      });
-
-      req.on("error", () => {
-        resolve(null);
-      });
-
-      req.on("timeout", () => {
-        req.destroy();
-        resolve(null);
-      });
-
-      req.end();
-    });
-  } catch {
-    return null;
+const maybeShowUpdateDialog = (newVersion: string | null) => {
+  if (!newVersion || newVersion === lastNotifiedUpdateVersion || !mainWindow) {
+    return;
   }
+  lastNotifiedUpdateVersion = newVersion;
+  // eslint-disable-next-line no-use-before-define -- Update polling runs after the desktop lifecycle is initialized.
+  showUpdateDialog(newVersion);
+};
+
+const refreshUpdatePolling = () => {
+  if (stopUpdatePolling) {
+    stopUpdatePolling();
+    stopUpdatePolling = null;
+  }
+  if (!loadSettings().checkForUpdates) {
+    return;
+  }
+  stopUpdatePolling = startUpdatePolling({
+    check: queryLatestUpdate,
+    isEnabled: () => loadSettings().checkForUpdates,
+    onUpdate: maybeShowUpdateDialog,
+  });
 };
 
 const showUpdateDialog = (newVersion) => {
@@ -1475,17 +1447,7 @@ const initializeApp = () => {
 
   createTray();
 
-  if (settings.checkForUpdates) {
-    // Schedule the update dialog from the existing update-check settlement without delaying initialization.
-    // eslint-disable-next-line promise/prefer-await-to-then
-    checkVersion().then((newVersion) => {
-      if (newVersion && mainWindow) {
-        setTimeout(() => {
-          showUpdateDialog(newVersion);
-        }, 2000);
-      }
-    });
-  }
+  refreshUpdatePolling();
 
   try {
     const cliPath = path.join(__dirname, "..", "cli", "keyharbor.js");
@@ -2400,6 +2362,27 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle("settings:get", () => loadSettings());
 
+  ipcMain.handle("updates:checkNow", async () => {
+    const outcome = await checkForUpdate(APP_VERSION);
+    if (outcome.status === "newer") {
+      maybeShowUpdateDialog(outcome.version);
+      return {
+        currentVersion: APP_VERSION,
+        newVersion: outcome.version,
+        success: true,
+      };
+    }
+    if (outcome.status === "current") {
+      return { currentVersion: APP_VERSION, newVersion: null, success: true };
+    }
+    return {
+      currentVersion: APP_VERSION,
+      error: "Update check failed",
+      newVersion: null,
+      success: false,
+    };
+  });
+
   ipcMain.handle("theme:get", (event) => {
     const settings = loadSettings();
     return {
@@ -2545,6 +2528,10 @@ const setupIpcHandlers = () => {
 
       if (mergedSettings.closeBehavior !== currentSettings.closeBehavior) {
         broadcastCloseBehavior(mergedSettings.closeBehavior);
+      }
+
+      if (mergedSettings.checkForUpdates !== currentSettings.checkForUpdates) {
+        refreshUpdatePolling();
       }
 
       await vaultSession.configure(getVaultSessionPolicy());

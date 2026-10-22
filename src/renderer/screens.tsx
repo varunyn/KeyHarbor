@@ -31,6 +31,7 @@ import { ModalDialog } from "./ui/modal-dialog";
 import { PasswordInput } from "./ui/password-input";
 import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
+import { UpdateSettingsRow } from "./update-settings-row";
 import { useTouchId } from "./use-touch-id";
 
 const resultError = (
@@ -524,22 +525,10 @@ export const SettingsScreen = () => {
               </option>
             </select>
           </SettingsRow>
-          <SettingsRow
-            label={t("settings.checkForUpdates")}
-            description={t("settings.checkForUpdatesDesc")}
-            ids={{
-              description: "desc-check-updates",
-              label: "label-check-updates",
-            }}
-          >
-            <SettingsToggle
-              label={t("settings.checkForUpdates")}
-              checked={settings.checkForUpdates}
-              onChange={(value) => patch("checkForUpdates", value)}
-              disabled={false}
-              id="check-updates-toggle"
-            />
-          </SettingsRow>
+          <UpdateSettingsRow
+            checked={settings.checkForUpdates}
+            onToggle={(value) => patch("checkForUpdates", value)}
+          />
           <SettingsRow
             label={t("settings.closeBehavior")}
             description={t("settings.closeBehaviorDesc")}

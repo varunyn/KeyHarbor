@@ -172,6 +172,9 @@ const api = {
     setEnabled: (enabled) => ipcRenderer.invoke("touch-id:setEnabled", enabled),
     unlock: () => ipcRenderer.invoke("touch-id:unlock"),
   },
+  updates: {
+    checkNow: () => ipcRenderer.invoke("updates:checkNow"),
+  },
   vault: {
     changePassword: (currentPassword, newPassword) =>
       ipcRenderer.invoke("vault:changePassword", currentPassword, newPassword),

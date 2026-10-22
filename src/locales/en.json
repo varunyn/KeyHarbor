@@ -733,7 +733,12 @@
       "light": "Light"
     },
     "checkForUpdates": "Check for updates",
-    "checkForUpdatesDesc": "Automatically check for new versions on startup",
+    "checkForUpdatesDesc": "Automatically check for new versions on startup and daily",
+    "updateCheckNow": "Check now",
+    "updateChecking": "Checking for updates…",
+    "updateUpToDate": "You're up to date (v{{version}}).",
+    "updateFound": "Update available: v{{version}}.",
+    "updateCheckFailed": "Could not check for updates. Try again later.",
     "showStatistics": "Show Statistics",
     "showStatisticsDesc": "Display statistics on dashboard",
     "autoLock": "Auto Lock",
