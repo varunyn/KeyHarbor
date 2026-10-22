@@ -7,7 +7,7 @@ import { after, before, test } from "node:test";
 import { registerProjectTransferIpc } from "../src/modules/project-transfer-ipc";
 import VaultManager = require("../src/modules/vault-manager");
 import VaultRecoveryStore from "../src/modules/vault-recovery-store";
-import VaultSession from "../src/modules/vault-session";
+import VaultSession = require("../src/modules/vault-session");
 
 const password = "project-transfer-ipc-test-password";
 const directory = fs.mkdtempSync(

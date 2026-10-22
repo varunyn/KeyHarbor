@@ -1,6 +1,8 @@
 import type { TestContext } from "node:test";
 
-import type VaultSessionType from "../src/modules/vault-session";
+import type VaultSessionModule = require("../src/modules/vault-session");
+
+type VaultSessionType = VaultSessionModule;
 
 interface ConfigurationEvaluation {
   entries: { key: string; status: string }[];
