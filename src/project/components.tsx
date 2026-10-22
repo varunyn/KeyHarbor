@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { i18n } from "../renderer/i18n";
 import { ActionMenu } from "../renderer/ui/action-menu";
 import { Button } from "../renderer/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "../renderer/ui/dialog";
+import { ModalDialog, ModalTitle } from "../renderer/ui/modal-dialog";
 import { cn } from "../renderer/ui/utils";
 import type {
   ConfigurationChanges,
@@ -42,11 +42,7 @@ export const Pill = ({ status }: { status: Status }) => (
   </span>
 );
 
-export const ModalTitle = ({ children }: { children: React.ReactNode }) => (
-  <DialogTitle className="text-foreground text-base font-semibold tracking-tight">
-    {children}
-  </DialogTitle>
-);
+export { ModalTitle } from "../renderer/ui/modal-dialog";
 
 export const ModalFrame = ({
   id,
@@ -60,73 +56,20 @@ export const ModalFrame = ({
   initialFocusId?: string;
   children: React.ReactNode;
   onClose: () => void;
-}) => {
-  const content = useRef<HTMLDivElement>(null);
-  const priorFocus = useRef<HTMLElement | null>(null);
-  const previousInitialFocusId = useRef(initialFocusId);
-  useEffect(() => {
-    if (previousInitialFocusId.current === initialFocusId || !initialFocusId) {
-      return;
-    }
-    previousInitialFocusId.current = initialFocusId;
-    content.current
-      ?.querySelector<HTMLElement>(`#${CSS.escape(initialFocusId)}`)
-      ?.focus();
-  }, [initialFocusId]);
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent
-        ref={content}
-        id={id}
-        className={cn(
-          "lk-ui-theme bg-card border-border block max-h-[min(88dvh,760px)] max-w-[500px] overflow-y-auto rounded-2xl border p-6 shadow-xl",
-          className
-        )}
-        closeLabel={t("common.close")}
-        aria-describedby={undefined}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          priorFocus.current =
-            document.activeElement instanceof HTMLElement
-              ? document.activeElement
-              : null;
-          const target = initialFocusId
-            ? content.current?.querySelector<HTMLElement>(
-                `#${CSS.escape(initialFocusId)}`
-              )
-            : content.current?.querySelector<HTMLElement>(
-                "input:not([type=hidden]), textarea, select, button:not([data-close])"
-              );
-          target?.focus();
-        }}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          const prior = priorFocus.current;
-          if (prior?.isConnected && prior.getClientRects().length > 0) {
-            prior.focus();
-            return;
-          }
-          const opener = prior
-            ?.closest(".dropdown")
-            ?.querySelector<HTMLElement>("button");
-          const fallback = opener?.getClientRects().length
-            ? opener
-            : document.querySelector<HTMLElement>("#newBtn");
-          fallback?.focus();
-        }}
-      >
-        {children}
-      </DialogContent>
-    </Dialog>
-  );
-};
+}) => (
+  <ModalDialog
+    id={id}
+    className={cn(
+      "lk-ui-theme bg-card border-border block max-h-[min(88dvh,760px)] max-w-[500px] overflow-y-auto rounded-2xl border p-6 shadow-xl",
+      className
+    )}
+    initialFocusId={initialFocusId}
+    fallbackReturnFocusSelector="#newBtn"
+    onClose={onClose}
+  >
+    {children}
+  </ModalDialog>
+);
 
 const useNow = (active: boolean) => {
   const [now, setNow] = useState(() => Date.now());

@@ -26,8 +26,8 @@ import { runWithCleanup } from "./async-operation";
 import { notificationManager } from "./notifications";
 import { useRendererTranslation } from "./providers";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { ModalDialog } from "./ui/modal-dialog";
 import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
 
@@ -53,64 +53,19 @@ const Modal = ({
   children: React.ReactNode;
   footer?: React.ReactNode;
   initialFocusId?: string;
-}) => {
-  const { t } = useRendererTranslation();
-  const ref = useRef<HTMLDivElement>(null);
-  const priorFocus = useRef<HTMLElement | null>(null);
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent
-        ref={ref}
-        id={id}
-        className="lk-ui-theme lk-form-dialog text-foreground"
-        closeLabel={t("common.close")}
-        showCloseButton={false}
-        aria-describedby={undefined}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          priorFocus.current =
-            document.activeElement instanceof HTMLElement
-              ? document.activeElement
-              : null;
-          const focus = initialFocusId
-            ? ref.current?.querySelector<HTMLElement>(
-                `#${CSS.escape(initialFocusId)}`
-              )
-            : ref.current?.querySelector<HTMLElement>(
-                "input:not(:disabled),button:not(:disabled),select:not(:disabled)"
-              );
-          focus?.focus();
-        }}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          const target = priorFocus.current;
-          if (
-            target?.isConnected &&
-            target.getClientRects().length > 0 &&
-            !target.hasAttribute("disabled")
-          ) {
-            target.focus();
-          }
-        }}
-      >
-        <header className="lk-form-dialog-header">
-          <DialogTitle className="modal-title" data-title-id={titleId}>
-            {title}
-          </DialogTitle>
-        </header>
-        <div className="lk-form-dialog-body">{children}</div>
-        {footer}
-      </DialogContent>
-    </Dialog>
-  );
-};
+}) => (
+  <ModalDialog
+    id={id}
+    titleId={titleId}
+    title={title}
+    onClose={onClose}
+    footer={footer}
+    initialFocusId={initialFocusId}
+    bodyClassName="lk-form-dialog-body"
+  >
+    {children}
+  </ModalDialog>
+);
 const EMPTY_SETTING_IDS = { description: "", label: "" };
 const SETTINGS_SELECT_CLASS =
   "bg-secondary text-foreground border-border focus-visible:ring-primary h-8 min-w-[100px] rounded-lg border px-2.5 text-[13px] font-sans shadow-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none";

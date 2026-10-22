@@ -43,7 +43,6 @@ import {
 } from "../renderer/providers";
 import { Button } from "../renderer/ui/button";
 import { useConfirmation } from "../renderer/ui/confirmation";
-import { Dialog, DialogContent, DialogTitle } from "../renderer/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -57,6 +56,7 @@ import {
   DropdownMenuSubTrigger,
 } from "../renderer/ui/dropdown-menu";
 import { Input } from "../renderer/ui/input";
+import { ModalDialog } from "../renderer/ui/modal-dialog";
 import { topBarClass } from "../renderer/ui/nav-bar";
 import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
@@ -682,261 +682,22 @@ const DashboardDialog = ({
     return null;
   }
   const dialogTitle = t(DIALOG_TITLES[dialog]);
+  const fields: Record<NonNullable<DialogKind>, string> = {
+    "create-vault": "#vault-create-name",
+    "import-vault": "#vault-import-path",
+    project: "#project-name",
+    "rename-vault": "#vault-rename-input",
+  };
 
   return (
-    <Dialog
+    <ModalDialog
       open
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent
-        ref={dialogRef}
-        closeLabel={t("common.close")}
-        aria-describedby={undefined}
-        className="max-w-[440px]"
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          const fields: Record<NonNullable<DialogKind>, string> = {
-            "create-vault": "#vault-create-name",
-            "import-vault": "#vault-import-path",
-            project: "#project-name",
-            "rename-vault": "#vault-rename-input",
-          };
-          dialogRef.current
-            ?.querySelector<HTMLElement>(fields[dialog])
-            ?.focus();
-        }}
-      >
-        <DialogTitle className="text-foreground text-base font-semibold">
-          {dialogTitle}
-        </DialogTitle>
-        <div className="modal-body space-y-4 py-2">
-          {dialog === "project" && (
-            <div className="input-group space-y-1.5">
-              <label
-                htmlFor="project-name"
-                id="label-project-name"
-                className="text-muted-foreground block text-xs font-medium"
-              >
-                {t("dashboard.addProjectModal.label")}
-              </label>
-              <Input
-                id="project-name"
-                type="text"
-                autoComplete="off"
-                placeholder={t("dashboard.addProjectModal.placeholder")}
-                value={form.projectName}
-                onChange={(event) =>
-                  onFieldChange("projectName", event.target.value)
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    onSubmitProject();
-                  }
-                }}
-                className="bg-secondary/50"
-              />
-            </div>
-          )}
-          {dialog === "create-vault" && (
-            <>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-create-name"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.create.nameLabel")}
-                </label>
-                <Input
-                  id="vault-create-name"
-                  type="text"
-                  autoComplete="off"
-                  placeholder={t("vault.create.namePlaceholder")}
-                  value={form.vaultName}
-                  onChange={(event) =>
-                    onFieldChange("vaultName", event.target.value)
-                  }
-                  className="bg-secondary/50"
-                />
-              </div>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-create-path"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.create.pathLabel")}
-                </label>
-                <div className="input-row flex gap-2">
-                  <Input
-                    id="vault-create-path"
-                    type="text"
-                    readOnly
-                    placeholder={t("vault.create.pathPlaceholder")}
-                    value={form.folderPath}
-                    className="bg-secondary/50 flex-1"
-                  />
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    className="dh-btn dh-btn-secondary"
-                    id="vault-create-browse"
-                    disabled={actionBusy !== null}
-                    onClick={() => onBrowseFolder("create-vault")}
-                  >
-                    {t("vault.create.browse")}
-                  </Button>
-                </div>
-              </div>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-create-password"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.create.passwordLabel")}
-                </label>
-                <Input
-                  id="vault-create-password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder={t("vault.create.passwordPlaceholder")}
-                  value={form.password}
-                  onChange={(event) =>
-                    onFieldChange("password", event.target.value)
-                  }
-                  className="bg-secondary/50"
-                />
-              </div>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-create-confirm"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.create.confirmLabel")}
-                </label>
-                <Input
-                  id="vault-create-confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder={t("vault.create.confirmPlaceholder")}
-                  value={form.passwordConfirm}
-                  onChange={(event) =>
-                    onFieldChange("passwordConfirm", event.target.value)
-                  }
-                  className="bg-secondary/50"
-                />
-              </div>
-            </>
-          )}
-          {dialog === "import-vault" && (
-            <>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-import-path"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.import.pathLabel")}
-                </label>
-                <div className="input-row flex gap-2">
-                  <Input
-                    id="vault-import-path"
-                    type="text"
-                    readOnly
-                    placeholder={t("vault.import.pathPlaceholder")}
-                    value={form.folderPath}
-                    className="bg-secondary/50 flex-1"
-                  />
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    className="dh-btn dh-btn-secondary"
-                    id="vault-import-browse"
-                    disabled={actionBusy !== null}
-                    onClick={() => onBrowseFolder("import-vault")}
-                  >
-                    {t("vault.import.browse")}
-                  </Button>
-                </div>
-              </div>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-import-name"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.import.nameLabel")}
-                </label>
-                <Input
-                  id="vault-import-name"
-                  type="text"
-                  autoComplete="off"
-                  placeholder={t("vault.import.namePlaceholder")}
-                  value={form.vaultName}
-                  onChange={(event) =>
-                    onFieldChange("vaultName", event.target.value)
-                  }
-                  className="bg-secondary/50"
-                />
-              </div>
-              <div className="input-group space-y-1.5">
-                <label
-                  htmlFor="vault-import-password"
-                  className="text-muted-foreground block text-xs font-medium"
-                >
-                  {t("vault.import.passwordLabel")}
-                </label>
-                <Input
-                  id="vault-import-password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder={t("vault.import.passwordPlaceholder")}
-                  value={form.password}
-                  onChange={(event) =>
-                    onFieldChange("password", event.target.value)
-                  }
-                  className="bg-secondary/50"
-                />
-                <p className="input-desc text-muted-foreground mt-1 text-xs">
-                  {t("vault.import.passwordDesc")}
-                </p>
-              </div>
-            </>
-          )}
-          {dialog === "rename-vault" && (
-            <div className="input-group space-y-1.5">
-              <label
-                htmlFor="vault-rename-input"
-                className="text-muted-foreground block text-xs font-medium"
-              >
-                {t("vault.rename.label")}
-              </label>
-              <Input
-                id="vault-rename-input"
-                type="text"
-                autoComplete="off"
-                placeholder={t("vault.rename.placeholder")}
-                value={form.vaultName}
-                onChange={(event) =>
-                  onFieldChange("vaultName", event.target.value)
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    onSubmitVaultRename();
-                  }
-                }}
-                className="bg-secondary/50"
-              />
-            </div>
-          )}
-          <p
-            className="modal-error text-destructive mt-1 min-h-[1.25rem] text-xs"
-            role="alert"
-          >
-            {form.error}
-          </p>
-        </div>
+      onClose={onClose}
+      contentRef={dialogRef}
+      title={dialogTitle}
+      className="max-w-[440px]"
+      initialFocusSelector={fields[dialog]}
+      footer={
         <div className="modal-footer border-border flex justify-end gap-2 border-t pt-3">
           <Button
             variant="secondary"
@@ -995,8 +756,232 @@ const DashboardDialog = ({
             </Button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <div className="modal-body space-y-4 py-2">
+        {dialog === "project" && (
+          <div className="input-group space-y-1.5">
+            <label
+              htmlFor="project-name"
+              id="label-project-name"
+              className="text-muted-foreground block text-xs font-medium"
+            >
+              {t("dashboard.addProjectModal.label")}
+            </label>
+            <Input
+              id="project-name"
+              type="text"
+              autoComplete="off"
+              placeholder={t("dashboard.addProjectModal.placeholder")}
+              value={form.projectName}
+              onChange={(event) =>
+                onFieldChange("projectName", event.target.value)
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onSubmitProject();
+                }
+              }}
+              className="bg-secondary/50"
+            />
+          </div>
+        )}
+        {dialog === "create-vault" && (
+          <>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-create-name"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.create.nameLabel")}
+              </label>
+              <Input
+                id="vault-create-name"
+                type="text"
+                autoComplete="off"
+                placeholder={t("vault.create.namePlaceholder")}
+                value={form.vaultName}
+                onChange={(event) =>
+                  onFieldChange("vaultName", event.target.value)
+                }
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-create-path"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.create.pathLabel")}
+              </label>
+              <div className="input-row flex gap-2">
+                <Input
+                  id="vault-create-path"
+                  type="text"
+                  readOnly
+                  placeholder={t("vault.create.pathPlaceholder")}
+                  value={form.folderPath}
+                  className="bg-secondary/50 flex-1"
+                />
+                <Button
+                  variant="secondary"
+                  type="button"
+                  className="dh-btn dh-btn-secondary"
+                  id="vault-create-browse"
+                  disabled={actionBusy !== null}
+                  onClick={() => onBrowseFolder("create-vault")}
+                >
+                  {t("vault.create.browse")}
+                </Button>
+              </div>
+            </div>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-create-password"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.create.passwordLabel")}
+              </label>
+              <Input
+                id="vault-create-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder={t("vault.create.passwordPlaceholder")}
+                value={form.password}
+                onChange={(event) =>
+                  onFieldChange("password", event.target.value)
+                }
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-create-confirm"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.create.confirmLabel")}
+              </label>
+              <Input
+                id="vault-create-confirm"
+                type="password"
+                autoComplete="new-password"
+                placeholder={t("vault.create.confirmPlaceholder")}
+                value={form.passwordConfirm}
+                onChange={(event) =>
+                  onFieldChange("passwordConfirm", event.target.value)
+                }
+                className="bg-secondary/50"
+              />
+            </div>
+          </>
+        )}
+        {dialog === "import-vault" && (
+          <>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-import-path"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.import.pathLabel")}
+              </label>
+              <div className="input-row flex gap-2">
+                <Input
+                  id="vault-import-path"
+                  type="text"
+                  readOnly
+                  placeholder={t("vault.import.pathPlaceholder")}
+                  value={form.folderPath}
+                  className="bg-secondary/50 flex-1"
+                />
+                <Button
+                  variant="secondary"
+                  type="button"
+                  className="dh-btn dh-btn-secondary"
+                  id="vault-import-browse"
+                  disabled={actionBusy !== null}
+                  onClick={() => onBrowseFolder("import-vault")}
+                >
+                  {t("vault.import.browse")}
+                </Button>
+              </div>
+            </div>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-import-name"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.import.nameLabel")}
+              </label>
+              <Input
+                id="vault-import-name"
+                type="text"
+                autoComplete="off"
+                placeholder={t("vault.import.namePlaceholder")}
+                value={form.vaultName}
+                onChange={(event) =>
+                  onFieldChange("vaultName", event.target.value)
+                }
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="input-group space-y-1.5">
+              <label
+                htmlFor="vault-import-password"
+                className="text-muted-foreground block text-xs font-medium"
+              >
+                {t("vault.import.passwordLabel")}
+              </label>
+              <Input
+                id="vault-import-password"
+                type="password"
+                autoComplete="current-password"
+                placeholder={t("vault.import.passwordPlaceholder")}
+                value={form.password}
+                onChange={(event) =>
+                  onFieldChange("password", event.target.value)
+                }
+                className="bg-secondary/50"
+              />
+              <p className="input-desc text-muted-foreground mt-1 text-xs">
+                {t("vault.import.passwordDesc")}
+              </p>
+            </div>
+          </>
+        )}
+        {dialog === "rename-vault" && (
+          <div className="input-group space-y-1.5">
+            <label
+              htmlFor="vault-rename-input"
+              className="text-muted-foreground block text-xs font-medium"
+            >
+              {t("vault.rename.label")}
+            </label>
+            <Input
+              id="vault-rename-input"
+              type="text"
+              autoComplete="off"
+              placeholder={t("vault.rename.placeholder")}
+              value={form.vaultName}
+              onChange={(event) =>
+                onFieldChange("vaultName", event.target.value)
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onSubmitVaultRename();
+                }
+              }}
+              className="bg-secondary/50"
+            />
+          </div>
+        )}
+        <p
+          className="modal-error text-destructive mt-1 min-h-[1.25rem] text-xs"
+          role="alert"
+        >
+          {form.error}
+        </p>
+      </div>
+    </ModalDialog>
   );
 };
 
