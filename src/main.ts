@@ -1,3 +1,4 @@
+import { configureWorkspaceNavigation } from "./modules/workspace-navigation";
 import type Vault = require("./modules/vault");
 import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts";
 import { AGENT_APPROVAL_TIMEOUT_MS } from "./modules/agent-proxy-timeouts";
@@ -954,18 +955,7 @@ const createWindow = () => {
 
   applyScreenCaptureProtection();
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    openExternalSafely(url);
-    return { action: "deny" };
-  });
-
-  mainWindow.webContents.on("will-navigate", (event, url) => {
-    if (typeof url === "string" && url.startsWith("file://")) {
-      return;
-    }
-    event.preventDefault();
-    openExternalSafely(url);
-  });
+  configureWorkspaceNavigation(mainWindow.webContents, openExternalSafely);
 
   if (!getSystemVault()?.exists()) {
     loadRendererPage(mainWindow, "setup.html");

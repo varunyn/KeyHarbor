@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Zoom In, Zoom Out, and Actual Size now keep one scale across Home, projects, Access Logs, and Settings instead of restoring different page zoom levels.
+
 - macOS can display the unlock screen without opening Keychain merely to check Touch ID availability; credential operations still require biometric approval and Keychain encryption.
 
 - Sidebar expansion now stays consistent between Home and project pages, including Back, Forward, and reload; Command/Ctrl+B toggles the shared saved preference.
