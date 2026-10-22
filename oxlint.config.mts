@@ -16,7 +16,7 @@ const existingFileLineLimits: Record<string, number> = {
   "src/modules/vault.ts": 3255,
   "src/project/bridge.ts": 578,
   "src/project/components.tsx": 1703,
-  "src/project/main.tsx": 3653,
+  "src/project/main.tsx": 3590,
   "src/renderer/reconciliation.tsx": 525,
   "src/renderer/screens.tsx": 1730,
   "test/agent-proxy.test.ts": 741,

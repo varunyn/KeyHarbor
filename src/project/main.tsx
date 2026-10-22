@@ -44,8 +44,8 @@ import type { ConfigDraft, ImportRow } from "./components";
 import { EnvironmentControls } from "./environment-controls";
 import { useEnvironmentLifetime } from "./environment-lifetime";
 import { environmentUsageFor } from "./environment-usage";
+import type { Modal } from "./project-screen-reducer";
 import { ProjectSidebar } from "./project-sidebar";
-import type { ProjectView } from "./project-sidebar";
 import { ProjectToolbar } from "./project-toolbar";
 import { ProjectTopbar } from "./project-topbar";
 import { RawExportDialog } from "./raw-export-dialog";
@@ -60,17 +60,8 @@ import type { SecretDraft } from "./secret-editor-dialog";
 import { SecretHistoryDialog } from "./secret-history-dialog";
 import { deriveType, relative, statusFor } from "./secret-presentation";
 import type { Entry } from "./secret-presentation";
+import { useProjectScreenState } from "./use-project-screen-state";
 
-type Modal =
-  | "secret"
-  | "delete"
-  | "rotate"
-  | "duplicate"
-  | "configuration"
-  | "import"
-  | "raw"
-  | "history"
-  | null;
 type ConfigurationChecklist = Extract<
   ConfigurationResult,
   { success: true; configured: true }
@@ -192,10 +183,6 @@ const isSearchShortcut = (event: KeyboardEvent, field: boolean) =>
   ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k");
 
 const revealSeconds = 30;
-const remainingReveal = (current: { key: string; remaining: number } | null) =>
-  current && current.remaining > 1
-    ? { ...current, remaining: current.remaining - 1 }
-    : null;
 const validKey = (name: string) =>
   /^[A-Za-z0-9._-]+$/u.test(name) && !/[=\s]/u.test(name);
 const own = (object: object, key: PropertyKey) => Object.hasOwn(object, key);
@@ -249,15 +236,6 @@ const generateValue = (length: number) => {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 };
 
-const firstKey = (keys: string[]) => {
-  let first: string | null = null;
-  for (const key of keys) {
-    if (first === null || key < first) {
-      first = key;
-    }
-  }
-  return first;
-};
 const countImportRows = (rows: ImportRow[]) => {
   const counts = { add: 0, pending: 0, replace: 0, skip: 0 };
   for (const row of rows) {
@@ -844,25 +822,68 @@ const ProjectApp = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const environmentId = target?.environmentId ?? "";
-  const [selected, setSelected] = useState<string | null>(null);
-  const [view, setView] = useState<ProjectView>("all");
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [modal, setModal] = useState<Modal>(null);
-  const [menu, setMenu] = useState<string | null>(null);
-  const [actionBusy, setActionBusy] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const {
+    actionBusy,
+    actionKey,
+    checklistOpen,
+    clearRestoreArmed,
+    closeModal: reducerCloseModal,
+    duplicateEnvironmentId,
+    duplicateEnvironments,
+    duplicateTarget,
+    fieldErrors,
+    filterStatus,
+    filterType,
+    history,
+    historyLoading,
+    historyShown,
+    inspectorOpen,
+    menu,
+    modal,
+    overlayMode,
+    rawPassword,
+    restoreArmed,
+    retireSensitiveState: reducerRetireSensitiveState,
+    reveal,
+    search,
+    secretDraft,
+    secretLoaded,
+    selected,
+    sessionLocked,
+    setActionBusy,
+    setActionKey,
+    setDuplicateEnvironmentId,
+    setDuplicateEnvironments,
+    setDuplicateTarget,
+    setFieldErrors,
+    setFilterStatus,
+    setFilterType,
+    setHistory,
+    setHistoryLoading,
+    setHistoryShown,
+    setInspectorOpen,
+    setMenu,
+    setModal,
+    setOverlayMode,
+    setRawPassword,
+    setRestoreArmed,
+    setReveal,
+    setRowMenu,
+    setSearch,
+    setSecretDraft,
+    setSelected,
+    setView,
+    tickReveal,
+    toggleChecklist,
+    toggleHistoryShown,
+    view,
+  } = useProjectScreenState();
   const { open: indexOpen, toggleSidebar, closeSidebar } = useSidebarState();
-  const [overlayMode, setOverlayMode] = useState(
-    () => window.matchMedia("(max-width: 1100px)").matches
-  );
   const [syncAt, setSyncAt] = useState(() => Date.now());
   const [statusClock, setStatusClock] = useState(() => Date.now());
   const [configResult, setConfigResult] = useState<
     ConfigurationResult | { state: "loading" | "unavailable" } | null
   >({ state: "loading" });
-  const [checklistOpen, setChecklistOpen] = useState(false);
   const configurationFlow = useConfigurationReviewState();
   const {
     draft: configDraft,
@@ -909,33 +930,7 @@ const ProjectApp = () => {
     epoch: importEpochRef,
     revealEpoch: importRevealEpochRef,
   } = importFlow;
-  const [secretDraft, setSecretDraft] = useState<SecretDraft>({
-    description: "",
-    expires: "",
-    key: "",
-    mode: "new",
-    name: "",
-    originalExpiry: null,
-    originalExpiryDate: "",
-    tags: "",
-    value: "",
-  });
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [actionKey, setActionKey] = useState("");
-  const [duplicateTarget, setDuplicateTarget] = useState("");
-  const [duplicateEnvironmentId, setDuplicateEnvironmentId] = useState("");
-  const [duplicateEnvironments, setDuplicateEnvironments] = useState<
-    EnvironmentSummary[]
-  >([]);
-  const [rawPassword, setRawPassword] = useState("");
-  const [history, setHistory] = useState<SecretHistory | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyShown, setHistoryShown] = useState<Record<number, boolean>>({});
-  const [restoreArmed, setRestoreArmed] = useState<number | null>(null);
-  const [reveal, setReveal] = useState<{
-    key: string;
-    remaining: number;
-  } | null>(null);
+
   const clipboardTimer = useRef<number | null>(null);
   const restoreTimer = useRef<number | null>(null);
   const sessionActive = useRef(true);
@@ -1080,18 +1075,13 @@ const ProjectApp = () => {
         setSecrets(data);
         setLoadState("ready");
         setSyncAt(Date.now());
-        setReveal(null);
-        setSelected((current) =>
-          current && own(data, current) ? current : firstKey(Object.keys(data))
-        );
         void refreshConfiguration();
-        if (
+        const shouldOpenInspector = Boolean(
           initial &&
           !window.matchMedia("(max-width: 1100px)").matches &&
           Object.keys(data).length
-        ) {
-          setInspectorOpen(true);
-        }
+        );
+        secretLoaded(data, shouldOpenInspector);
       } catch {
         if (
           loadEpoch.current === op &&
@@ -1110,6 +1100,7 @@ const ProjectApp = () => {
       captureEnvironmentLifetime,
       isEnvironmentLifetimeCurrent,
       refreshConfiguration,
+      secretLoaded,
       target,
     ]
   );
@@ -1173,7 +1164,12 @@ const ProjectApp = () => {
           ""
       );
     },
-    [captureEnvironmentLifetime, isEnvironmentLifetimeCurrent]
+    [
+      captureEnvironmentLifetime,
+      isEnvironmentLifetimeCurrent,
+      setDuplicateEnvironmentId,
+      setDuplicateEnvironments,
+    ]
   );
   // Secret favorites are scoped to Project -> Environment ID, so identical keys in
   // different Environments stay distinguishable.
@@ -1278,17 +1274,14 @@ const ProjectApp = () => {
     setImportFileContent,
     setImportHandle,
     setImportCommitting,
+    setDuplicateEnvironmentId,
+    setDuplicateEnvironments,
   ]);
   const closeModal = useCallback(() => {
     actionEpoch.current += 1;
     actionPending.current = false;
-    setActionBusy(false);
     if (modal === "history") {
       historyEpoch.current += 1;
-      setHistory(null);
-      setHistoryShown({});
-      setHistoryLoading(false);
-      setRestoreArmed(null);
       if (restoreTimer.current) {
         window.clearTimeout(restoreTimer.current);
       }
@@ -1296,26 +1289,6 @@ const ProjectApp = () => {
     }
     if (modal === "duplicate") {
       duplicateEnvironmentEpoch.current += 1;
-      setDuplicateEnvironmentId("");
-      setDuplicateEnvironments([]);
-    }
-    if (modal === "secret") {
-      setSecretDraft({
-        description: "",
-        expires: "",
-        key: "",
-        mode: "new",
-        name: "",
-        originalExpiry: null,
-        originalExpiryDate: "",
-        tags: "",
-        value: "",
-      });
-      setFieldErrors({});
-    }
-    if (modal === "raw") {
-      setRawPassword("");
-      setFieldErrors({});
     }
     if (modal === "configuration") {
       dialogEpochRef.current += 1;
@@ -1326,18 +1299,15 @@ const ProjectApp = () => {
     if (modal === "import") {
       clearImportState();
     }
-    setModal(null);
-    setMenu(null);
+    reducerCloseModal();
   }, [
-    modal,
-    retireConfig,
     clearImportState,
-    dialogEpochRef,
-    setConfigDraft,
     configPendingRef,
-    setHistoryShown,
-    setFieldErrors,
-    setRawPassword,
+    dialogEpochRef,
+    modal,
+    reducerCloseModal,
+    retireConfig,
+    setConfigDraft,
   ]);
   const retireTargetLifetime = useCallback(() => {
     retireEnvironmentLifetime();
@@ -1358,30 +1328,10 @@ const ProjectApp = () => {
     closeModal();
     void retireConfig();
     void retireImport();
-    setActionBusy(false);
     setSecrets({});
     setFavorites([]);
-    setDuplicateEnvironmentId("");
-    setDuplicateEnvironments([]);
-    setSelected(null);
     setInspectorHistory(null);
     setInspectorHistoryKey(null);
-    setReveal(null);
-    setHistory(null);
-    setHistoryShown({});
-    setRestoreArmed(null);
-    setSecretDraft({
-      description: "",
-      expires: "",
-      key: "",
-      mode: "new",
-      name: "",
-      originalExpiry: null,
-      originalExpiryDate: "",
-      tags: "",
-      value: "",
-    });
-    setRawPassword("");
     setConfigDraft(null);
     setImportRows([]);
     setImportHandle(null);
@@ -1390,29 +1340,27 @@ const ProjectApp = () => {
     setImportFileName(null);
     setImportFileContent("");
     setImportReveals({});
-    setModal(null);
-    setMenu(null);
+    reducerRetireSensitiveState();
     setLoadState("loading");
   }, [
     closeModal,
-    retireConfig,
-    retireImport,
+    configPendingRef,
     dialogEpochRef,
     importEpochRef,
-    importRevealEpochRef,
-    retireEnvironmentLifetime,
-    setImportTarget,
-    setImportRows,
-    setImportHandle,
-    setImportText,
-    setImportFileName,
-    setImportFileContent,
-    setConfigDraft,
     importPendingRef,
+    importRevealEpochRef,
+    reducerRetireSensitiveState,
+    retireConfig,
+    retireEnvironmentLifetime,
+    retireImport,
+    setConfigDraft,
+    setImportFileContent,
+    setImportFileName,
+    setImportHandle,
     setImportReveals,
-    configPendingRef,
-    setHistoryShown,
-    setRawPassword,
+    setImportRows,
+    setImportTarget,
+    setImportText,
   ]);
   const beginAction = useCallback(() => {
     if (actionPending.current || !sessionActive.current) {
@@ -1422,15 +1370,18 @@ const ProjectApp = () => {
     setActionBusy(true);
     actionEpoch.current += 1;
     return actionEpoch.current;
-  }, []);
-  const finishAction = useCallback((operation: number) => {
-    if (actionEpoch.current !== operation) {
-      return false;
-    }
-    actionPending.current = false;
-    setActionBusy(false);
-    return true;
-  }, []);
+  }, [setActionBusy]);
+  const finishAction = useCallback(
+    (operation: number) => {
+      if (actionEpoch.current !== operation) {
+        return false;
+      }
+      actionPending.current = false;
+      setActionBusy(false);
+      return true;
+    },
+    [setActionBusy]
+  );
   const openConfig = useCallback(() => {
     dialogEpochRef.current += 1;
     setConfigDraft({
@@ -1447,7 +1398,7 @@ const ProjectApp = () => {
       text: "",
     });
     setModal("configuration");
-  }, [dialogEpochRef, setConfigDraft]);
+  }, [dialogEpochRef, setConfigDraft, setModal]);
   const showNotice = (
     key: string,
     kind = "success",
@@ -1555,6 +1506,7 @@ const ProjectApp = () => {
     importPendingRef,
     configPendingRef,
     retireImport,
+    setReveal,
   ]);
 
   useEffect(() => {
@@ -1605,20 +1557,9 @@ const ProjectApp = () => {
     setDuplicateEnvironments([]);
     setLogs([]);
     setVaultInstanceId(null);
-    setSelected(null);
     setInspectorHistory(null);
     setInspectorHistoryKey(null);
-    setReveal(null);
     setImportReveals({});
-    setHistory(null);
-    setHistoryShown({});
-    setSecretDraft((draft) => ({
-      ...draft,
-      description: "",
-      tags: "",
-      value: "",
-    }));
-    setRawPassword("");
     setConfigDraft(null);
     setImportRows([]);
     setImportHandle(null);
@@ -1626,6 +1567,7 @@ const ProjectApp = () => {
     setImportText("");
     setModal(null);
     setInspectorOpen(false);
+    sessionLocked();
     setLoadState("loading");
     if (clipboardTimer.current) {
       window.clearTimeout(clipboardTimer.current);
@@ -1726,6 +1668,9 @@ const ProjectApp = () => {
     refreshConfiguration,
     importRevealEpochRef,
     setImportReveals,
+    setMenu,
+    setOverlayMode,
+    setReveal,
   ]);
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -1739,12 +1684,9 @@ const ProjectApp = () => {
     if (!revealKey) {
       return;
     }
-    const timer = window.setInterval(
-      () => setReveal((current) => remainingReveal(current)),
-      1000
-    );
+    const timer = window.setInterval(() => tickReveal(), 1000);
     return () => window.clearInterval(timer);
-  }, [revealKey]);
+  }, [revealKey, tickReveal]);
   const importRevealCount = Object.keys(importReveals).length;
   useEffect(() => {
     if (!importRevealCount) {
@@ -1849,7 +1791,7 @@ const ProjectApp = () => {
         setInspectorOpen(true);
       }
     },
-    [overlayMode]
+    [overlayMode, setInspectorOpen, setReveal, setSelected]
   );
   if (
     selected &&
@@ -3017,7 +2959,7 @@ const ProjectApp = () => {
         window.clearTimeout(restoreTimer.current);
       }
       restoreTimer.current = window.setTimeout(() => {
-        setRestoreArmed((current) => (current === index ? null : current));
+        clearRestoreArmed(index);
         restoreTimer.current = null;
       }, 4000);
       return;
@@ -3199,6 +3141,8 @@ const ProjectApp = () => {
     closeModal,
     closeSidebar,
     selectKey,
+    setInspectorOpen,
+    setMenu,
   ]);
 
   const contextLabel = environmentContextLabelFor(
@@ -3322,7 +3266,7 @@ const ProjectApp = () => {
             targetAvailable={Boolean(target)}
             open={checklistOpen}
             onOpen={openConfiguration}
-            onToggle={() => setChecklistOpen((open) => !open)}
+            onToggle={toggleChecklist}
             onSecret={(key, mode) => openSecret(mode, key)}
           />
           <SecretTable
@@ -3383,14 +3327,7 @@ const ProjectApp = () => {
               setActionKey(key);
               setModal("delete");
             }}
-            onMenu={(key, open) => {
-              setMenu((current) => {
-                if (open) {
-                  return `row:${key}`;
-                }
-                return current === `row:${key}` ? null : current;
-              });
-            }}
+            onMenu={setRowMenu}
           />
           <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-xs">
             {t("project.footerHint")}
@@ -3629,11 +3566,7 @@ const ProjectApp = () => {
           history,
           historyLoading,
           historyShown,
-          onToggle: (index) =>
-            setHistoryShown((current) => ({
-              ...current,
-              [index]: !current[index],
-            })),
+          onToggle: toggleHistoryShown,
           restoreArmed,
           restoreVersion,
         }}
