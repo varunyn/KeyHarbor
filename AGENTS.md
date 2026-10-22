@@ -1,108 +1,63 @@
-# KeyHarbor - AI Agent Guidelines
+# KeyHarbor agent guidelines
 
-Welcome to KeyHarbor. These instructions provide operational rules, architectural constraints, and development standards for AI coding agents working in this repository.
+## Start here
 
----
+- [PRODUCT.md](PRODUCT.md) describes the current product and its boundaries.
+- [DESIGN.md](DESIGN.md) describes UI decisions and component reuse.
+- [README.md](README.md) documents setup, builds, and supported workflows.
+- [docs/code-quality.md](docs/code-quality.md) explains lint enforcement and migration debt.
 
-## 1. Core Principles & Philosophy
+Keep these documents current when their contracts change. Remove obsolete guidance instead of adding historical copies or competing specifications.
 
-- **Security & Privacy First**: KeyHarbor is a local-first, zero-knowledge secrets workspace. All secrets are encrypted at rest with AES-256-GCM. Never add telemetry, cloud exfiltration, or unapproved external network requests.
-- **Explicit Access Approval**: External callers (CLI, MCP server, HTTP bridge) must always funnel through the desktop approval prompt (`ApprovalGate`). Never bypass or auto-approve requests silently.
-- **Masked by Default**: Sensitive credentials must never be exposed as plain text in the UI or logs unless explicitly requested by the user and time-boxed (30s reveal / hide on window blur).
-- **Honest Data**: Never fabricate metadata, user models, or deployment states. All visible states must trace to real vault evidence, version history, or audit logs.
-- **Language**: Keep repository documentation, source comments, logs, diagnostics, and agent instructions in English only. Do not add non-English files unless explicitly requested.
+## Security and data
 
----
+- Encrypt Vault contents at rest with AES-256-GCM. Never add telemetry, credential exfiltration, or unapproved network requests.
+- External CLI, MCP, HTTP, and agent credential access must go through desktop approval. Never bypass or silently auto-approve it.
+- Keep credentials masked by default. UI reveals require explicit action, a 30-second limit, and hiding on window blur. Never write credential values to logs. Preserve clipboard clearing and main-process checks.
+- Show only real Vault records, history, and logs. Do not fabricate identities, deployment state, integrations, or credential validity.
+- Preserve `Vault → Project → Environment → Secrets` ownership. Environments are isolated: missing keys never fall back. Callers omitting an Environment resolve to the stored default ID, independently of desktop selection.
+- Keep documentation, comments, logs, diagnostics, and agent instructions in English unless the user explicitly requests otherwise.
 
-## 2. Architecture & Directory Layout
+## Source map
 
-KeyHarbor is an Electron desktop app with a React renderer and separate Node.js backend/CLI/MCP processes.
+| Area | Location |
+| --- | --- |
+| Electron lifecycle and IPC | `src/main.ts`, `src/preload.ts` |
+| Vault, crypto, transports, import, and logging | `src/modules/` |
+| CLI and MCP | `cli/` |
+| Home and Project screens | `src/dashboard/`, `src/project/` |
+| Access Logs | `src/logs/` |
+| Shared renderer infrastructure and other screens | `src/renderer/` |
+| Shared UI controls | `src/renderer/ui/` |
+| Styles and HTML entry templates | `src/styles/`, `src/views/` |
+| Native proxy and macOS window bridge | `native/` |
+| Build tools and tests | `scripts/`, `test/` |
 
-```text
-├── cli/                 # Stdio CLI (keyharbor) and MCP v2 server (keyharbor-mcp)
-├── src/
-│   ├── main.ts          # Electron main process entry point & lifecycle
-│   ├── preload.ts       # Typed contextBridge IPC (window.keyharbor)
-│   ├── modules/         # Vault crypto, storage, HTTP bridge, and logger
-│   ├── dashboard/       # React view for Vault and Project list
-│   ├── project/         # React view for Secrets table, environments, & audits
-│   ├── renderer/        # Shared React providers, Radix UI dialogs, i18n
-│   ├── styles/          # common.css, theme.css, and page-specific styles
-│   └── views/           # HTML entry templates for Electron windows
-├── test/                # Node.js native test runner test suite
-└── .github/             # CI, Dependabot, and Release Please workflows
-```
+## Implementation rules
 
----
+- Use React with strict TypeScript for renderer work. Keep TypeScript as the source of truth for new application, CLI, and tooling code; do not add handwritten JavaScript duplicates or rely on Node's native TypeScript stripping. Existing JavaScript modules remain until deliberately migrated.
+- Backend, CLI/MCP, and test tooling support Node.js 20.19+ and 22.12+. Keep renderer-to-main IPC typed through `src/project/bridge.ts` and `window.keyharbor`.
+- Reuse existing UI controls and workspace patterns first. If a control is missing, adapt shadcn/ui with Radix primitives and shared theme tokens. Use existing Lucide icons and cmdk patterns where applicable.
+- Prefer Tailwind utilities. Add custom CSS only when the existing system cannot express the requirement clearly; explain why. Put reusable controls in `src/renderer/ui`, theme values in `theme.css`, Tailwind mappings in `ui.css`, and page composition in page styles. Do not duplicate controls or put every reusable pattern in `common.css`.
+- Load styles in this order: `common.css`, `theme.css`, `ui.css`, then page CSS. Tailwind utilities omit Preflight.
+- Route all user-facing text, including accessible labels, through `i18n.t()` with source translations in `src/locales/en.json`.
+- Preserve shared sidebar state, native zoom, typography, and icon sizing across pages. Follow DESIGN.md for platform fonts, materials, and accessibility.
 
-## 3. Data Hierarchy & Environments
+## Required workflow
 
-- **Hierarchy**: `Vault → Project → Environment → Secrets`.
-- **Environment Isolation**: Each environment (`dev`, `staging`, `prod`) owns an isolated secrets collection. A missing key never falls back across environments.
-- **Default Resolution**: Every Project maintains a stable default environment ID. External callers (CLI/MCP/HTTP) that omit an environment selector always resolve to this default, independent of whatever the user has selected in the desktop GUI.
+1. Before the first code edit, complete and record the baseline: read `oxlint.config.mts` and [code quality](docs/code-quality.md), run `npm run check`, and count the physical lines of every planned target. If a target is at its limit, plan its extraction before extending it.
+2. For every JavaScript or TypeScript change, run `npm run check:anti-slop -- <affected-files>` twice: once before the first edit and again after the final edit. Keep the pre-edit result distinct from new findings; do not weaken validation or type safety to silence either, and report unresolved findings.
+3. After each cohesive change, run `npm run check -- <changed-files>`, including new modules and tests. Fix new lint and formatting failures before building on the change. Use `npm run fix -- <paths>` for formatting only; avoid broad unused-code autofixes on CommonJS exports.
+4. Before finishing, run `npm run check` across the repository. For backend, CLI, or tooling changes, also run `npm run check:backend`; for renderer changes, run `npm run typecheck:renderer`.
+5. Run `npm test` and ensure all tests pass before completing code changes. For native proxy changes, also run `npm run test:proxy`. For UI changes, verification is incomplete until the renderer is built and the affected pages and changed interactions are inspected with synthetic data at normal and narrow widths in both themes. Documentation-only changes require formatting and link checks.
+6. Report what was verified and distinguish pre-existing failures from new failures.
 
----
+JavaScript and TypeScript files, including components and tests, must stay at or below **500 physical lines**, including blank lines and comments. Existing oversized files have temporary ceilings in `oxlint.config.mts`. Never raise them, add exceptions, suppress `max-lines`, or disable rules to make a change pass. Lower ceilings as files shrink and remove exceptions when files fit the default limit.
 
-## 4. UI & Styling Guidelines
+Split by responsibility: components, hooks, domain operations, or transport adapters. Keep entrypoints focused on composition. Do not use numbered chunks, compressed formatting, or unrelated generic utilities to evade limits. Any proposed policy exception requires a concrete rationale for user review before changing enforcement.
 
-### Technology Stack
+## Commits and releases
 
-- **React 19** + **Strict TypeScript**
-- **Tailwind CSS v4** + **Radix UI** primitives + **Lucide icons**
-- Bundled **Geist** (sans) and **JetBrains Mono** fonts
+Use conventional commits: `feat:` for capabilities, `fix:` for bug fixes, and `docs:`, `chore:`, `refactor:`, `test:`, or `ci:` for maintenance. Keep commits focused and preserve unrelated work.
 
-### CSS Architecture
-
-- **`src/styles/common.css`**: Shared reusable components, design tokens, and utility classes. Place any pattern here that could naturally be reused across pages.
-- **`src/styles/<page>.css`**: Page-specific layout or styles used exclusively on that page (e.g., `dashboard.css`, `project.css`).
-- **Load Order in HTML**: Always load `common.css` before page-specific styles:
-  ```html
-  <link rel="stylesheet" href="../styles/common.css" />
-  <link rel="stylesheet" href="../styles/<page>.css" />
-  ```
-- **Localization**: Route all user-facing UI text through `i18n.t()`, with source translations in `src/locales/en.json`.
-
----
-
-## 5. TypeScript, Build & Tooling
-
-### Strict TypeScript Standards
-
-- Backend, CLI/MCP, and test source files target Node.js 20.19+ and 22.12+.
-- Keep a single source of truth in TypeScript; never add handwritten JavaScript duplicates or rely on Node's native TypeScript stripping.
-- Renderer-to-main IPC communication is strictly typed via `src/project/bridge.ts` and `window.keyharbor`.
-
-### Code Quality & Formatting
-
-- **Linting & Formatting Presets**: Managed via Ultracite and Oxfmt.
-- **File Size**: JavaScript and TypeScript files (including React components and tests) must stay at or below 500 physical lines, counting comments and blank lines. Oxlint enforces this through `npm run check` and CI. Existing oversized files have explicit temporary ceilings in `oxlint.config.mts`; do not raise them, add new exceptions, or suppress `max-lines`. Lower ceilings as files shrink and remove exceptions once files fit the default limit.
-- **Module Ownership**: Split by responsibility before reaching the limit: extract cohesive components, hooks, domain operations, or transport adapters into descriptive files. Keep entrypoints focused on composition. Avoid arbitrary numbered file chunks, compressed formatting, and moving unrelated logic into a generic utility file just to satisfy the limit.
-- **Anti-slop Rules**: The bundled `ultracite/oxlint/anti-slop` preset enforces compatible rules now; deferred rules are explicitly listed in `oxlint.config.mts`. Run `npm run check:anti-slop` for the full migration audit (currently expected to fail). See [code quality](docs/code-quality.md) for the rollout policy. Do not weaken input validation or replace `unknown` with `any` to silence a rule.
-- **Check (Read-only)**: Run `npm run check` for read-only linting and style verification.
-- **Backend Verification**: Run `npm run check:backend` to validate TypeScript types and backend lint rules.
-- **Formatting a File**: Run `npm run fix -- <path/to/file>`. This command runs Oxfmt formatting only. Do not use broad unused-code autofix on converted CommonJS modules, where exports may be consumed through `module.exports`.
-
-### Required Agent Workflow
-
-1. **Before editing code**: Read `oxlint.config.mts` and [code quality](docs/code-quality.md). Run `npm run check` to establish the current baseline. Check the physical line counts of files you plan to change against the 500-line default or their explicit existing ceilings. Plan a responsibility-based extraction before adding code to a file at its limit.
-2. **During implementation**: After each cohesive change, run `npm run check -- <changed-file> [other-changed-files...]`. Include new modules and tests. Fix new lint or formatting failures before building further changes on top of them; do not defer these checks until the end.
-3. **Audit anti-slop rules early**: For JavaScript or TypeScript changes, run `npm run check:anti-slop -- <affected-file> [other-affected-files...]` before editing and again after the change. This includes deferred rules. Existing findings are migration debt, not a requirement to refactor unrelated code; do not introduce new findings. Resolve new findings without weakening boundary validation or type safety. Report any finding that cannot be safely resolved within scope.
-4. **Before finishing**: Run `npm run check` across the repository. For backend, CLI, or tooling changes, also run `npm run check:backend`; for renderer changes, run `npm run typecheck:renderer`. Run the tests required below. Report the checks performed and distinguish pre-existing failures from failures introduced by the change.
-5. **Preserve enforcement**: Do not disable rules, add lint suppressions, or increase file ceilings to make a change pass. Extract cohesive modules when necessary. Any proposed exception must include a concrete rationale for user review before changing the policy.
-
-### Testing
-
-- Run tests via `npm test` (uses Node's native `--test` runner).
-- Always ensure all tests pass before completing changes.
-
----
-
-## 6. Conventional Commits & Releases
-
-This repository uses automated releases powered by **Release Please**:
-
-- Use conventional commit messages:
-  - `feat:` for new capabilities (triggers minor version bump)
-  - `fix:` for bug fixes (triggers patch version bump)
-  - `chore:`, `docs:`, `refactor:`, `test:`, `ci:` for maintenance
-- Pull requests merged into `main` automatically update `CHANGELOG.md` and publish GitHub releases with multi-platform binary assets.
+Release Please prepares release PRs from changes on `main`. Merging a release PR creates the versioned release; the release workflow builds and uploads platform artifacts. See `.github/workflows/release.yml` for the actual triggers. Do not describe every merge to `main` as publishing a release.

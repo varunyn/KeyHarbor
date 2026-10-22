@@ -149,6 +149,14 @@ Drop a folder into the Home page drop area, then choose an existing Project or c
 
 Scanning skips symlinks, dependencies, and build folders, and is limited to four subfolder levels, 4,096 directory entries, 64 candidate files, 1 MiB per file, and 8 MiB of input overall. A partial scan is labeled. Git status is unavailable when Git cannot inspect the folder. Missing-key checks compare files with templates; they do not validate credentials or automatically change the saved requirements.
 
+### Native macOS window materials
+
+On macOS, KeyHarbor uses the system interface font, a draggable unified title bar, standard window controls, and translucent navigation. macOS 26 and later use Apple's public Liquid Glass API when available; older systems use native sidebar vibrancy. Reduce Transparency or Increase Contrast uses solid surfaces. Secret tables, inspectors, and dialogs remain opaque.
+
+Mac builds require Xcode command-line tools. `npm run build:desktop` builds the local Node-API window bridge; `npm run build:mac` builds it for both Apple Silicon and Intel. A macOS 26 or later SDK enables Liquid Glass; earlier SDKs compile the native-vibrancy fallback. The bridge uses public AppKit APIs and carries no third-party runtime dependency.
+
+For the current interface contracts and contributor source map, see [DESIGN.md](DESIGN.md) and [shared UI controls](src/renderer/ui/README.md).
+
 ## CLI Reference
 
 The KeyHarbor CLI allows you to read, write, and inject credentials into terminal commands. The desktop app must be running and unlocked; commands will trigger an interactive approval dialog before executing.
@@ -336,9 +344,3 @@ tool_timeout_sec = 60
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-### Native macOS window materials
-
-On macOS, KeyHarbor uses the system interface font, a draggable unified title bar, standard window controls, and translucent navigation. macOS 26 and later use Apple's public Liquid Glass API when available; older systems use native sidebar vibrancy. Reduce Transparency or Increase Contrast uses solid surfaces. Secret tables, inspectors, and dialogs remain opaque.
-
-Mac builds require Xcode command-line tools. `npm run build:desktop` builds the local Node-API window bridge; `npm run build:mac` builds it for both Apple Silicon and Intel. A macOS 26 or later SDK enables Liquid Glass; earlier SDKs compile the native-vibrancy fallback. The bridge uses public AppKit APIs and carries no third-party runtime dependency.

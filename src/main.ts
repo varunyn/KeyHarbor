@@ -1,12 +1,10 @@
+import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts";
+import { AGENT_APPROVAL_TIMEOUT_MS } from "./modules/agent-proxy-timeouts";
+import { notifyApproval } from "./modules/approval-notification";
 import {
   getMacWindowMaterial,
   updateMacWindowMaterial,
 } from "./modules/mac-window";
-import { configureWorkspaceNavigation } from "./modules/workspace-navigation";
-import type Vault = require("./modules/vault");
-import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts";
-import { AGENT_APPROVAL_TIMEOUT_MS } from "./modules/agent-proxy-timeouts";
-import { notifyApproval } from "./modules/approval-notification";
 import {
   normalizeCloseBehavior,
   WindowCloseController,
@@ -15,6 +13,7 @@ import type {
   CloseBehavior,
   CloseChoice,
 } from "./modules/window-close-controller";
+import { configureWorkspaceNavigation } from "./modules/workspace-navigation";
 
 const {
   app,
@@ -56,12 +55,10 @@ const { isNewerVersion } = require("./modules/version");
 const {
   registerEnvironmentManagementIpc,
 } = require("./modules/environment-management-ipc");
-
-/** Canonical desktop target: one Environment inside one Project. */
-type EnvironmentTarget = Readonly<{
-  projectName: string;
-  environmentId: string;
-}>;
+const { registerProjectSecretsIpc } = require("./modules/project-secrets-ipc");
+const {
+  registerProjectTransferIpc,
+} = require("./modules/project-transfer-ipc");
 
 /** Authoritative, session-bound identity captured for review and approval. */
 interface ApprovalTarget {
@@ -100,8 +97,6 @@ interface BridgeFailure {
   code?: string;
   [key: string]: unknown;
 }
-
-type ActiveVault = Vault;
 
 let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
 let vaultManager: InstanceType<typeof VaultManager> | null = null;
@@ -440,130 +435,6 @@ const sessionErrorResponse = (value: unknown): BridgeFailure => {
     ...(error?.code ? { code: error.code } : {}),
   };
 };
-
-/** Desktop Secret operations require an explicit Project and Environment ID. */
-const validEnvironmentTarget = (
-  target: unknown
-): target is EnvironmentTarget => {
-  if (!target || typeof target !== "object" || Array.isArray(target)) {
-    return false;
-  }
-  const candidate = target as Record<string, unknown>;
-  return (
-    Object.keys(candidate).length === 2 &&
-    Object.hasOwn(candidate, "projectName") &&
-    Object.hasOwn(candidate, "environmentId") &&
-    typeof candidate.projectName === "string" &&
-    candidate.projectName.trim().length > 0 &&
-    typeof candidate.environmentId === "string" &&
-    candidate.environmentId.length > 0
-  );
-};
-
-const captureApprovalTarget = (
-  activeVault: ActiveVault,
-  target: EnvironmentTarget
-): ApprovalTarget => {
-  const session = (vaultSession?.snapshot?.() ||
-    {}) as Partial<SessionSnapshot>;
-  const identity = activeVault.getEnvironmentTargetIdentity(target);
-  const vaultId =
-    activeVault.getVaultId?.() || session.activeVaultId || "system";
-  const vaultName =
-    vaultManager?.getVaultList?.().find((entry) => entry.id === vaultId)
-      ?.name || "System";
-  return {
-    environmentId: identity.environmentId,
-    environmentIncarnation: identity.environmentIncarnation,
-    environmentName: identity.environmentName,
-    projectIncarnation: identity.projectIncarnation,
-    projectName: identity.projectName,
-    sessionTransitionId: session.transitionId,
-    vaultId,
-    vaultInstanceId: activeVault.getVaultInstanceId(),
-    vaultName,
-  };
-};
-
-/** Canonical form so data drift during a native picker is detected, not exported. */
-const canonicalValue = (value: unknown): string => {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalValue).join(",")}]`;
-  }
-  const record = value as Record<string, unknown>;
-  // Sorting only a new array preserves the record and the canonical byte representation.
-  return `{${Object.keys(record)
-    // eslint-disable-next-line unicorn/no-array-sort
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalValue(record[key])}`)
-    .join(",")}}`;
-};
-
-/**
- * Project backup admission captured before the native save picker. It binds the
- * session, Vault instance, Project incarnation, and default Environment, so a
- * Vault switch or delete/recreate rejects instead of exporting a different
- * Project than the one the user reviewed.
- */
-interface ProjectBackupIdentity {
-  sessionTransitionId: number | string | undefined;
-  vaultId: string | null;
-  vaultInstanceId: string | null;
-  projectName: string;
-  projectIncarnation: string | null;
-  defaultEnvironmentId: string;
-  fingerprint: string;
-}
-
-const captureProjectBackupIdentity = (
-  activeVault: ActiveVault,
-  projectName: string
-): { identity: ProjectBackupIdentity; encryptedBackup: Buffer } => {
-  const session = (vaultSession?.snapshot?.() ||
-    {}) as Partial<SessionSnapshot>;
-  const snapshot = activeVault.captureProjectBackupSnapshot(projectName);
-  return {
-    encryptedBackup: snapshot.encryptedBackup,
-    identity: {
-      defaultEnvironmentId: snapshot.defaultEnvironmentId,
-      fingerprint: snapshot.fingerprint,
-      projectIncarnation: snapshot.projectIncarnation ?? null,
-      projectName,
-      sessionTransitionId: session.transitionId,
-      vaultId: snapshot.vaultId ?? null,
-      vaultInstanceId: snapshot.vaultInstanceId ?? null,
-    },
-  };
-};
-
-const sameProjectBackupIdentity = (
-  left: ProjectBackupIdentity,
-  right: ProjectBackupIdentity
-): boolean =>
-  left.sessionTransitionId === right.sessionTransitionId &&
-  left.vaultId === right.vaultId &&
-  left.vaultInstanceId === right.vaultInstanceId &&
-  left.projectName === right.projectName &&
-  left.projectIncarnation === right.projectIncarnation &&
-  left.defaultEnvironmentId === right.defaultEnvironmentId &&
-  left.fingerprint === right.fingerprint;
-
-const sameApprovalTarget = (
-  left: ApprovalTarget,
-  right: ApprovalTarget
-): boolean =>
-  left.vaultId === right.vaultId &&
-  left.vaultName === right.vaultName &&
-  left.vaultInstanceId === right.vaultInstanceId &&
-  left.sessionTransitionId === right.sessionTransitionId &&
-  left.projectName === right.projectName &&
-  left.projectIncarnation === right.projectIncarnation &&
-  left.environmentId === right.environmentId &&
-  left.environmentName === right.environmentName &&
-  left.environmentIncarnation === right.environmentIncarnation;
 
 const completePendingRecovery = async (
   openResult: SessionSnapshot & Record<string, unknown>
@@ -1672,27 +1543,6 @@ ELECTRON_RUN_AS_NODE=1 "${electronPath}" "${cliJsPath}" "$@"`;
   }
 };
 
-const encodeEnvValue = (value) => {
-  const stringValue = String(value ?? "");
-  const escaped = stringValue
-    .replaceAll("\\", "\\\\")
-    .replaceAll("\r", "\\r")
-    .replaceAll("\n", "\\n")
-    .replaceAll('"', '\\"');
-  return `"${escaped}"`;
-};
-
-const writeExportFile = (filePath: string, content: string | Buffer) => {
-  fs.writeFileSync(filePath, content);
-  try {
-    if (os.platform() !== "win32") {
-      fs.chmodSync(filePath, 0o600);
-    }
-  } catch {
-    // Best-effort desktop cleanup must not replace the primary action result.
-  }
-};
-
 const reconciliationError = (value: unknown) => {
   const error = value as { message?: string; code?: string } | null;
   return {
@@ -1708,6 +1558,21 @@ const setupIpcHandlers = () => {
   }
   ipcHandlersInitialized = true;
   registerEnvironmentManagementIpc({ ipcMain, session: vaultSession });
+  registerProjectSecretsIpc({
+    ipcMain,
+    logger,
+    session: vaultSession,
+    showApprovalDialog,
+    vaultManager,
+  });
+  registerProjectTransferIpc({
+    dialog,
+    getWindow: () => mainWindow,
+    ipcMain,
+    logger,
+    session: vaultSession,
+    vaultManager,
+  });
 
   ipcMain.handle("vault:instanceIdentity", async () => {
     try {
@@ -1976,308 +1841,6 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle("projects:get", async () => {
-    try {
-      const data = await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.getProjects()
-      );
-      return { data, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("project:create", async (event, name) => {
-    try {
-      await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.createProject(name)
-      );
-      return { success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("project:delete", async (event, name) => {
-    try {
-      await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.deleteProject(name)
-      );
-      return { success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("secrets:get", async (event, target) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      const data = await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.getSecrets(target)
-      );
-      return { data, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle(
-    "secret:set",
-    async (event, target, key, value, expiresAt = null, meta = {}) => {
-      if (!validEnvironmentTarget(target)) {
-        return {
-          error: "A Project and Environment are required",
-          success: false,
-        };
-      }
-      try {
-        await vaultSession.withActiveSession(({ activeVault }) =>
-          activeVault.setSecret(target, key, value, expiresAt, meta)
-        );
-        return { success: true };
-      } catch (error) {
-        return sessionErrorResponse(error);
-      }
-    }
-  );
-
-  ipcMain.handle(
-    "secret:update",
-    async (
-      event,
-      target,
-      fromKey,
-      toKey,
-      value,
-      expiresAt = null,
-      meta = {}
-    ) => {
-      if (!validEnvironmentTarget(target)) {
-        return {
-          error: "A Project and Environment are required",
-          success: false,
-        };
-      }
-      try {
-        await vaultSession.withActiveSession(({ activeVault }) => {
-          const didRename =
-            typeof fromKey === "string" &&
-            typeof toKey === "string" &&
-            fromKey !== toKey;
-          let renameSucceeded = false;
-          try {
-            if (didRename) {
-              activeVault.renameSecret(target, fromKey, toKey);
-              renameSucceeded = true;
-            }
-            activeVault.setSecret(
-              target,
-              didRename ? toKey : fromKey,
-              value,
-              expiresAt,
-              meta
-            );
-          } catch (error) {
-            if (renameSucceeded) {
-              try {
-                activeVault.renameSecret(target, toKey, fromKey);
-              } catch {
-                // Best-effort desktop cleanup must not replace the primary action result.
-              }
-            }
-            throw error;
-          }
-        });
-        return { success: true };
-      } catch (error) {
-        return sessionErrorResponse(error);
-      }
-    }
-  );
-
-  ipcMain.handle("secret:rename", async (event, target, fromKey, toKey) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.renameSecret(target, fromKey, toKey)
-      );
-      return { success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("secret:delete", async (event, target, key) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.deleteSecret(target, key)
-      );
-      return { success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("favorite:toggleProject", async (event, projectName) => {
-    try {
-      const added = await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.toggleProjectFavorite(projectName)
-      );
-      return { added, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("favorite:toggleSecret", async (event, target, secretKey) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      const added = await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.toggleSecretFavorite(target, secretKey)
-      );
-      return { added, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("favorites:get", async () => {
-    try {
-      const favorites = await vaultSession.withActiveSession(
-        ({ activeVault }) => activeVault.getFavorites()
-      );
-      return { data: favorites, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("statistics:get", async () => {
-    try {
-      const data = await vaultSession.withActiveSession(({ activeVault }) => {
-        const stats = activeVault.getStatistics();
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const recentAccessCount = logger.countCompletedAccess(
-          oneDayAgo.getTime(),
-          activeVault.getVaultInstanceId()
-        );
-        return { ...stats, recentAccessCount };
-      });
-
-      return { data, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("secret:get", async (event, target, key) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      return await vaultSession.withActiveSession(
-        async ({ activeVault, signal }) => {
-          const captured = captureApprovalTarget(activeVault, target);
-          const secret = activeVault.getSecret(target, key);
-          const result = await showApprovalDialog(
-            { ...captured, action: "read", keys: [key] },
-            signal
-          );
-          if (result.approved) {
-            if (
-              !sameApprovalTarget(
-                captured,
-                captureApprovalTarget(activeVault, target)
-              ) ||
-              JSON.stringify(secret) !==
-                JSON.stringify(activeVault.getSecret(target, key))
-            ) {
-              return {
-                code: "ENVIRONMENT_TARGET_STALE",
-                error: "Target changed. Request approval again.",
-                success: false,
-              };
-            }
-            logger?.logAccess("Secret read", captured.projectName, [key], {
-              action: "read",
-              environmentId: captured.environmentId,
-              environmentName: captured.environmentName,
-              outcome: "approved",
-              projectName: captured.projectName,
-              vaultId: captured.vaultId,
-              vaultInstanceId: captured.vaultInstanceId,
-            });
-            return { data: secret, success: true };
-          }
-          return { error: "Access denied", success: false };
-        }
-      );
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle("secret:getHistory", async (event, target, key) => {
-    if (!validEnvironmentTarget(target)) {
-      return {
-        error: "A Project and Environment are required",
-        success: false,
-      };
-    }
-    try {
-      const history = await vaultSession.withActiveSession(({ activeVault }) =>
-        activeVault.getSecretHistory(target, key)
-      );
-      return { data: history, success: true };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  ipcMain.handle(
-    "secret:restoreVersion",
-    async (event, target, key, versionIndex) => {
-      if (!validEnvironmentTarget(target)) {
-        return {
-          error: "A Project and Environment are required",
-          success: false,
-        };
-      }
-      try {
-        await vaultSession.withActiveSession(({ activeVault }) =>
-          activeVault.restoreSecretVersion(target, key, versionIndex)
-        );
-        return { success: true };
-      } catch (error) {
-        return sessionErrorResponse(error);
-      }
-    }
-  );
-
   ipcMain.handle("logs:get", async () => {
     try {
       const data = await vaultSession.withActiveSession(() => logger.getLogs());
@@ -2328,212 +1891,6 @@ const setupIpcHandlers = () => {
       }
 
       return { cancelled: true, success: false };
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-  });
-
-  const EXPORT_MODES = ["example", "references", "raw"] as const;
-  type ExportMode = (typeof EXPORT_MODES)[number];
-
-  interface ExportAdmission {
-    target: ApprovalTarget;
-    secretsSnapshot: string;
-    secrets: ReturnType<ActiveVault["getSecrets"]>;
-  }
-
-  ipcMain.handle(
-    "secrets:export",
-    async (event, target, mode = "raw", options = {}) => {
-      if (!validEnvironmentTarget(target)) {
-        return {
-          error: "A Project and Environment are required",
-          success: false,
-        };
-      }
-      // A removed or unknown mode is rejected explicitly; it is never coerced into raw export.
-      if (
-        typeof mode !== "string" ||
-        !EXPORT_MODES.includes(mode as ExportMode)
-      ) {
-        return {
-          code: "EXPORT_MODE_UNSUPPORTED",
-          error: `Unsupported export mode. Use one of: ${EXPORT_MODES.join(", ")}.`,
-          success: false,
-        };
-      }
-      const exportMode = mode as ExportMode;
-      const exportOptions =
-        options && typeof options === "object"
-          ? (options as Record<string, unknown>)
-          : {};
-      const password =
-        typeof exportOptions.password === "string"
-          ? exportOptions.password
-          : "";
-
-      // Target identity AND the relevant Secret data are captured before the
-      // native save picker so values changed during the picker are rejected
-      // instead of exported without renewed review.
-      let admission: ExportAdmission;
-      try {
-        admission = await vaultSession.withActiveSession(({ activeVault }) => {
-          const secrets = activeVault.getSecrets(target);
-          return {
-            secrets,
-            secretsSnapshot: canonicalValue(secrets),
-            target: captureApprovalTarget(activeVault, target),
-          };
-        });
-      } catch (error) {
-        return sessionErrorResponse(error);
-      }
-
-      const captured = admission.target;
-      const safeProject = encodeURIComponent(target.projectName);
-      const safeEnvironment = encodeURIComponent(captured.environmentName);
-      const suffix = `-${safeEnvironment}`;
-      const dialogs: Record<ExportMode, Electron.SaveDialogOptions> = {
-        example: {
-          defaultPath: `${safeProject}${suffix}.env.example`,
-          filters: [
-            { extensions: ["example", "env"], name: "Env Example Files" },
-          ],
-        },
-        raw: {
-          defaultPath: `${safeProject}${suffix}.env`,
-          filters: [{ extensions: ["env"], name: "Environment Files" }],
-        },
-        references: {
-          defaultPath: `${safeProject}${suffix}.references.env`,
-          filters: [{ extensions: ["env"], name: "Environment Files" }],
-        },
-      };
-      const result = await dialog.showSaveDialog(
-        mainWindow,
-        dialogs[exportMode]
-      );
-      if (result.canceled || !result.filePath) {
-        return { cancelled: true, success: false };
-      }
-      const exportFilePath = result.filePath;
-      try {
-        return await vaultSession.withActiveSession(({ activeVault }) => {
-          if (
-            !sameApprovalTarget(
-              captured,
-              captureApprovalTarget(activeVault, target)
-            )
-          ) {
-            return {
-              code: "ENVIRONMENT_TARGET_STALE",
-              error:
-                "Target changed while choosing a file. Start the export again.",
-              success: false,
-            };
-          }
-          if (
-            canonicalValue(activeVault.getSecrets(target)) !==
-            admission.secretsSnapshot
-          ) {
-            return {
-              code: "ENVIRONMENT_TARGET_STALE",
-              error:
-                "Secrets changed while choosing a file. Review and export again.",
-              success: false,
-            };
-          }
-          if (exportMode === "raw" && !activeVault.verifyPassword(password)) {
-            return { error: "Incorrect password", success: false };
-          }
-          const { secrets } = admission;
-          const lines: string[] = [];
-          for (const [key, secret] of Object.entries(secrets)) {
-            if (typeof key !== "string" || /[\r\n\0=]/u.test(key)) {
-              return {
-                error: `Invalid key for .env export: ${String(key)}`,
-                success: false,
-              };
-            }
-            if (exportMode === "example") {
-              lines.push(`${key}=`);
-            } else if (exportMode === "references") {
-              lines.push(
-                `${key}=keyharbor://${safeProject}/${encodeURIComponent(key)}?environment=${safeEnvironment}`
-              );
-            } else {
-              lines.push(`${key}=${encodeEnvValue(secret?.value)}`);
-            }
-          }
-          writeExportFile(exportFilePath, lines.join("\n"));
-          if (exportMode === "raw") {
-            logger?.logAccess(
-              "Raw values exported",
-              target.projectName,
-              Object.keys(secrets),
-              { ...captured, action: "export", outcome: "approved" }
-            );
-          } else {
-            logger?.logApp(
-              `Environment export completed (${exportMode}): ${target.projectName}/${captured.environmentName}`
-            );
-          }
-          return { path: result.filePath, success: true };
-        });
-      } catch (error) {
-        if (
-          exportMode === "raw" &&
-          error.message === "Invalid current password"
-        ) {
-          return { error: "Incorrect password", success: false };
-        }
-        return sessionErrorResponse(error);
-      }
-    }
-  );
-
-  ipcMain.handle("projects:backup", async (event, projectName) => {
-    if (typeof projectName !== "string" || projectName.trim().length === 0) {
-      return { error: "A Project is required", success: false };
-    }
-
-    // Session/Vault/Project identity and the relevant Project data are captured
-    // BEFORE the native save picker. A Vault switch, delete/recreate, or data
-    // drift during the picker rejects the backup before anything is written.
-    let admission: { identity: ProjectBackupIdentity; encryptedBackup: Buffer };
-    try {
-      admission = await vaultSession.withActiveSession(({ activeVault }) =>
-        captureProjectBackupIdentity(activeVault, projectName)
-      );
-    } catch (error) {
-      return sessionErrorResponse(error);
-    }
-
-    const result = await dialog.showSaveDialog(mainWindow, {
-      defaultPath: `${encodeURIComponent(projectName)}.lkvb`,
-      filters: [{ extensions: ["lkvb"], name: "KeyHarbor Backup" }],
-    });
-    if (result.canceled || !result.filePath) {
-      return { cancelled: true, success: false };
-    }
-    const backupFilePath = result.filePath;
-    try {
-      return await vaultSession.withActiveSession(({ activeVault }) => {
-        const current = captureProjectBackupIdentity(activeVault, projectName);
-        if (!sameProjectBackupIdentity(admission.identity, current.identity)) {
-          return {
-            code: "ENVIRONMENT_TARGET_STALE",
-            error:
-              "The Project or Vault changed while choosing a file. Start the backup again.",
-            success: false,
-          };
-        }
-        writeExportFile(backupFilePath, admission.encryptedBackup);
-        logger?.logApp(
-          `Encrypted Project backup exported: ${projectName} (all Environments)`
-        );
-        return { path: result.filePath, success: true };
-      });
     } catch (error) {
       return sessionErrorResponse(error);
     }

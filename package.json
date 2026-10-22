@@ -25,7 +25,6 @@
     "test:proxy": "cd native/agent-proxy && go test -race ./...",
     "build:backend": "node -e \"require('node:fs').rmSync('backend-build', { recursive: true, force: true })\" && tsc -p tsconfig.backend.json && node backend-build/scripts/copy-backend-resources.mjs",
     "lint": "npm run build:backend && node backend-build/scripts/lint.mjs",
-    "lint:js": "ultracite check",
     "lint:css": "stylelint \"src/**/*.{css,html}\"",
     "mcp": "node ./backend-build/cli/keyharbor-mcp.mjs",
     "build": "npm run build:mac && npm run build:win",
