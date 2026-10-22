@@ -34,6 +34,7 @@ const createHarness = (platform = "darwin") => {
     cleanup: () => fs.rmSync(directory, { force: true, recursive: true }),
     credentialPath,
     prompts,
+    safeStorage,
     touchId,
   };
 };
@@ -96,4 +97,39 @@ test("a corrupt wrapped credential is rejected after authentication", async (t) 
     (failure) => failure.code === "TOUCH_ID_CREDENTIAL_INVALID"
   );
   assert.deepEqual(harness.prompts, ["unlock KeyHarbor"]);
+});
+
+test("Touch ID status does not access Keychain; credential operations still require encryption", async (t) => {
+  const harness = createHarness();
+  t.after(harness.cleanup);
+  harness.safeStorage.isEncryptionAvailable = () => {
+    throw new Error("Keychain requested authentication");
+  };
+  assert.deepEqual(harness.touchId.getStatus(true), {
+    available: true,
+    enabled: false,
+  });
+  assert.deepEqual(harness.prompts, []);
+
+  harness.safeStorage.isEncryptionAvailable = () => false;
+  await assert.rejects(
+    harness.touchId.enable(Buffer.alloc(32, 1)),
+    /Keychain encryption is not available/u
+  );
+  assert.deepEqual(harness.prompts, ["enable Touch ID unlock for KeyHarbor"]);
+  assert.equal(harness.touchId.hasCredential(), false);
+
+  fs.writeFileSync(harness.credentialPath, `wrapped:${"11".repeat(32)}`);
+  harness.safeStorage.decryptString = () => {
+    assert.fail("Unavailable encryption must never decrypt credentials");
+  };
+  assert.deepEqual(harness.touchId.getStatus(true), {
+    available: true,
+    enabled: true,
+  });
+  await assert.rejects(
+    harness.touchId.unlockKey(),
+    /Keychain encryption is not available/u
+  );
+  assert.equal(harness.prompts.at(-1), "unlock KeyHarbor");
 });

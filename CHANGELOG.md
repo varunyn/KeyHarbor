@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- macOS can display the unlock screen without opening Keychain merely to check Touch ID availability; credential operations still require biometric approval and Keychain encryption.
+
 - Sidebar expansion now stays consistent between Home and project pages, including Back, Forward, and reload; Command/Ctrl+B toggles the shared saved preference.
 
 ## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) - 2026-10-21

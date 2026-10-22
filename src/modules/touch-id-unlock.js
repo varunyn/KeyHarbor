@@ -17,10 +17,8 @@ class TouchIdUnlock {
     }
 
     try {
-      return (
-        this.safeStorage.isEncryptionAvailable() &&
-        this.systemPreferences.canPromptTouchID()
-      );
+      // Capability checks must not open Keychain or block the desktop at launch.
+      return this.systemPreferences.canPromptTouchID();
     } catch {
       return false;
     }
@@ -52,6 +50,7 @@ class TouchIdUnlock {
 
   refresh(key) {
     this._assertAvailable();
+    this._assertEncryptionAvailable();
     const keyHex = this._validateKey(key).toString("hex");
     const encrypted = this.safeStorage.encryptString(keyHex);
     const directory = path.dirname(this.credentialPath);
@@ -98,6 +97,7 @@ class TouchIdUnlock {
     }
 
     await this.systemPreferences.promptTouchID("unlock KeyHarbor");
+    this._assertEncryptionAvailable();
 
     try {
       const encrypted = fs.readFileSync(this.credentialPath);
@@ -110,6 +110,12 @@ class TouchIdUnlock {
       const error = new Error("The saved Touch ID credential is invalid");
       error.code = "TOUCH_ID_CREDENTIAL_INVALID";
       throw error;
+    }
+  }
+
+  _assertEncryptionAvailable() {
+    if (!this.safeStorage.isEncryptionAvailable()) {
+      throw new Error("Keychain encryption is not available on this Mac");
     }
   }
 
