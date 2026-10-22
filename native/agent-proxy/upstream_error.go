@@ -40,7 +40,7 @@ func upstreamFailure(err error) (string, string) {
 		return "network_permission_denied", "The operating system denied network access. On macOS, check KeyHarbor under System Settings > Privacy & Security > Local Network."
 	case errors.Is(err, syscall.EHOSTUNREACH), errors.Is(err, syscall.ENETUNREACH):
 		return "network_unreachable", "Check the network route. On macOS, Local Network privacy can also block LAN access; check KeyHarbor's permission."
-	case errors.Is(err, syscall.ECONNREFUSED):
+	case errors.Is(err, connectionRefusedErrno):
 		return "connection_refused", "The upstream refused the connection. Check the service address and port."
 	case errors.As(err, &dns):
 		return "dns_failure", "The upstream hostname could not be resolved."
