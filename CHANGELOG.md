@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Sidebar controls now sit beside the top navigation breadcrumbs on the Projects and secrets screens, with distinct expand and collapse icons.
+
 ## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) - 2026-10-21
 
 ### Added

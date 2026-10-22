@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../renderer/ui/dropdown-menu";
+import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
 import type {
   ActivityLog,
@@ -151,8 +152,6 @@ const selectedSecretFor = (
   selected: string | null
 ) =>
   selected && Object.hasOwn(secrets, selected) ? secrets[selected] : undefined;
-const sidebarToggleLabelFor = (expanded: boolean) =>
-  t(expanded ? "project.sidebar.collapse" : "project.sidebar.expand");
 
 const isSearchShortcut = (event: KeyboardEvent, field: boolean) =>
   (event.key === "/" && !field) ||
@@ -3060,7 +3059,6 @@ const ProjectApp = () => {
     vaultName
   );
   const otherProjects = projects.filter((item) => item.name !== projectName);
-  const sidebarToggleLabel = sidebarToggleLabelFor(indexOpen);
   const handleInspectorAction = (action: InspectorAction) => {
     setMenu(null);
     if (!selected) {
@@ -3085,7 +3083,6 @@ const ProjectApp = () => {
       <div className="bg-background text-foreground secrets-app flex h-screen w-screen overflow-hidden">
         <ProjectSidebar
           indexOpen={indexOpen}
-          onToggle={() => setIndexOpen((open) => !open)}
           nav={nav}
           view={view}
           setView={setView}
@@ -3125,6 +3122,10 @@ const ProjectApp = () => {
               className="text-muted-foreground border-border/30 secrets-crumbs flex items-center gap-2 border-b px-6 py-2 text-xs"
               aria-label={t("project.a11y.crumbsLabel")}
             >
+              <SidebarToggle
+                expanded={indexOpen}
+                onToggle={() => setIndexOpen((open) => !open)}
+              />
               <a
                 className="text-primary secrets-back-link inline-flex items-center gap-1 font-medium hover:underline"
                 href="dashboard.html"
@@ -3150,20 +3151,6 @@ const ProjectApp = () => {
               </span>
             </nav>
             <div className="secrets-title-row flex flex-wrap items-center gap-4 px-6 py-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                className="size-8 min-[861px]:hidden"
-                id="indexToggle"
-                aria-label={sidebarToggleLabel}
-                title={sidebarToggleLabel}
-                aria-expanded={indexOpen}
-                aria-controls="indexPanel"
-                onClick={() => setIndexOpen((open) => !open)}
-              >
-                <Icon name="list" />
-              </Button>
               <h1 className="text-foreground truncate text-lg font-bold tracking-tight">
                 {t("project.header.title")}
               </h1>

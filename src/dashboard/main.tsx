@@ -1,7 +1,6 @@
 import {
   Activity,
   AlertCircle,
-  ArrowLeft,
   ArrowRight,
   ChevronDown,
   Clock,
@@ -58,6 +57,7 @@ import {
   DropdownMenuSubTrigger,
 } from "../renderer/ui/dropdown-menu";
 import { Input } from "../renderer/ui/input";
+import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
 
 type ViewMode = "grid" | "list";
@@ -92,9 +92,6 @@ const blankForm = (): DialogForm => ({
   vaultName: "",
 });
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
-const sidebarLabel = (open: boolean) =>
-  t(open ? "project.sidebar.collapse" : "project.sidebar.expand");
-const sidebarArrow = (open: boolean) => (open ? "arrow-left" : "arrow-right");
 const closeNarrowSidebar = (
   close: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
@@ -115,7 +112,6 @@ const ICON_MAP: Record<
   }>
 > = {
   activity: Activity,
-  "arrow-left": ArrowLeft,
   "arrow-right": ArrowRight,
   "chevron-down": ChevronDown,
   "circle-alert": AlertCircle,
@@ -1007,7 +1003,6 @@ const DashboardDialog = ({
 
 interface DashboardSidebarProps {
   sidebarOpen: boolean;
-  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   menu: string | null;
   setMenu: React.Dispatch<React.SetStateAction<string | null>>;
   loadVaults: () => void;
@@ -1032,7 +1027,6 @@ interface DashboardSidebarProps {
 // eslint-disable-next-line complexity -- Dashboard sidebar renders collapsed and expanded navigation rails with active vault menus.
 const DashboardSidebar = ({
   sidebarOpen,
-  setSidebarOpen,
   menu,
   setMenu,
   loadVaults,
@@ -1071,22 +1065,6 @@ const DashboardSidebar = ({
           KeyHarbor
         </span>
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        type="button"
-        className={cn(
-          "dh-btn dh-btn-icon dash-sidebar-toggle text-muted-foreground hover:text-foreground shrink-0 rounded-lg transition-colors",
-          sidebarOpen ? "size-7" : "hover:bg-secondary size-7"
-        )}
-        aria-label={sidebarLabel(sidebarOpen)}
-        title={sidebarLabel(sidebarOpen)}
-        aria-expanded={sidebarOpen}
-        aria-controls="indexPanel"
-        onClick={() => setSidebarOpen((open) => !open)}
-      >
-        <Icon name={sidebarArrow(sidebarOpen)} className="size-4" />
-      </Button>
     </div>
     {!sidebarOpen && <div className="border-border/60 my-1 w-7 border-t" />}
     <div
@@ -2704,7 +2682,6 @@ const App = () => {
     >
       <DashboardSidebar
         sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
         menu={menu}
         setMenu={setMenu}
         loadVaults={loadVaults}
@@ -2733,29 +2710,22 @@ const App = () => {
       />
       <main className="dash-main bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="dash-topbar border-border bg-card/50 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
-          <Button
-            variant="secondary"
-            size="icon"
-            type="button"
-            className="dh-btn dh-btn-icon dash-index-toggle size-10 shrink-0 min-[861px]:hidden"
-            id="indexToggle"
-            aria-label={t("dashboard.a11y.indexLabel")}
-            aria-controls="indexPanel"
-            aria-expanded={sidebarOpen}
-            onClick={() => setSidebarOpen((open) => !open)}
-          >
-            <Icon name="list" />
-          </Button>
-          <nav
-            className="dash-crumbs text-muted-foreground hidden items-center gap-2 text-[13px] min-[1200px]:flex"
-            aria-label={t("dashboard.a11y.crumbsLabel")}
-          >
-            <span>{t("dashboard.crumbsVault")}</span>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page" className="text-foreground">
-              {t("dashboard.title")}
-            </span>
-          </nav>
+          <div className="flex shrink-0 items-center gap-3">
+            <SidebarToggle
+              expanded={sidebarOpen}
+              onToggle={() => setSidebarOpen((open) => !open)}
+            />
+            <nav
+              className="dash-crumbs text-muted-foreground hidden items-center gap-2 text-[13px] min-[1200px]:flex"
+              aria-label={t("dashboard.a11y.crumbsLabel")}
+            >
+              <span>{t("dashboard.crumbsVault")}</span>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page" className="text-foreground">
+                {t("dashboard.title")}
+              </span>
+            </nav>
+          </div>
           <div className="dash-search relative mx-auto max-w-[420px] min-w-[120px] flex-1">
             <Icon
               name="search"

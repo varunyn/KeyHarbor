@@ -9,7 +9,6 @@ import { relative } from "./secret-presentation";
 export type ProjectView = "all" | "attention" | "recent" | "favorites";
 interface ProjectSidebarProps {
   indexOpen: boolean;
-  onToggle: () => void;
   nav: (href: string) => void;
   view: ProjectView;
   setView: (view: ProjectView) => void;
@@ -136,7 +135,6 @@ const ViewButton = ({
 
 export const ProjectSidebar = ({
   indexOpen,
-  onToggle,
   nav,
   view,
   setView,
@@ -178,23 +176,6 @@ export const ProjectSidebar = ({
             KeyHarbor
           </span>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          type="button"
-          className="text-muted-foreground hover:text-foreground size-7 shrink-0 rounded-lg"
-          aria-label={t(
-            indexOpen ? "project.sidebar.collapse" : "project.sidebar.expand"
-          )}
-          title={t(
-            indexOpen ? "project.sidebar.collapse" : "project.sidebar.expand"
-          )}
-          aria-expanded={indexOpen}
-          aria-controls="indexPanel"
-          onClick={onToggle}
-        >
-          <Icon name={indexOpen ? "arrow-left" : "arrow-right"} />
-        </Button>
       </div>
       {!indexOpen && (
         <div

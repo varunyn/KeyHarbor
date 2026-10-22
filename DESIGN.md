@@ -301,6 +301,8 @@ Ledger-quiet at rest, blue only for the primary forward action.
 - **Hover / Focus:** secondary and icon buttons lift from Ruled Surface to Lifted Surface; every control shows a visible 2px Ledger Blue focus ring (offset 2px).
 - **Secondary / Icon / Danger:** secondary is Ruled Surface with Hairline border; icon-only is 32px square and always carries an accessible label plus tooltip; danger is Stamp Red ground (hover #D92D20) and lives apart — delete/duplicate-danger sit below a separator in the overflow menu.
 
+Sidebar disclosure uses the shared `SidebarToggle` in the leading section of the workspace navigation bar, beside the breadcrumbs and separated by a hairline. Keep it outside the sidebar on both Projects and secrets screens. Use `PanelLeftClose` when expanded and `PanelLeftOpen` when collapsed; the translated tooltip and accessible label describe the action. Keep `aria-expanded`, `aria-controls`, and Escape-dismissal focus restoration synchronized with the real sidebar state.
+
 ### Stamp pills
 
 The state language of the ledger: dot + text on a tinted ground, 24px height, full pill.

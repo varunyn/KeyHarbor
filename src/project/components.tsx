@@ -2,7 +2,6 @@ import {
   Activity,
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   Check,
   ChevronDown,
   Clipboard,
@@ -53,7 +52,6 @@ const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   activity: Activity,
   "arrow-left": ArrowLeft,
-  "arrow-right": ArrowRight,
   check: Check,
   "chevron-down": ChevronDown,
   "circle-alert": AlertCircle,
