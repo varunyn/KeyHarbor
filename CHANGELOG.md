@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/varunyn/KeyHarbor/compare/v2.2.0...v2.3.0) (2026-10-22)
+
+
+### Features
+
+* initial commit for KeyHarbor ([dc3ade2](https://github.com/varunyn/KeyHarbor/commit/dc3ade2569f1f112950ea1a77798b4630df6ffbc))
+* **security:** add native credential proxy helper for secretless agent access ([3c156ec](https://github.com/varunyn/KeyHarbor/commit/3c156ecc62f1c32f5c72963a8f29111f4ed826ec))
+* **window:** add window close behavior controller and background tray persistence ([27bd86a](https://github.com/varunyn/KeyHarbor/commit/27bd86ae95d18b0125e485e5a7da00c1214d799c))
+
+
+### Bug Fixes
+
+* **proxy:** recognize Windows connection refusal errors ([ce201b7](https://github.com/varunyn/KeyHarbor/commit/ce201b72b593b40b69586ddf95714a5c89cd8585))
+* **proxy:** use Winsock errno and accept cancellation denial ([0759aaf](https://github.com/varunyn/KeyHarbor/commit/0759aaf131f1aca2b14f74569c7e1efae562b6f3))
+* publish downloadable desktop installers ([4409e27](https://github.com/varunyn/KeyHarbor/commit/4409e27c7e5a177fbbb343d38dc4fc01db5b1fc4))
+* **ui:** restore secret interactions and improve import review ([8b22a5d](https://github.com/varunyn/KeyHarbor/commit/8b22a5d8abf75b570618e8d1389d2e7b1ed2bc0f))
+
 ## [Unreleased]
 
 ## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) - 2026-10-21
