@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Clock,
   Database,
+  Download,
   Folder,
   Key,
   LayoutGrid,
@@ -119,6 +120,7 @@ const ICON_MAP: Record<
   "chevron-down": ChevronDown,
   "circle-alert": AlertCircle,
   clock: Clock,
+  download: Download,
   ellipsis: MoreHorizontal,
   folder: Folder,
   grid: LayoutGrid,
@@ -2730,12 +2732,12 @@ const App = () => {
         onClick={() => setSidebarOpen(false)}
       />
       <main className="dash-main bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="dash-topbar border-border bg-card/50 flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
+        <header className="dash-topbar border-border bg-card/50 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
           <Button
             variant="secondary"
             size="icon"
             type="button"
-            className="dh-btn dh-btn-icon dash-index-toggle size-9 shrink-0 min-[861px]:hidden"
+            className="dh-btn dh-btn-icon dash-index-toggle size-10 shrink-0 min-[861px]:hidden"
             id="indexToggle"
             aria-label={t("dashboard.a11y.indexLabel")}
             aria-controls="indexPanel"
@@ -2745,7 +2747,7 @@ const App = () => {
             <Icon name="list" />
           </Button>
           <nav
-            className="dash-crumbs text-muted-foreground hidden items-center gap-2 font-mono text-xs min-[1200px]:flex"
+            className="dash-crumbs text-muted-foreground hidden items-center gap-2 text-[13px] min-[1200px]:flex"
             aria-label={t("dashboard.a11y.crumbsLabel")}
           >
             <span>{t("dashboard.crumbsVault")}</span>
@@ -2768,7 +2770,7 @@ const App = () => {
               autoComplete="off"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="bg-secondary/50 border-border h-9 pr-14 pl-9 text-xs"
+              className="bg-secondary/50 border-border h-10 pr-14 pl-9 text-[13px]"
             />
             <kbd className="dash-search-kbd text-muted-foreground border-border/80 bg-background/50 pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[10px]">
               ⌘K
@@ -2779,7 +2781,7 @@ const App = () => {
               variant="secondary"
               size="sm"
               type="button"
-              className="dh-btn dh-btn-secondary h-9 gap-1.5 text-xs"
+              className="dh-btn dh-btn-secondary h-10 gap-2 px-4 text-[13px] font-medium"
               id="lock-btn"
               disabled={actionBusy !== null}
               onClick={() => lock()}
@@ -2796,30 +2798,35 @@ const App = () => {
                   variant="secondary"
                   size="icon"
                   type="button"
-                  className="dh-btn-icon size-9"
+                  className="dh-btn-icon size-10"
                   id="settings-dropdown-btn"
                   aria-label={t("dashboard.a11y.menuLabel")}
                 >
                   <Icon name="ellipsis" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[160px] p-1">
+              <DropdownMenuContent
+                align="end"
+                className="bg-card border-border min-w-[200px] rounded-xl border p-1.5 shadow-xl"
+              >
                 <DropdownMenuItem
                   id="install-cli-btn"
-                  className="cursor-pointer px-2.5 py-1.5 text-xs"
+                  className="hover:bg-secondary flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px]"
                   disabled={!cliReady || actionBusy !== null}
                   onSelect={() =>
                     handleCli(cliInstalled ? "uninstall" : "install")
                   }
                 >
-                  {cliActionLabel()}
+                  <Icon name="download" className="text-muted-foreground" />
+                  <span>{cliActionLabel()}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   id="settings-btn"
-                  className="cursor-pointer px-2.5 py-1.5 text-xs"
+                  className="hover:bg-secondary flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px]"
                   onSelect={() => navigate("settings")}
                 >
-                  {t("dashboard.settings")}
+                  <Icon name="settings" className="text-muted-foreground" />
+                  <span>{t("dashboard.settings")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2827,7 +2834,7 @@ const App = () => {
               variant="default"
               size="sm"
               type="button"
-              className="dh-btn dh-btn-primary h-9 gap-1.5 text-xs"
+              className="dh-btn dh-btn-primary h-10 gap-2 px-4 text-[13px] font-medium"
               id="add-project-btn"
               aria-label={t("dashboard.addProject")}
               title={t("dashboard.addProject")}
@@ -2953,7 +2960,7 @@ const App = () => {
                 <DropdownMenuContent
                   align="end"
                   id="sortMenu"
-                  className="min-w-[140px] p-1"
+                  className="bg-card border-border min-w-[180px] rounded-xl border p-1.5 shadow-xl"
                 >
                   <DropdownMenuRadioGroup
                     value={sortMode}
@@ -2963,7 +2970,7 @@ const App = () => {
                       <DropdownMenuRadioItem
                         key={sort}
                         value={sort}
-                        className="cursor-pointer px-2.5 py-1.5 text-xs"
+                        className="cursor-pointer py-2 pr-2.5 pl-8 text-[13px]"
                       >
                         {t(`dashboard.sort.${sort}`)}
                       </DropdownMenuRadioItem>
