@@ -1,7 +1,6 @@
 import crypto = require("node:crypto");
 import fs = require("node:fs");
 import CryptoUtil = require("./crypto");
-import type Vault = require("./vault");
 import {
   clone,
   createBaseline,
@@ -9,6 +8,11 @@ import {
   validateAndCloneVaultData,
 } from "./vault-reconciliation-data";
 import { mergeVaultData } from "./vault-reconciliation-merge";
+import type {
+  VaultConflictDetail,
+  VaultReconciliationHost,
+  VaultReconciliationPlanPayload,
+} from "./vault-types";
 
 const DISK_MISSING = "missing";
 const DISK_UNREADABLE = "unreadable";
@@ -16,11 +20,13 @@ interface PendingPlan {
   id: string;
   sessionRevision: number;
   diskFingerprint: string;
-  sessionData: ReturnType<Vault["_getNormalizedCopyOfData"]>;
-  diskData: ReturnType<Vault["_getNormalizedCopyOfData"]> | null;
+  sessionData: ReturnType<VaultReconciliationHost["_getNormalizedCopyOfData"]>;
+  diskData: ReturnType<
+    VaultReconciliationHost["_getNormalizedCopyOfData"]
+  > | null;
   diskBytes: Buffer | null;
   reason: string;
-  conflicts: Record<string, unknown>[];
+  conflicts: VaultConflictDetail[];
   allowedDecisions: readonly ("use_disk" | "keep_session")[];
 }
 
@@ -36,10 +42,10 @@ const diskMarker = (vaultPath) => {
 };
 
 class VaultReconciliation {
-  vault: Vault;
+  vault: VaultReconciliationHost;
   pendingPlan: PendingPlan | null = null;
 
-  constructor(vault) {
+  constructor(vault: VaultReconciliationHost) {
     this.vault = vault;
     this.pendingPlan = null;
   }
@@ -88,7 +94,7 @@ class VaultReconciliation {
     }
   }
 
-  _createPlan(reason, diskResult, conflicts: Record<string, unknown>[] = []) {
+  _createPlan(reason, diskResult, conflicts: VaultConflictDetail[] = []) {
     // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
     const plan = {
       id: crypto.randomBytes(16).toString("hex"),
@@ -110,17 +116,17 @@ class VaultReconciliation {
   }
 
   // eslint-disable-next-line class-methods-use-this -- Retain the established instance-method API used by callers.
-  _outcomeForPlan(plan) {
-    // eslint-disable-next-line sort-keys -- Preserve the established serialized field order and protocol/fixture identities.
-    return {
-      status: "needs_resolution",
-      reconciliationId: plan.id,
-      reason: plan.reason,
-      ...(plan.conflicts.length > 0
-        ? { conflicts: clone(plan.conflicts) }
-        : {}),
+  _outcomeForPlan(plan): VaultReconciliationPlanPayload {
+    const outcome: VaultReconciliationPlanPayload = {
       allowedDecisions: [...plan.allowedDecisions],
+      reason: plan.reason,
+      reconciliationId: plan.id,
+      status: "needs_resolution",
     };
+    if (plan.conflicts.length > 0) {
+      outcome.conflicts = clone(plan.conflicts);
+    }
+    return outcome;
   }
 
   async reconcileExternalChange(_options = {}) {
@@ -202,7 +208,7 @@ class VaultReconciliation {
     }
 
     if (decision === "use_disk") {
-      if (!plan.diskData) {
+      if (!plan.diskData || !plan.diskBytes) {
         const error = new Error("Invalid reconciliation plan");
         error.code = "VAULT_INVALID_RECONCILIATION_PLAN";
         throw error;
