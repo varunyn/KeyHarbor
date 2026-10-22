@@ -465,3 +465,23 @@ test("unknown actions and non-object payloads are rejected", async (t) => {
   const list: ActionResult = await server.handleAction("listProjects", []);
   assert.equal(list.success, true);
 });
+
+test("unapproved HTTP secret access returns no values and never changes the Vault", async (t) => {
+  const { server, vault, devTarget } = await setup(t);
+  const data = {
+    environmentName: "dev",
+    key: "TOKEN",
+    projectName: "application",
+    value: "must-not-commit",
+  };
+  assert.deepEqual(await server.handleAction("getSecret", data), {
+    error: "Access denied: No approval handler available",
+    success: false,
+  });
+  server.setApprovalCallback(() => ({ approved: false, reason: "Denied" }));
+  assert.deepEqual(await server.handleAction("setSecret", data), {
+    error: "Access denied: Denied",
+    success: false,
+  });
+  assert.equal(vault.getSecret(devTarget, "TOKEN").value, "synthetic-dev");
+});
