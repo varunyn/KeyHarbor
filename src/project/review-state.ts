@@ -15,6 +15,8 @@ export const useConfigurationReviewState = () => {
 export const useImportReviewState = () => {
   const [source, setSource] = useState<"text" | "file">("text");
   const [text, setText] = useState("");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState("");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [handle, setHandle] = useState<string | null>(null);
   const [target, setTarget] = useState<ReviewTarget | null>(null);
@@ -32,6 +34,8 @@ export const useImportReviewState = () => {
     committing,
     diagnostics,
     epoch,
+    fileContent,
+    fileName,
     handle,
     handleRef,
     pending,
@@ -41,6 +45,8 @@ export const useImportReviewState = () => {
     setBusy,
     setCommitting,
     setDiagnostics,
+    setFileContent,
+    setFileName,
     setHandle,
     setReveals,
     setRows,

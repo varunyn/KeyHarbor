@@ -135,7 +135,7 @@
     }
   }
 
-  @media (max-width: 1000px) {
+  @media (max-width: 1100px) {
     .secrets-inspector {
       position: fixed;
       top: 0;
@@ -159,7 +159,7 @@
     }
   }
 
-  @media (min-width: 1001px) {
+  @media (min-width: 1101px) {
     .secrets-scrim {
       display: none !important;
     }

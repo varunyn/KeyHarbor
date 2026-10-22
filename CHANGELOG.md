@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Import review now accepts drag-and-drop .env files, shows the selected filename, and offers inline per-secret action choices.
+
 ### Fixed
+
+- Selecting a secret now opens its details panel, and row action menus stay open reliably with mouse and keyboard navigation.
 
 - macOS builds now give KeyHarbor a distinct native build UUID and explicitly sign its proxy helper, preventing identity collisions with stock Electron or the previous LocalKeys app during Local Network permission checks.
 

@@ -266,7 +266,6 @@ export const SecretTable = ({
   selected,
   favorites,
   menu,
-  menuOpenUp,
   loadState,
   emptyMessage,
   onSelect,
@@ -290,7 +289,6 @@ export const SecretTable = ({
   selected: string | null;
   favorites: string[];
   menu: string | null;
-  menuOpenUp: boolean;
   loadState: "loading" | "ready" | "error";
   emptyMessage: React.ReactNode;
   onSelect: (key: string) => void;
@@ -300,7 +298,7 @@ export const SecretTable = ({
   onEdit: (key: string) => void;
   onHistory: (key: string) => void;
   onDelete: (key: string) => void;
-  onMenu: (key: string) => void;
+  onMenu: (key: string, open: boolean) => void;
 }) => {
   const showRows = loadState === "ready" && entries.length > 0;
   return (
@@ -486,11 +484,7 @@ export const SecretTable = ({
                     <DropdownMenu
                       open={menu === rowMenu}
                       onOpenChange={(open) => {
-                        if (open) {
-                          onMenu(entry.key);
-                        } else if (menu === rowMenu) {
-                          onMenu(entry.key);
-                        }
+                        onMenu(entry.key, open);
                       }}
                     >
                       <DropdownMenuTrigger asChild>
@@ -510,7 +504,7 @@ export const SecretTable = ({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         className="bg-card border-border min-w-[140px] rounded-xl border p-1 shadow-xl"
-                        side={menuOpenUp && menu === rowMenu ? "top" : "bottom"}
+                        side="bottom"
                         align="end"
                       >
                         <DropdownMenuItem
@@ -1161,129 +1155,246 @@ const ImportInputSection = ({
   targetText,
   diagnostics,
   busy,
+  fileName,
   onSource,
   onText,
-  onPreview,
+  onChooseFile,
+  onDropFile,
+  onClearFile,
 }: {
   source: "text" | "file";
   text: string;
   targetText: string;
   diagnostics: string[];
   busy: boolean;
+  fileName: string | null;
   onSource: (source: "text" | "file") => void;
   onText: (text: string) => void;
-  onPreview: () => void;
-}) => (
-  <section
-    id="importInputStep"
-    className="space-y-4"
-    aria-labelledby="importInputHeading"
-  >
-    <h3
-      id="importInputHeading"
-      className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
-    >
-      {t("project.importReview.inputHeading")}
-    </h3>
-    <div
-      className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
-      id="importInputTarget"
-    >
-      {targetText}
-    </div>
+  onChooseFile: () => void;
+  onDropFile: (file: File) => void;
+  onClearFile: () => void;
+}) => {
+  const [dragActive, setDragActive] = useState(false);
+  return (
     <section
-      className="flex gap-2"
-      aria-label={t("project.importReview.sourceLabel")}
+      id="importInputStep"
+      className="space-y-4"
+      aria-labelledby="importInputHeading"
     >
-      <Button
-        variant={source === "text" ? "secondary" : "ghost"}
-        type="button"
-        size="sm"
-        className={cn(
-          "h-8 px-3 text-xs font-medium",
-          source === "text" && "bg-secondary text-foreground shadow-xs"
-        )}
-        id="importPasteSource"
-        aria-pressed={source === "text"}
-        disabled={busy}
-        onClick={() => onSource("text")}
+      <h3
+        id="importInputHeading"
+        className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
       >
-        {t("project.importReview.pasteSource")}
-      </Button>
-      <Button
-        variant={source === "file" ? "secondary" : "ghost"}
-        type="button"
-        size="sm"
-        className={cn(
-          "h-8 px-3 text-xs font-medium",
-          source === "file" && "bg-secondary text-foreground shadow-xs"
-        )}
-        id="importFileSource"
-        aria-pressed={source === "file"}
-        disabled={busy}
-        onClick={() => onSource("file")}
-      >
-        {t("project.importReview.fileSource")}
-      </Button>
-    </section>
-    {source === "text" ? (
-      <div id="importPastePanel" className="space-y-1.5">
-        <label
-          className="text-foreground block text-xs font-medium"
-          htmlFor="importText"
-        >
-          {t("project.importReview.textLabel")}
-        </label>
-        <textarea
-          className="bg-secondary/30 border-border focus:ring-primary h-36 w-full rounded-lg border p-3 font-mono text-xs focus:ring-1 focus:outline-hidden"
-          id="importText"
-          spellCheck={false}
-          placeholder={t("project.importReview.textPlaceholder")}
-          value={text}
-          onChange={(event) => onText(event.target.value)}
-        />
-        <p className="text-muted-foreground text-xs">
-          {t("project.importReview.formatHint")}
-        </p>
-      </div>
-    ) : (
-      <div id="importFilePanel" className="space-y-3">
-        <p className="text-muted-foreground text-xs">
-          {t("project.importReview.fileHint")}
-        </p>
-        <Button
-          variant="secondary"
-          type="button"
-          id="importChooseFileBtn"
-          disabled={busy}
-          onClick={onPreview}
-        >
-          <Icon name="upload" />
-          <span>{t("project.importReview.chooseFile")}</span>
-        </Button>
-      </div>
-    )}
-    {diagnostics.length > 0 && (
+        {t("project.importReview.inputHeading")}
+      </h3>
       <div
-        className="bg-destructive/10 border-destructive/20 text-destructive space-y-1 rounded-lg border p-3 text-xs"
-        id="importDiagnostics"
-        aria-live="polite"
-        aria-atomic="true"
+        className="text-muted-foreground bg-secondary/50 border-border/50 rounded-lg border p-2.5 font-mono text-xs"
+        id="importInputTarget"
       >
-        <strong>
-          {t("project.importReview.diagnosticSummary", {
-            count: diagnostics.length,
-          })}
-        </strong>
-        <ul className="list-inside list-disc">
-          {diagnostics.map((message, index) => (
-            <li key={index}>{message}</li>
-          ))}
-        </ul>
+        {targetText}
       </div>
-    )}
-  </section>
-);
+      <section
+        className="flex gap-2"
+        aria-label={t("project.importReview.sourceLabel")}
+      >
+        <Button
+          variant={source === "text" ? "secondary" : "ghost"}
+          type="button"
+          size="sm"
+          className={cn(
+            "h-8 px-3 text-xs font-medium",
+            source === "text" && "bg-secondary text-foreground shadow-xs"
+          )}
+          id="importPasteSource"
+          aria-pressed={source === "text"}
+          disabled={busy}
+          onClick={() => onSource("text")}
+        >
+          {t("project.importReview.pasteSource")}
+        </Button>
+        <Button
+          variant={source === "file" ? "secondary" : "ghost"}
+          type="button"
+          size="sm"
+          className={cn(
+            "h-8 px-3 text-xs font-medium",
+            source === "file" && "bg-secondary text-foreground shadow-xs"
+          )}
+          id="importFileSource"
+          aria-pressed={source === "file"}
+          disabled={busy}
+          onClick={() => onSource("file")}
+        >
+          {t("project.importReview.fileSource")}
+        </Button>
+      </section>
+      {source === "text" ? (
+        <div id="importPastePanel" className="space-y-1.5">
+          <label
+            className="text-foreground block text-xs font-medium"
+            htmlFor="importText"
+          >
+            {t("project.importReview.textLabel")}
+          </label>
+          <textarea
+            className="bg-secondary/30 border-border focus:ring-primary h-36 w-full rounded-lg border p-3 font-mono text-xs focus:ring-1 focus:outline-hidden"
+            id="importText"
+            spellCheck={false}
+            placeholder={t("project.importReview.textPlaceholder")}
+            value={text}
+            onChange={(event) => onText(event.target.value)}
+          />
+          <p className="text-muted-foreground text-xs">
+            {t("project.importReview.formatHint")}
+          </p>
+        </div>
+      ) : (
+        <div
+          id="importFilePanel"
+          className={cn(
+            "space-y-3 rounded-lg border border-dashed p-3 transition-colors",
+            dragActive ? "border-primary bg-primary/10" : "border-border/60"
+          )}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragActive(false);
+            const dropped = event.dataTransfer.files?.[0];
+            if (dropped && !busy) {
+              onDropFile(dropped);
+            }
+          }}
+        >
+          <p className="text-muted-foreground text-xs">
+            {t("project.importReview.fileHint")}
+          </p>
+          <p className="text-muted-foreground text-xs" aria-hidden="true">
+            {t(
+              dragActive
+                ? "project.importReview.dropActive"
+                : "project.importReview.dropHint"
+            )}
+          </p>
+          {fileName ? (
+            <div className="bg-secondary/50 border-border/50 flex items-center justify-between gap-2 rounded-lg border p-2 text-xs">
+              <code
+                className="text-foreground truncate font-mono"
+                title={fileName}
+              >
+                {t("project.importReview.droppedFile", { name: fileName })}
+              </code>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                className="h-6 shrink-0 px-2 text-[11px]"
+                disabled={busy}
+                onClick={onClearFile}
+                aria-label={t("project.importReview.removeFile", {
+                  name: fileName,
+                })}
+              >
+                {t("project.importReview.removeFileLabel")}
+              </Button>
+            </div>
+          ) : null}
+          <Button
+            variant="secondary"
+            type="button"
+            id="importChooseFileBtn"
+            disabled={busy}
+            onClick={onChooseFile}
+          >
+            <Icon name="upload" />
+            <span>{t("project.importReview.chooseFile")}</span>
+          </Button>
+        </div>
+      )}
+      {diagnostics.length > 0 && (
+        <div
+          className="bg-destructive/10 border-destructive/20 text-destructive space-y-1 rounded-lg border p-3 text-xs"
+          id="importDiagnostics"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <strong>
+            {t("project.importReview.diagnosticSummary", {
+              count: diagnostics.length,
+            })}
+          </strong>
+          <ul className="list-inside list-disc">
+            {diagnostics.map((message, index) => (
+              <li key={index}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const ImportActionPicker = ({
+  actions,
+  chosenAction,
+  busy,
+  rowKey,
+  occurrenceId,
+  onAction,
+}: {
+  actions: string[];
+  chosenAction: string;
+  busy: boolean;
+  rowKey: string;
+  occurrenceId: string;
+  onAction: (
+    key: string,
+    occurrenceId: string,
+    action: ImportChoice["action"]
+  ) => void;
+}) => {
+  if (actions.length <= 1) {
+    return (
+      <span className="text-muted-foreground px-1 text-[11px]">
+        {t("project.importReview.action.skip")}
+      </span>
+    );
+  }
+  const current = chosenAction === "keep" ? "skip" : chosenAction;
+  return (
+    <fieldset className="border-border m-0 flex min-w-0 items-center gap-0.5 rounded-md border p-0.5">
+      <legend className="sr-only">
+        {t("project.importReview.actionForKey", { key: rowKey })}
+      </legend>
+      {actions.map((action) => {
+        const value = action === "keep" ? "skip" : action;
+        return (
+          <button
+            key={action}
+            type="button"
+            disabled={busy}
+            aria-pressed={current === value}
+            onClick={() =>
+              onAction(rowKey, occurrenceId, value as ImportChoice["action"])
+            }
+            className={cn(
+              "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+              current === value
+                ? "bg-secondary text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t(`project.importReview.action.${action}`)}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+};
 
 const ImportOccurrenceRow = ({
   row,
@@ -1397,30 +1508,16 @@ const ImportOccurrenceRow = ({
             })
           : t("project.importReview.reveal")}
       </Button>
-      <select
-        className="bg-card border-border text-foreground rounded-md border px-2 py-1 text-xs focus:outline-hidden"
-        aria-label={t("project.importReview.actionForKey", {
-          key: row.key,
-        })}
-        value={chosenAction}
-        disabled={row.duplicate && !selected}
-        hidden={row.duplicate && !selected}
-        onChange={(event) =>
-          onAction(
-            row.key,
-            occurrence.id,
-            event.target.value === "keep"
-              ? "skip"
-              : (event.target.value as ImportChoice["action"])
-          )
-        }
-      >
-        {actions.map((action) => (
-          <option key={action} value={action === "keep" ? "skip" : action}>
-            {t(`project.importReview.action.${action}`)}
-          </option>
-        ))}
-      </select>
+      {row.duplicate && !selected ? null : (
+        <ImportActionPicker
+          actions={actions}
+          chosenAction={chosenAction}
+          busy={busy}
+          rowKey={row.key}
+          occurrenceId={occurrence.id}
+          onAction={onAction}
+        />
+      )}
     </div>
   );
 };
@@ -1566,10 +1663,14 @@ export const ImportReviewDialog = ({
   ready,
   counts,
   reveals,
+  fileName,
   onClose,
   onSource,
   onText,
   onPreview,
+  onChooseFile,
+  onDropFile,
+  onClearFile,
   onBack,
   onCommit,
   onReveal,
@@ -1587,10 +1688,14 @@ export const ImportReviewDialog = ({
   ready: boolean;
   counts: { add: number; replace: number; skip: number; pending: number };
   reveals: Record<string, ImportReveal>;
+  fileName: string | null;
   onClose: () => void;
   onSource: (source: "text" | "file") => void;
   onText: (text: string) => void;
   onPreview: () => void;
+  onChooseFile: () => void;
+  onDropFile: (file: File) => void;
+  onClearFile: () => void;
   onBack: () => void;
   onCommit: () => void;
   onReveal: (entry: ImportRow, occurrence: ImportOccurrence) => void;
@@ -1638,9 +1743,12 @@ export const ImportReviewDialog = ({
           targetText={targetText}
           diagnostics={diagnostics}
           busy={busy}
+          fileName={fileName}
           onSource={onSource}
           onText={onText}
-          onPreview={onPreview}
+          onChooseFile={onChooseFile}
+          onDropFile={onDropFile}
+          onClearFile={onClearFile}
         />
       )}
       {handle && (

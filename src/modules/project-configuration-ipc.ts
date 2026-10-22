@@ -157,14 +157,10 @@ const registerProjectConfigurationIpc = ({
           properties.push("showHiddenFiles");
         }
         const result = await dialog.showOpenDialog(selectionWindow, {
-          filters: [
-            {
-              extensions: ["env", "example", "txt"],
-              name: "Environment Files",
-            },
-            { extensions: ["*"], name: "All Files" },
-          ],
+          buttonLabel: "Review",
+          message: "Choose a UTF-8 template file to review.",
           properties,
+          title: "Choose a template file",
         });
         if (selectionWasCancelled(result)) {
           await coordinator.discard(captured.binding);

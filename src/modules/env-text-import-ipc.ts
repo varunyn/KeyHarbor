@@ -98,11 +98,10 @@ const registerEnvImportIpc = ({
         properties.push("showHiddenFiles");
       }
       const result = await dialog.showOpenDialog(getWindow(), {
-        filters: [
-          { extensions: ["env", "txt"], name: "Environment Files" },
-          { extensions: ["*"], name: "All Files" },
-        ],
+        buttonLabel: "Review",
+        message: "Choose a UTF-8 .env file to review before importing.",
         properties,
+        title: "Choose a file to import",
       });
       if (
         result?.canceled ||

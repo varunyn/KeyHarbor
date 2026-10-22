@@ -145,7 +145,7 @@ const secretCountLabelFor = (count: number) =>
     ? t("project.summary.secretsOne")
     : t("project.summary.secrets", { count });
 const inspectorClassFor = (open: boolean, selected: string | null) =>
-  `secrets-inspector${!open || !selected ? " is-hidden" : ""}`;
+  open && selected ? "is-open" : "";
 const selectedSecretFor = (
   secrets: Record<string, SecretRecord>,
   selected: string | null
@@ -829,11 +829,6 @@ const ProjectApp = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [modal, setModal] = useState<Modal>(null);
   const [menu, setMenu] = useState<string | null>(null);
-  const [menuPlacement, setMenuPlacement] = useState<{
-    menu: string | null;
-    openUp: boolean;
-  }>({ menu: null, openUp: false });
-  const menuOpenUp = menuPlacement.menu === menu && menuPlacement.openUp;
   const [actionBusy, setActionBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
@@ -860,6 +855,10 @@ const ProjectApp = () => {
     setSource: setImportSource,
     text: importText,
     setText: setImportText,
+    fileName: importFileName,
+    setFileName: setImportFileName,
+    fileContent: importFileContent,
+    setFileContent: setImportFileContent,
     rows: importRows,
     setRows: setImportRows,
     handle: importHandle,
@@ -1211,6 +1210,8 @@ const ProjectApp = () => {
     setDuplicateEnvironmentId("");
     setDuplicateEnvironments([]);
     setImportText("");
+    setImportFileName(null);
+    setImportFileContent("");
   }, [
     retireImport,
     importRevealEpochRef,
@@ -1222,6 +1223,8 @@ const ProjectApp = () => {
     setImportBusy,
     setImportReveals,
     setImportText,
+    setImportFileName,
+    setImportFileContent,
     setImportHandle,
     setImportCommitting,
   ]);
@@ -1333,6 +1336,8 @@ const ProjectApp = () => {
     setImportHandle(null);
     setImportTarget(null);
     setImportText("");
+    setImportFileName(null);
+    setImportFileContent("");
     setImportReveals({});
     setModal(null);
     setMenu(null);
@@ -1349,6 +1354,8 @@ const ProjectApp = () => {
     setImportRows,
     setImportHandle,
     setImportText,
+    setImportFileName,
+    setImportFileContent,
     setConfigDraft,
     importPendingRef,
     setImportReveals,
@@ -1676,53 +1683,6 @@ const ProjectApp = () => {
     }, 30_000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => {
-    if (!menu) {
-      return;
-    }
-    const dismissOutside = (event: Event) => {
-      if (
-        !(event.target instanceof Element) ||
-        !event.target.closest('.dropdown, [data-slot="dropdown-menu-content"]')
-      ) {
-        setMenu(null);
-      }
-    };
-    const dismissOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenu(null);
-      }
-    };
-    document.addEventListener("pointerdown", dismissOutside);
-    document.addEventListener("focusin", dismissOutside);
-    document.addEventListener("keydown", dismissOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", dismissOutside);
-      document.removeEventListener("focusin", dismissOutside);
-      document.removeEventListener("keydown", dismissOnEscape);
-    };
-  }, [menu]);
-  useEffect(() => {
-    if (!menu?.startsWith("row:")) {
-      return;
-    }
-    const frame = window.requestAnimationFrame(() => {
-      const row = document.querySelector(
-        `[data-list-key="${CSS.escape(menu.slice(4))}"]`
-      );
-      const dropdown = row?.querySelector<HTMLElement>(".dropdown-menu");
-      const wrap = document.querySelector<HTMLElement>("#tableWrap");
-      if (dropdown && wrap) {
-        setMenuPlacement({
-          menu,
-          openUp:
-            dropdown.getBoundingClientRect().bottom >
-            wrap.getBoundingClientRect().bottom - 8,
-        });
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [menu]);
   const revealKey = reveal?.key;
   useEffect(() => {
     if (!revealKey) {
@@ -2491,7 +2451,42 @@ const ProjectApp = () => {
     setImportSource("text");
     setModal("import");
   };
-  const requestImportPreview = async () => {
+  const clearImportFile = useCallback(() => {
+    setImportFileName(null);
+    setImportFileContent("");
+    setImportDiagnostics([]);
+  }, [setImportFileName, setImportFileContent, setImportDiagnostics]);
+  const handleImportFileDrop = useCallback(
+    async (file: File) => {
+      if (importBusy || importPendingRef.current) {
+        return;
+      }
+      if (file.size > 1024 * 1024) {
+        setImportDiagnostics([t("project.importReview.fileTooLarge")]);
+        return;
+      }
+      try {
+        const content = await file.text();
+        if (new TextEncoder().encode(content).length > 1024 * 1024) {
+          setImportDiagnostics([t("project.importReview.fileTooLarge")]);
+          return;
+        }
+        setImportFileName(file.name);
+        setImportFileContent(content);
+        setImportDiagnostics([]);
+      } catch {
+        setImportDiagnostics([t("project.importReview.fileReadFailed")]);
+      }
+    },
+    [
+      importBusy,
+      importPendingRef,
+      setImportDiagnostics,
+      setImportFileName,
+      setImportFileContent,
+    ]
+  );
+  const requestImportPreview = async (forceDialog = false) => {
     const operationTarget = target;
     if (importBusy || importPendingRef.current || !operationTarget) {
       return;
@@ -2511,8 +2506,13 @@ const ProjectApp = () => {
         try {
           const result = await window.keyharbor.secrets.importPreview(
             operationTarget,
-            importSource === "text"
-              ? { content: importText, source: "text" }
+            importSource === "text" ||
+              (!forceDialog && importFileContent.length > 0)
+              ? {
+                  content:
+                    importSource === "text" ? importText : importFileContent,
+                  source: "text",
+                }
               : { source: "file" }
           );
           if (
@@ -3233,7 +3233,6 @@ const ProjectApp = () => {
             selected={selected}
             favorites={favorites}
             menu={menu}
-            menuOpenUp={menuOpenUp}
             loadState={loadState}
             emptyMessage={
               <ProjectState
@@ -3279,8 +3278,13 @@ const ProjectApp = () => {
               setActionKey(key);
               setModal("delete");
             }}
-            onMenu={(key) => {
-              setMenu(menu === `row:${key}` ? null : `row:${key}`);
+            onMenu={(key, open) => {
+              setMenu((current) => {
+                if (open) {
+                  return `row:${key}`;
+                }
+                return current === `row:${key}` ? null : current;
+              });
             }}
           />
           <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-[11px]">
@@ -3406,6 +3410,7 @@ const ProjectApp = () => {
           committing: importCommitting,
           counts: importCounts,
           diagnostics: importDiagnostics,
+          fileName: importFileName,
           handle: importHandle,
           onAction: (key, occurrenceId, action) =>
             setImportRows((current) =>
@@ -3443,12 +3448,22 @@ const ProjectApp = () => {
                   : row
               )
             ),
+          onChooseFile: () => {
+            clearImportFile();
+            void requestImportPreview(true);
+          },
+          onClearFile: () => {
+            clearImportFile();
+          },
           onClose: closeModal,
           onCommit: () => {
             void commitImport();
           },
+          onDropFile: (file) => {
+            void handleImportFileDrop(file);
+          },
           onPreview: () => {
-            void requestImportPreview();
+            void requestImportPreview(false);
           },
           onReveal: (entry, occurrence) => {
             void revealImportValue(entry, occurrence);
