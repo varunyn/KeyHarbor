@@ -59,6 +59,10 @@ import {
 import { Input } from "../renderer/ui/input";
 import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
+import {
+  closeNarrowSidebar,
+  useSidebarState,
+} from "../renderer/use-sidebar-state";
 
 type ViewMode = "grid" | "list";
 type SortMode = "recent" | "name" | "secrets";
@@ -92,14 +96,6 @@ const blankForm = (): DialogForm => ({
   vaultName: "",
 });
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
-const closeNarrowSidebar = (
-  close: React.Dispatch<React.SetStateAction<boolean>>
-) => {
-  if (window.matchMedia("(max-width: 860px)").matches) {
-    close(false);
-    document.querySelector<HTMLElement>("#indexToggle")?.focus();
-  }
-};
 const isBridgeSuccess = <T extends object>(
   value: BridgeResult<T>
 ): value is Extract<BridgeResult<T>, { success: true }> => value.success;
@@ -1399,9 +1395,7 @@ const App = () => {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [cliInstalled, setCliInstalled] = useState(false);
   const [cliReady, setCliReady] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => window.matchMedia("(min-width: 861px)").matches
-  );
+  const { open: sidebarOpen, toggleSidebar, closeSidebar } = useSidebarState();
   const [projectFilter, setProjectFilter] = useState<"all" | "starred">("all");
   const [syncAt, setSyncAt] = useState(Date.now);
   const [now, setNow] = useState(Date.now);
@@ -1919,7 +1913,7 @@ const App = () => {
         !event.defaultPrevented
       ) {
         closeMenus();
-        closeNarrowSidebar(setSidebarOpen);
+        closeNarrowSidebar();
       }
     };
     const onPointerDown = (event: PointerEvent) => {
@@ -2706,15 +2700,12 @@ const App = () => {
         )}
         hidden={!sidebarOpen}
         aria-label={t("project.sidebar.collapse")}
-        onClick={() => setSidebarOpen(false)}
+        onClick={closeSidebar}
       />
       <main className="dash-main bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="dash-topbar border-border bg-card/50 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
           <div className="flex shrink-0 items-center gap-3">
-            <SidebarToggle
-              expanded={sidebarOpen}
-              onToggle={() => setSidebarOpen((open) => !open)}
-            />
+            <SidebarToggle expanded={sidebarOpen} onToggle={toggleSidebar} />
             <nav
               className="dash-crumbs text-muted-foreground hidden items-center gap-2 text-[13px] min-[1200px]:flex"
               aria-label={t("dashboard.a11y.crumbsLabel")}

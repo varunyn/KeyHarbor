@@ -23,7 +23,8 @@ export const SidebarToggle = ({
         className="text-muted-foreground hover:text-foreground size-8 shrink-0"
         id="indexToggle"
         aria-label={label}
-        title={label}
+        title={`${label} (${window.platform === "darwin" ? "⌘B" : "Ctrl+B"})`}
+        aria-keyshortcuts="Control+b Meta+b"
         aria-expanded={expanded}
         aria-controls="indexPanel"
         onClick={onToggle}

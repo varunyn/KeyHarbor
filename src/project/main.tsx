@@ -25,6 +25,7 @@ import {
 } from "../renderer/ui/dropdown-menu";
 import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
+import { useSidebarState } from "../renderer/use-sidebar-state";
 import type {
   ActivityLog,
   ConfigurationResult,
@@ -830,7 +831,7 @@ const ProjectApp = () => {
   const [menu, setMenu] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [indexOpen, setIndexOpen] = useState(false);
+  const { open: indexOpen, toggleSidebar, closeSidebar } = useSidebarState();
   const [overlayMode, setOverlayMode] = useState(
     () => window.matchMedia("(max-width: 1100px)").matches
   );
@@ -2990,8 +2991,7 @@ const ProjectApp = () => {
       } else if (overlayMode && inspectorOpen) {
         setInspectorOpen(false);
       } else if (indexOpen && window.matchMedia("(max-width: 860px)").matches) {
-        setIndexOpen(false);
-        document.querySelector<HTMLElement>("#indexToggle")?.focus();
+        closeSidebar();
       }
     };
     const onKey = (event: KeyboardEvent) => {
@@ -3045,6 +3045,7 @@ const ProjectApp = () => {
     visible,
     selected,
     closeModal,
+    closeSidebar,
     selectKey,
   ]);
 
@@ -3098,10 +3099,7 @@ const ProjectApp = () => {
           className="max-[860px]:fixed max-[860px]:inset-0 max-[860px]:z-40 max-[860px]:bg-black/50 max-[860px]:backdrop-blur-[2px] min-[861px]:hidden"
           hidden={!indexOpen}
           aria-label={t("project.sidebar.collapse")}
-          onClick={() => {
-            setIndexOpen(false);
-            document.querySelector<HTMLElement>("#indexToggle")?.focus();
-          }}
+          onClick={closeSidebar}
         />
         <main className="secrets-main flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           <div className="border-border/40 secrets-topbar flex shrink-0 flex-col border-b">
@@ -3122,10 +3120,7 @@ const ProjectApp = () => {
               className="text-muted-foreground border-border/30 secrets-crumbs flex items-center gap-2 border-b px-6 py-2 text-xs"
               aria-label={t("project.a11y.crumbsLabel")}
             >
-              <SidebarToggle
-                expanded={indexOpen}
-                onToggle={() => setIndexOpen((open) => !open)}
-              />
+              <SidebarToggle expanded={indexOpen} onToggle={toggleSidebar} />
               <a
                 className="text-primary secrets-back-link inline-flex items-center gap-1 font-medium hover:underline"
                 href="dashboard.html"
