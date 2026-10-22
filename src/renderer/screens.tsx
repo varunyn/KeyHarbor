@@ -33,6 +33,7 @@ import { Button } from "./ui/button";
 import { useConfirmation } from "./ui/confirmation";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
 
 const resultError = (
@@ -132,31 +133,13 @@ const SettingsToggle = ({
   disabled?: boolean;
   id?: string;
 }) => (
-  <label
-    className={cn(
-      "focus-within:ring-primary focus-within:ring-offset-background relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors focus-within:ring-2 focus-within:ring-offset-2",
-      checked
-        ? "border-primary bg-primary"
-        : "border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-700/80",
-      disabled && "cursor-not-allowed opacity-50"
-    )}
+  <Switch
+    id={id}
     aria-label={label}
-  >
-    <input
-      id={id}
-      type="checkbox"
-      className="peer sr-only"
-      checked={checked}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.checked)}
-    />
-    <span
-      className={cn(
-        "pointer-events-none block size-5 rounded-full bg-white shadow-md ring-1 shadow-black/25 ring-black/10 transition-transform",
-        checked ? "translate-x-[21px]" : "translate-x-0.5"
-      )}
-    />
-  </label>
+    checked={checked}
+    disabled={disabled}
+    onCheckedChange={onChange}
+  />
 );
 
 const SettingsRow = ({
