@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import type { ReviewTarget } from "./bridge";
+import type { FolderScanSummary, ReviewTarget } from "./bridge";
 import type { ConfigDraft, ImportRow, ImportReveal } from "./components";
 
 export const useConfigurationReviewState = () => {
@@ -13,7 +13,12 @@ export const useConfigurationReviewState = () => {
 };
 
 export const useImportReviewState = () => {
-  const [source, setSource] = useState<"text" | "file">("text");
+  const [source, setSource] = useState<"text" | "file" | "folder">("text");
+  const [folderScan, setFolderScan] = useState<FolderScanSummary | null>(null);
+  const folderScanRef = useRef<string | null>(null);
+  const [folderEnvironmentId, setFolderEnvironmentId] = useState("");
+  const [folderFileId, setFolderFileId] = useState<string | null>(null);
+  const [reviewedFileIds, setReviewedFileIds] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
@@ -36,19 +41,28 @@ export const useImportReviewState = () => {
     epoch,
     fileContent,
     fileName,
+    folderEnvironmentId,
+    folderFileId,
+    folderScan,
+    folderScanRef,
     handle,
     handleRef,
     pending,
     revealEpoch,
     reveals,
+    reviewedFileIds,
     rows,
     setBusy,
     setCommitting,
     setDiagnostics,
     setFileContent,
     setFileName,
+    setFolderEnvironmentId,
+    setFolderFileId,
+    setFolderScan,
     setHandle,
     setReveals,
+    setReviewedFileIds,
     setRows,
     setSource,
     setTarget,

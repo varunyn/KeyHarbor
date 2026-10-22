@@ -161,6 +161,29 @@ components:
 
 # Design System: KeyHarbor — Vault Ledger
 
+## Native macOS shell — approved October 22, 2026
+
+On macOS, the platform adaptation in `src/renderer/window-chrome.tsx` and shared theme tokens in `src/styles/theme.css` supersedes interface font and shared surface tokens below. Windows and Linux retain their existing contracts. Preserve all content, layout, and secret-handling behavior. Standard secret action lists use Electron Menu.popup on macOS and the shared Radix menu elsewhere. Searchable project switching uses Radix Popover with cmdk and the shared Tailwind primitives.
+
+- Use the Apple system interface font; preserve JetBrains Mono for credential material.
+- Reserve a 48px unified title bar with real traffic lights. The shared title bar drags the window; interactive controls remain outside the drag region. Native full screen and resizing remain available.
+- Use public AppKit Liquid Glass on macOS 26+, native sidebar vibrancy on older systems, and opaque materials for Reduce Transparency or Increase Contrast. Native backdrop views never handle input.
+- Dark tokens: canvas `#202020`, card `#292929`, controls `#363636`, text `#F2F2F7`, secondary `#B5B5BD`, blue `#64B5FF`, border `#414144`.
+- Light tokens: canvas `#F5F5F5`, card `#FFFFFF`, controls `#E8E8ED`, text `#1D1D1F`, secondary `#606068`, blue `#005FC5`, border `#D1D1D6`.
+- Navigation and title bar expose the system material through a readability tint (90% canvas in both themes); selected navigation rows use solid control surfaces. Workspace content, secret inspectors, dialogs, and menus use opaque backgrounds. Narrow-screen drawers start beneath the title bar and use solid materials.
+
+## Shared workspace navigation — October 22, 2026
+
+The shared `--ui-sidebar-width` token keeps the expanded sidebar compact at 208px, reserving more width for workspace content. The homepage and project workspace use matching 208px expanded sidebars and 64px rails, with 13px Projects / Activity / Settings navigation and the shared macOS selection treatment. Project-specific Views remain below the global navigation. Following shadcn SidebarMenuBadge behavior, counts appear beside expanded labels and hide in the icon rail; tooltips and accessible names retain the counts without overlapping icons. The project header shows Projects → project switcher and the actual vault name; the selected Environment is shown only in the workspace controls. Hide secondary vault text below 860px while retaining its accessible text and tooltip.
+
+Sidebar expansion is a shared local preference across Home and project pages. Navigation, reload, and history restoration preserve the latest choice. The toggle button and Command/Ctrl+B update that preference; Escape and backdrop clicks explicitly dismiss narrow-screen drawers. Resizing does not overwrite the saved choice. The initial default is expanded above 860px and collapsed on smaller windows when no preference exists.
+
+Shared Tailwind typography uses pixel-based tokens to avoid shrinking against the legacy 13px document root: 12px secondary text, 13px controls and navigation, 14px body, 18px section titles, and 24px page headings. Interface icons use an independent pixel scale (12 / 14 / 16 / 18 / 20 / 24px), with 16px as the default, so legacy root sizing cannot shrink them. Project icon color classes preserve the base size. Primary secret-row and value text uses 13px; metadata stays 12px and table headers 11px. Existing rem-based spacing and control dimensions are preserved. This supersedes the differing sidebar widths and page-title sizes below.
+
+## Access Logs workspace — October 22, 2026
+
+Access Logs uses `src/renderer/workspace-shell.tsx` for the matching title bar, 208px / 64px sidebar, Projects / Activity / Settings navigation, breadcrumbs, shared sidebar preference, and Command/Ctrl+B shortcut. Activity is the active navigation item. A 24px heading and 12px secondary description precede the search and category controls. The category filter uses the same Radix radio menu, selected indicator, spacing, and surface as homepage sorting. Log entries form a compact divided ledger with category text, the recorded message, and timestamp; values come only from the existing log bridge. Export stays in the top bar. Clear All Logs lives in the overflow menu and retains its confirmation, initial Cancel focus, and session guards. Search supports Command/Ctrl+K; narrow navigation keeps Escape and backdrop dismissal. The log controller and screen live in `src/logs/use-logs.ts` and `src/logs/screen.tsx`.
+
 ## Project secrets workspace — approved October 2, 2026
 
 The project secrets screen adopts the supplied DevSec Ops Native reference; the Projects dashboard follows its own approved reference below, and other views retain Vault Ledger materials. This surface-specific contract supersedes the charcoal, macOS-blue, ruled-table, and system-font directions below for `src/views/project.html` and `src/project/*` only.

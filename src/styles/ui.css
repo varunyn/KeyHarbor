@@ -4,11 +4,31 @@
 @source "../renderer/ui";
 @source "../dashboard";
 @source "../project";
+@source "../logs";
+@source "../renderer/workspace-shell.tsx";
 @source "../renderer/reconciliation.tsx";
 @source "../renderer/screens.tsx";
+@source "../renderer/window-chrome.tsx";
+
+/* Pixel-based type tokens keep the UI readable with the legacy 13px root.
+   Preserve the existing rem-based spacing and control dimensions. */
+@theme {
+  --text-xs: 12px;
+  --text-xs--line-height: 18px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-lg: 18px;
+  --text-lg--line-height: 24px;
+  --text-xl: 20px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 30px;
+}
 
 @theme inline {
-  --font-sans: "Geist", sans-serif;
+  --font-sans: var(--ui-font-sans);
   --font-mono: "JetBrains Mono", monospace;
   --color-background: var(--ui-background);
   --color-foreground: var(--ui-foreground);

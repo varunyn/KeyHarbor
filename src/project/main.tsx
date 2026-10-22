@@ -15,22 +15,17 @@ import {
   RendererProviders,
   useRendererTranslation,
 } from "../renderer/providers";
+import { ActionMenu } from "../renderer/ui/action-menu";
 import { Button } from "../renderer/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../renderer/ui/dropdown-menu";
-import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
 import { useSidebarState } from "../renderer/use-sidebar-state";
+import { nativeWindowStyles } from "../renderer/window-chrome";
 import type {
   ActivityLog,
   ConfigurationResult,
   EnvironmentSummary,
   EnvironmentTarget,
+  FolderScanSummary,
   ImportDecision,
   ImportOccurrence,
   ProjectRecord,
@@ -49,9 +44,10 @@ import type { ConfigDraft, ImportRow } from "./components";
 import { EnvironmentControls } from "./environment-controls";
 import { useEnvironmentLifetime } from "./environment-lifetime";
 import { environmentUsageFor } from "./environment-usage";
-import { ProjectSidebar, ProjectSwitcher } from "./project-sidebar";
+import { ProjectSidebar } from "./project-sidebar";
 import type { ProjectView } from "./project-sidebar";
 import { ProjectToolbar } from "./project-toolbar";
+import { ProjectTopbar } from "./project-topbar";
 import { RawExportDialog } from "./raw-export-dialog";
 import {
   useConfigurationReviewState,
@@ -135,9 +131,6 @@ const configurationTargetLabelFor = (
       t("project.configuration.currentVault"),
   });
 };
-const projectBreadcrumbFor = (projectName: string) => projectName || "–";
-const environmentBreadcrumbFor = (environmentName?: string) =>
-  environmentName || t("project.environments.loading");
 const projectStateEnvironmentFor = (environmentName?: string) =>
   environmentName || t("project.environments.unknown");
 const vaultSubtitleFor = (vaultName: string) =>
@@ -146,6 +139,46 @@ const secretCountLabelFor = (count: number) =>
   count === 1
     ? t("project.summary.secretsOne")
     : t("project.summary.secrets", { count });
+const fetchImportPreview = (
+  target: EnvironmentTarget,
+  input: {
+    source: "folder" | "file" | "text";
+    text: string;
+    fileContent: string;
+    scanId: string | null;
+    fileId?: string;
+    forceDialog: boolean;
+  }
+) => {
+  if (input.source === "folder" && input.fileId && input.scanId) {
+    return window.keyharbor.secrets.importFolderPreview(
+      target,
+      input.scanId,
+      input.fileId
+    );
+  }
+  if (
+    input.source === "text" ||
+    (!input.forceDialog && input.fileContent.length > 0)
+  ) {
+    return window.keyharbor.secrets.importPreview(target, {
+      content: input.source === "text" ? input.text : input.fileContent,
+      source: "text",
+    });
+  }
+  return window.keyharbor.secrets.importPreview(target, { source: "file" });
+};
+const importFileLabel = (
+  source: string,
+  scan: FolderScanSummary | null,
+  fileId: string | null,
+  fileName: string | null
+) => {
+  if (source === "folder") {
+    return scan?.files.find((file) => file.id === fileId)?.path || null;
+  }
+  return fileName;
+};
 const inspectorClassFor = (open: boolean, selected: string | null) =>
   open && selected ? "is-open" : "";
 const selectedSecretFor = (
@@ -535,7 +568,7 @@ const ConfigurationPanel = ({
                 {entry.key}
               </code>
               <span
-                className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 font-mono text-[11px]"
+                className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 text-[11px]"
                 data-status={entry.status}
               >
                 {t(
@@ -615,6 +648,7 @@ const InspectorPanel = ({
 }: InspectorPanelProps) => (
   <aside
     className={cn(
+      nativeWindowStyles.inspector,
       "border-border bg-card/40 secrets-inspector flex h-full w-[360px] shrink-0 flex-col border-l",
       inspectorClassFor(inspectorOpen, selected)
     )}
@@ -648,56 +682,44 @@ const InspectorPanel = ({
             : t("project.inspector.noSelection")}
         </p>
       </div>
-      <DropdownMenu open={menu === "inspector"} onOpenChange={onMenuOpenChange}>
-        <div className="dropdown relative" id="inspectorMenuDropdown">
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="text-muted-foreground hover:text-foreground row-action size-7 rounded-md"
-              id="inspectorMenuBtn"
-              aria-expanded={menu === "inspector"}
-            >
-              <Icon name="ellipsis" className="size-3.5" />
-              <span className="sr-only">
-                {t("project.inspector.secretActions")}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="bg-card border-border min-w-[160px] rounded-xl border p-1 shadow-xl"
-            id="inspectorMenu"
-            align="end"
-          >
-            {(
-              [
-                ["rotate", t("project.inspector.rotateSecret")],
-                ["history", t("project.viewHistory")],
-                ["duplicate", t("project.inspector.duplicateToProject")],
-                ["delete", t("project.deleteSecret")],
-              ] as const
-            ).map(([action, label]) => (
-              <React.Fragment key={action}>
-                {action === "delete" && (
-                  <DropdownMenuSeparator className="border-border my-1 border-t" />
-                )}
-                <DropdownMenuItem
-                  className={cn(
-                    "hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
-                    action === "delete" &&
-                      "text-destructive hover:bg-destructive/10"
-                  )}
-                  data-act={action}
-                  onSelect={() => onAction(action)}
-                >
-                  {label}
-                </DropdownMenuItem>
-              </React.Fragment>
-            ))}
-          </DropdownMenuContent>
-        </div>
-      </DropdownMenu>
+      <ActionMenu
+        open={menu === "inspector"}
+        onOpenChange={onMenuOpenChange}
+        items={[
+          {
+            label: t("project.inspector.rotateSecret"),
+            onSelect: () => onAction("rotate"),
+          },
+          {
+            label: t("project.viewHistory"),
+            onSelect: () => onAction("history"),
+          },
+          {
+            label: t("project.inspector.duplicateToProject"),
+            onSelect: () => onAction("duplicate"),
+          },
+          { separator: true },
+          {
+            destructive: true,
+            label: t("project.deleteSecret"),
+            onSelect: () => onAction("delete"),
+          },
+        ]}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          type="button"
+          className="text-muted-foreground hover:text-foreground row-action size-7 rounded-md"
+          id="inspectorMenuBtn"
+          aria-expanded={menu === "inspector"}
+        >
+          <Icon name="ellipsis" className="size-3.5" />
+          <span className="sr-only">
+            {t("project.inspector.secretActions")}
+          </span>
+        </Button>
+      </ActionMenu>
       <Button
         variant="ghost"
         size="icon"
@@ -851,6 +873,15 @@ const ProjectApp = () => {
   } = configurationFlow;
   const importFlow = useImportReviewState();
   const {
+    folderScan: importFolderScan,
+    setFolderScan: setImportFolderScan,
+    folderScanRef: importFolderScanRef,
+    folderEnvironmentId: importFolderEnvironmentId,
+    setFolderEnvironmentId: setImportFolderEnvironmentId,
+    folderFileId: importFolderFileId,
+    setFolderFileId: setImportFolderFileId,
+    reviewedFileIds: importReviewedFileIds,
+    setReviewedFileIds: setImportReviewedFileIds,
     source: importSource,
     setSource: setImportSource,
     text: importText,
@@ -1184,17 +1215,37 @@ const ProjectApp = () => {
       }
     }
   }, [configHandleRef]);
-  const retireImport = useCallback(async () => {
-    const handle = importHandleRef.current;
-    importHandleRef.current = null;
-    if (handle) {
-      try {
-        await window.keyharbor.secrets.importDiscard(handle);
-      } catch {
-        /* main process retires expired handles */
+  const retireImport = useCallback(
+    async (includeFolder = true) => {
+      const handles = [importHandleRef.current];
+      importHandleRef.current = null;
+      if (includeFolder) {
+        handles.push(importFolderScanRef.current);
+        importFolderScanRef.current = null;
+        setImportFolderScan(null);
+        setImportFolderFileId(null);
+        setImportReviewedFileIds([]);
       }
-    }
-  }, [importHandleRef]);
+      for (const handle of handles) {
+        if (handle) {
+          try {
+            // Reviews and scans are retired in order; each handle owns main-process state.
+            // eslint-disable-next-line no-await-in-loop
+            await window.keyharbor.secrets.importDiscard(handle);
+          } catch {
+            /* Main process also retires handles on navigation and lock. */
+          }
+        }
+      }
+    },
+    [
+      importHandleRef,
+      importFolderScanRef,
+      setImportFolderScan,
+      setImportFolderFileId,
+      setImportReviewedFileIds,
+    ]
+  );
   const clearImportState = useCallback(() => {
     importEpochRef.current += 1;
     importRevealEpochRef.current += 1;
@@ -2449,6 +2500,7 @@ const ProjectApp = () => {
   const openImport = () => {
     clearImportState();
     setImportSource("text");
+    setImportFolderEnvironmentId(target?.environmentId || "");
     setModal("import");
   };
   const clearImportFile = useCallback(() => {
@@ -2486,8 +2538,97 @@ const ProjectApp = () => {
       setImportFileContent,
     ]
   );
-  const requestImportPreview = async (forceDialog = false) => {
-    const operationTarget = target;
+  const scanImportFolder = async (folder?: File, resume = false) => {
+    if (!target || importBusy || importPendingRef.current) {
+      return;
+    }
+    const lifetime = captureEnvironmentLifetime();
+    importEpochRef.current += 1;
+    const op = importEpochRef.current;
+    importPendingRef.current = true;
+    setImportBusy(true);
+    setImportDiagnostics([]);
+    await retireImport();
+    return await runWithCleanup(
+      async () => {
+        try {
+          if (
+            importEpochRef.current !== op ||
+            !isEnvironmentLifetimeCurrent(lifetime)
+          ) {
+            return;
+          }
+          const result = await (resume
+            ? window.keyharbor.secrets.importFolderResume(target)
+            : window.keyharbor.secrets.importFolderScan(target, folder));
+          if (
+            importEpochRef.current !== op ||
+            !isEnvironmentLifetimeCurrent(lifetime)
+          ) {
+            if (result.success) {
+              await window.keyharbor.secrets.importDiscard(result.scan.scanId);
+            }
+            return;
+          }
+          if (!result.success) {
+            if (!result.cancelled) {
+              setImportDiagnostics([t("project.folderImport.scanFailed")]);
+            }
+            return;
+          }
+          importFolderScanRef.current = result.scan.scanId;
+          setImportFolderScan(result.scan);
+        } catch {
+          if (
+            importEpochRef.current === op &&
+            isEnvironmentLifetimeCurrent(lifetime)
+          ) {
+            setImportDiagnostics([t("project.folderImport.scanFailed")]);
+          }
+        }
+      },
+      () => {
+        if (
+          importEpochRef.current === op &&
+          isEnvironmentLifetimeCurrent(lifetime)
+        ) {
+          importPendingRef.current = false;
+          setImportBusy(false);
+        }
+      }
+    );
+  };
+  const resumeHomeFolder = useEffectEvent(() => {
+    openImport();
+    setImportSource("folder");
+    void scanImportFolder(undefined, true);
+  });
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (target && url.searchParams.get("importFolder") === "1") {
+      url.searchParams.delete("importFolder");
+      window.history.replaceState(null, "", url);
+      queueMicrotask(() => resumeHomeFolder());
+    }
+  }, [target]);
+
+  const requestImportPreview = async (
+    forceDialog = false,
+    folderFileId?: string
+  ) => {
+    let operationTarget = target;
+    if (importSource === "folder") {
+      if (
+        !target ||
+        !importFolderEnvironmentId ||
+        !importFolderScanRef.current ||
+        !folderFileId
+      ) {
+        return;
+      }
+      operationTarget = { ...target, environmentId: importFolderEnvironmentId };
+      setImportFolderFileId(folderFileId);
+    }
     if (importBusy || importPendingRef.current || !operationTarget) {
       return;
     }
@@ -2500,21 +2641,18 @@ const ProjectApp = () => {
     setImportCommitting(false);
     setImportDiagnostics([]);
     setImportReveals({});
-    void retireImport();
+    void retireImport(false);
     return await runWithCleanup(
       async () => {
         try {
-          const result = await window.keyharbor.secrets.importPreview(
-            operationTarget,
-            importSource === "text" ||
-              (!forceDialog && importFileContent.length > 0)
-              ? {
-                  content:
-                    importSource === "text" ? importText : importFileContent,
-                  source: "text",
-                }
-              : { source: "file" }
-          );
+          const result = await fetchImportPreview(operationTarget, {
+            fileContent: importFileContent,
+            fileId: folderFileId,
+            forceDialog,
+            scanId: importFolderScanRef.current,
+            source: importSource,
+            text: importText,
+          });
           if (
             importEpochRef.current !== op ||
             modal !== "import" ||
@@ -2631,8 +2769,22 @@ const ProjectApp = () => {
             replaced: result.replaced,
             skipped: result.skipped,
           });
-          setModal(null);
-          clearImportState();
+          if (importSource === "folder") {
+            if (importFolderFileId) {
+              setImportReviewedFileIds((ids) => [
+                ...new Set([...ids, importFolderFileId]),
+              ]);
+            }
+            await retireImport(false);
+            setImportHandle(null);
+            setImportTarget(null);
+            setImportRows([]);
+            setImportReveals({});
+            setImportDiagnostics([]);
+          } else {
+            setModal(null);
+            clearImportState();
+          }
           await loadSecrets(false);
           await refreshConfiguration();
         } catch (error) {
@@ -3055,7 +3207,11 @@ const ProjectApp = () => {
   );
   const importTargetText = importTargetLabelFor(
     importTarget,
-    currentEnvironment?.name,
+    importSource === "folder"
+      ? environmentSummaries.find(
+          (entry) => entry.id === importFolderEnvironmentId
+        )?.name
+      : currentEnvironment?.name,
     projectName,
     vaultName
   );
@@ -3081,7 +3237,12 @@ const ProjectApp = () => {
   };
   return (
     <>
-      <div className="bg-background text-foreground secrets-app flex h-screen w-screen overflow-hidden">
+      <div
+        className={cn(
+          "bg-background text-foreground secrets-app flex h-screen w-screen overflow-hidden",
+          nativeWindowStyles.canvas
+        )}
+      >
         <ProjectSidebar
           indexOpen={indexOpen}
           nav={nav}
@@ -3101,52 +3262,20 @@ const ProjectApp = () => {
           aria-label={t("project.sidebar.collapse")}
           onClick={closeSidebar}
         />
-        <main className="secrets-main flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="border-border/40 secrets-topbar flex shrink-0 flex-col border-b">
-            <div className="border-border/30 secrets-commandbar flex items-center justify-between gap-4 border-b px-6 py-2.5">
-              <ProjectSwitcher
-                menu={menu}
-                setMenu={setMenu}
-                projectName={projectName}
-                switcherProjects={otherProjects.slice(0, 30)}
-                nav={nav}
-              />
-              <span className="text-muted-foreground secrets-local-state flex items-center gap-1.5 text-xs font-medium">
-                <Icon name="lock" />
-                {t("project.header.localVault")}
-              </span>
-            </div>
-            <nav
-              className="text-muted-foreground border-border/30 secrets-crumbs flex items-center gap-2 border-b px-6 py-2 text-xs"
-              aria-label={t("project.a11y.crumbsLabel")}
-            >
-              <SidebarToggle expanded={indexOpen} onToggle={toggleSidebar} />
-              <a
-                className="text-primary secrets-back-link inline-flex items-center gap-1 font-medium hover:underline"
-                href="dashboard.html"
-              >
-                <Icon name="arrow-left" />
-                <span>{t("project.sidebar.allProjects")}</span>
-              </a>
-              <span aria-hidden="true" className="opacity-40">
-                /
-              </span>
-              <span id="crumbProject">{projectBreadcrumbFor(projectName)}</span>
-              <span aria-hidden="true" className="opacity-40">
-                /
-              </span>
-              <span id="crumbEnvironment">
-                {environmentBreadcrumbFor(currentEnvironment?.name)}
-              </span>
-              <span aria-hidden="true" className="opacity-40">
-                /
-              </span>
-              <span aria-current="page" className="text-foreground font-medium">
-                {t("project.header.breadcrumbSecrets")}
-              </span>
-            </nav>
+        <main className="secrets-main bg-background flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <ProjectTopbar
+            indexOpen={indexOpen}
+            onToggleIndex={toggleSidebar}
+            projectName={projectName}
+            projects={projects}
+            menu={menu}
+            setMenu={setMenu}
+            nav={nav}
+            vaultLabel={vaultSubtitleFor(vaultName)}
+          />
+          <div className="border-border/40 flex shrink-0 flex-col border-b">
             <div className="secrets-title-row flex flex-wrap items-center gap-4 px-6 py-3">
-              <h1 className="text-foreground truncate text-lg font-bold tracking-tight">
+              <h1 className="text-foreground truncate text-2xl font-semibold tracking-tight">
                 {t("project.header.title")}
               </h1>
               <EnvironmentControls
@@ -3159,12 +3288,6 @@ const ProjectApp = () => {
                 onSelect={selectEnvironment}
                 onStructureChanged={onEnvironmentStructureChanged}
               />
-              <span
-                className="text-muted-foreground secrets-vault-tag text-xs"
-                id="vaultTag"
-              >
-                {vaultSubtitleFor(vaultName)}
-              </span>
             </div>
             <ProjectToolbar
               search={search}
@@ -3392,7 +3515,25 @@ const ProjectApp = () => {
           committing: importCommitting,
           counts: importCounts,
           diagnostics: importDiagnostics,
-          fileName: importFileName,
+          fileName: importFileLabel(
+            importSource,
+            importFolderScan,
+            importFolderFileId,
+            importFileName
+          ),
+          folder: {
+            environmentId: importFolderEnvironmentId,
+            environments: environmentSummaries,
+            onEnvironment: setImportFolderEnvironmentId,
+            onReviewFile: (id) => {
+              void requestImportPreview(false, id);
+            },
+            onScan: (folder) => {
+              void scanImportFolder(folder);
+            },
+            reviewedFileIds: importReviewedFileIds,
+            scan: importFolderScan,
+          },
           handle: importHandle,
           onAction: (key, occurrenceId, action) =>
             setImportRows((current) =>
@@ -3406,8 +3547,9 @@ const ProjectApp = () => {
             importEpochRef.current += 1;
             importRevealEpochRef.current += 1;
             importPendingRef.current = false;
-            void retireImport();
+            void retireImport(false);
             setImportHandle(null);
+            setImportTarget(null);
             setImportRows([]);
             setImportReveals({});
             setImportDiagnostics([]);
@@ -3451,6 +3593,9 @@ const ProjectApp = () => {
             void revealImportValue(entry, occurrence);
           },
           onSource: (source) => {
+            if (source !== importSource) {
+              void retireImport();
+            }
             setImportSource(source);
             setImportDiagnostics([]);
           },

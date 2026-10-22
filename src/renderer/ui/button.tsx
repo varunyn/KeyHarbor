@@ -6,7 +6,7 @@ import * as React from "react";
 import { cn } from "./utils";
 
 const buttonVariants = cva(
-  "focus-visible:ring-offset-background focus-visible:ring-ring text-foreground inline-flex appearance-none items-center justify-center gap-2 rounded-lg border border-transparent bg-transparent font-sans text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "focus-visible:ring-offset-background focus-visible:ring-ring text-foreground inline-flex appearance-none items-center justify-center gap-2 rounded-lg border border-transparent bg-transparent font-sans text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-[16px] [&_svg]:shrink-0",
   {
     defaultVariants: {
       size: "default",

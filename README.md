@@ -143,6 +143,12 @@ npm run build:linux
 
 ---
 
+### Import a project folder
+
+Drop a folder into the Home page drop area, then choose an existing Project or create a new one. You can also open **Import → Project folder** inside a Project and drop a folder or choose one. KeyHarbor finds `.env` and `.env.*` files, shows whether each is ignored or already tracked by Git, and checks missing key names against nearby `.env.example`, `.env.sample`, `.env.template`, or `.env.dist` files. Template values are ignored. Choose an existing destination Environment and review each file before importing; filename hints never select an Environment automatically. Imported files stay on disk, and KeyHarbor does not edit ignore rules or Git history.
+
+Scanning skips symlinks, dependencies, and build folders, and is limited to four subfolder levels, 4,096 directory entries, 64 candidate files, 1 MiB per file, and 8 MiB of input overall. A partial scan is labeled. Git status is unavailable when Git cannot inspect the folder. Missing-key checks compare files with templates; they do not validate credentials or automatically change the saved requirements.
+
 ## CLI Reference
 
 The KeyHarbor CLI allows you to read, write, and inject credentials into terminal commands. The desktop app must be running and unlocked; commands will trigger an interactive approval dialog before executing.

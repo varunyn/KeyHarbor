@@ -22,6 +22,20 @@
     "touchIdFailed": "Touch ID unlock failed. Try again or use your master password."
   },
   "dashboard": {
+    "folderImport": {
+      "heading": "Drop a project folder here",
+      "active": "Drop to scan this folder",
+      "hint": "Discover .env files, check Git protection, and review missing variables.",
+      "destination": "Choose a destination project",
+      "reviewHint": "Choose an existing project or create one. Review files and the destination Environment before importing any secrets.",
+      "search": "Find an existing project…",
+      "empty": "No matching projects",
+      "newName": "Or create a new project",
+      "create": "Create project and scan",
+      "opening": "Opening folder review…",
+      "createFailed": "The project could not be created. Choose a different name and try again.",
+      "failed": "The folder could not be opened. Drop a project folder and try again."
+    },
     "title": "Projects",
     "subtitle": "Manage encrypted environment secrets across your local projects.",
     "crumbsVault": "Vault",
@@ -148,6 +162,44 @@
     }
   },
   "project": {
+    "folderImport": {
+      "source": "Project folder",
+      "heading": "Import from a project folder",
+      "drop": "Drop a project folder here",
+      "scanHint": "Find .env files and compare their keys with nearby templates. Files are read only.",
+      "choose": "Choose folder\u2026",
+      "scanning": "Scanning\u2026",
+      "environment": "Import into environment",
+      "targetHint": "Review each file before importing. The selected environment receives only the secrets you approve; filename suggestions do not change the target.",
+      "limited": "Scan stopped at a safety limit (four subfolder levels, 4,096 entries, 64 files, or 8 MiB). Scan a smaller folder to see the rest.",
+      "empty": "No readable .env files found. Dependency and build folders are skipped.",
+      "files": "Discovered environment files",
+      "keys": "{{count}} keys",
+      "suggestion": "Filename hint: {{name}}",
+      "reviewFile": "Review {{path}}",
+      "review": "Review secrets",
+      "reviewAgain": "Review again",
+      "git": {
+        "ignored": "Ignored by Git",
+        "tracked": "Tracked by Git \u2014 values may already be committed. Adding an ignore rule does not untrack this file.",
+        "unignored": "Not ignored by Git \u2014 this file could be committed.",
+        "unknown": "Git status unavailable \u2014 Git may be missing or this folder may not be a repository."
+      },
+      "invalid": "This file contains invalid assignments. Fix it and scan again.",
+      "template": "Template: {{path}}",
+      "missing": "Missing in this file: {{keys}}",
+      "noTemplate": "No matching template found; missing keys could not be checked.",
+      "warnings": "{{count}} files or folders need attention",
+      "warning": {
+        "unreadable": "Unreadable, too large, or not valid UTF-8; skipped.",
+        "symlink": "Symbolic link skipped.",
+        "invalidTemplate": "Invalid template; missing keys could not be checked."
+      },
+      "scanFailed": "The folder could not be scanned. Choose a readable project folder and try again.",
+      "noMissing": "No missing keys in this file",
+      "templateUnchecked": "Missing keys could not be checked",
+      "reviewing": "Reviewing {{path}}"
+    },
     "environments": {
       "label": "Environment",
       "selectorLabel": "Select Environment",
@@ -190,6 +242,9 @@
       "expand": "Expand sidebar",
       "collapse": "Collapse sidebar",
       "projectLabel": "Project",
+      "switchProject": "Switch project: {{name}}",
+      "searchProjects": "Find a project…",
+      "noProjectsFound": "No matching projects",
       "allProjects": "All projects",
       "navSecrets": "Secrets",
       "navActivity": "Activity",
@@ -547,6 +602,8 @@
   },
   "logs": {
     "title": "Access Logs",
+    "description": "Review recorded access and activity in your local vault.",
+    "loading": "Loading logs…",
     "clearAll": "Clear All Logs",
     "export": "Export",
     "searchPlaceholder": "Search logs...",

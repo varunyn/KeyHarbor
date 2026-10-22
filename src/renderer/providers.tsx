@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useEffect, useReducer } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 
-import type { AppTheme } from "../project/bridge";
+import type { AppTheme, ThemeChangePayload } from "../project/bridge";
 import { i18n } from "./i18n";
 import { NotificationViewport } from "./notifications";
 import { ReconciliationLayer } from "./reconciliation";
+import { WindowChrome } from "./window-chrome";
 
 const TranslationReady = createContext(0);
 const translate = (key: string, vars?: Record<string, unknown>) =>
@@ -32,7 +39,22 @@ const applyThemeToDocument = (
   document.body.classList.toggle("light", !isDark);
 };
 
+const applyWindowMaterial = (payload: ThemeChangePayload) => {
+  const material = payload.macWindowMaterial;
+  document.body.classList.toggle("mac-native-window", Boolean(material));
+  document.body.dataset.windowMaterial = material ?? "none";
+  document.body.classList.toggle("mac-opaque-window", material === "opaque");
+  document.body.classList.toggle("bg-transparent", Boolean(material));
+  document.body.classList.toggle("bg-background", !material);
+  document.documentElement.classList.toggle(
+    "bg-transparent",
+    Boolean(material)
+  );
+};
+
 export const RendererProviders = ({ children }: { children: ReactNode }) => {
+  const [material, setMaterial] =
+    useState<ThemeChangePayload["macWindowMaterial"]>(null);
   const [revision, bump] = useReducer((value: number) => value + 1, 0);
   useEffect(() => {
     let live = true;
@@ -53,6 +75,8 @@ export const RendererProviders = ({ children }: { children: ReactNode }) => {
     const removeTheme = window.keyharbor.theme?.onThemeChanged?.((payload) => {
       if (live) {
         applyThemeToDocument(payload.theme, payload.shouldUseDarkColors);
+        applyWindowMaterial(payload);
+        setMaterial(payload.macWindowMaterial);
       }
     });
 
@@ -61,6 +85,8 @@ export const RendererProviders = ({ children }: { children: ReactNode }) => {
         const payload = await window.keyharbor.theme?.get();
         if (live && payload) {
           applyThemeToDocument(payload.theme, payload.shouldUseDarkColors);
+          applyWindowMaterial(payload);
+          setMaterial(payload.macWindowMaterial);
         }
       } catch {
         if (live) {
@@ -82,7 +108,9 @@ export const RendererProviders = ({ children }: { children: ReactNode }) => {
   return (
     <TranslationReady.Provider value={revision}>
       <NotificationViewport>
-        <ReconciliationLayer>{children}</ReconciliationLayer>
+        <WindowChrome material={material}>
+          <ReconciliationLayer>{children}</ReconciliationLayer>
+        </WindowChrome>
       </NotificationViewport>
     </TranslationReady.Provider>
   );

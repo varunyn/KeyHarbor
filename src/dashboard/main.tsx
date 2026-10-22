@@ -57,12 +57,15 @@ import {
   DropdownMenuSubTrigger,
 } from "../renderer/ui/dropdown-menu";
 import { Input } from "../renderer/ui/input";
+import { topBarClass } from "../renderer/ui/nav-bar";
 import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
 import {
   closeNarrowSidebar,
   useSidebarState,
 } from "../renderer/use-sidebar-state";
+import { nativeWindowStyles } from "../renderer/window-chrome";
+import { HomeFolderImport } from "./folder-import";
 
 type ViewMode = "grid" | "list";
 type SortMode = "recent" | "name" | "secrets";
@@ -1041,9 +1044,10 @@ const DashboardSidebar = ({
 }: DashboardSidebarProps) => (
   <aside
     className={cn(
+      nativeWindowStyles.sidebar,
       "dash-index bg-card border-border relative z-50 flex shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
       sidebarOpen
-        ? "w-[248px] p-3 max-[860px]:w-[248px] max-[860px]:translate-x-0"
+        ? "w-[var(--ui-sidebar-width)] p-3 max-[860px]:w-[var(--ui-sidebar-width)] max-[860px]:translate-x-0"
         : "is-collapsed items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
     )}
     id="indexPanel"
@@ -1095,12 +1099,12 @@ const DashboardSidebar = ({
             {sidebarOpen ? (
               <>
                 <span className="dash-vault-text min-w-0 flex-1">
-                  <small className="text-muted-foreground block text-[10px] leading-none font-semibold tracking-wider uppercase">
+                  <small className="text-muted-foreground block text-[11px] leading-none font-semibold tracking-wider uppercase">
                     {t("dashboard.crumbsVault")}
                   </small>
                   <strong
                     id="vault-dropdown-name"
-                    className="text-foreground mt-0.5 block truncate text-xs leading-tight font-semibold"
+                    className="text-foreground mt-0.5 block truncate text-sm leading-tight font-semibold"
                   >
                     {activeVault?.name ?? t("dashboard.vaultDefault")}
                   </strong>
@@ -1263,9 +1267,10 @@ const DashboardSidebar = ({
         size="sm"
         type="button"
         className={cn(
+          nativeWindowStyles.selectedNavigation,
           "bg-primary/10 text-primary hover:bg-primary/15 flex rounded-lg font-semibold transition-colors",
           sidebarOpen
-            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-sm"
             : "relative size-10 items-center justify-center p-0"
         )}
         aria-current="page"
@@ -1278,7 +1283,7 @@ const DashboardSidebar = ({
             <span className="flex-1 text-left">
               {t("dashboard.sidebar.navProjects")}
             </span>
-            <span className="dash-nav-count bg-primary/15 text-primary rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+            <span className="dash-nav-count bg-primary/15 text-primary rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold">
               {projectsCount}
             </span>
           </>
@@ -1292,7 +1297,7 @@ const DashboardSidebar = ({
         className={cn(
           "text-muted-foreground hover:text-foreground hover:bg-secondary flex rounded-lg font-medium transition-colors",
           sidebarOpen
-            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-sm"
             : "size-10 items-center justify-center p-0"
         )}
         title={t("dashboard.sidebar.navActivity")}
@@ -1314,7 +1319,7 @@ const DashboardSidebar = ({
         className={cn(
           "text-muted-foreground hover:text-foreground hover:bg-secondary flex rounded-lg font-medium transition-colors",
           sidebarOpen
-            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-xs"
+            ? "h-9 w-full items-center justify-start gap-2.5 px-2.5 text-sm"
             : "size-10 items-center justify-center p-0"
         )}
         title={t("dashboard.sidebar.navSettings")}
@@ -2666,7 +2671,10 @@ const App = () => {
 
   return (
     <div
-      className="dash-app bg-background text-foreground flex h-dvh overflow-hidden font-sans"
+      className={cn(
+        "dash-app bg-background text-foreground flex h-dvh overflow-hidden font-sans",
+        nativeWindowStyles.canvas
+      )}
       ref={appRef}
     >
       <DashboardSidebar
@@ -2698,16 +2706,18 @@ const App = () => {
         onClick={closeSidebar}
       />
       <main className="dash-main bg-background flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="dash-topbar border-border bg-card/50 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs">
-          <div className="flex shrink-0 items-center gap-3">
+        <header className={cn("dash-topbar", topBarClass)}>
+          <div className="flex min-w-0 shrink-0 items-center gap-3">
             <SidebarToggle expanded={sidebarOpen} onToggle={toggleSidebar} />
             <nav
-              className="dash-crumbs text-muted-foreground hidden items-center gap-2 text-[13px] min-[1200px]:flex"
+              className="dash-crumbs text-muted-foreground flex min-w-0 items-center gap-2 text-[13px]"
               aria-label={t("dashboard.a11y.crumbsLabel")}
             >
-              <span>{t("dashboard.crumbsVault")}</span>
-              <span aria-hidden="true">/</span>
-              <span aria-current="page" className="text-foreground">
+              <span className="shrink-0">{t("dashboard.crumbsVault")}</span>
+              <span aria-hidden="true" className="opacity-40">
+                /
+              </span>
+              <span aria-current="page" className="text-foreground truncate">
                 {t("dashboard.title")}
               </span>
             </nav>
@@ -2806,7 +2816,7 @@ const App = () => {
         </header>
         <div className="dash-canvas flex-1 space-y-6 overflow-y-auto p-6 lg:p-8">
           <div className="dash-heading space-y-1">
-            <h1 className="text-foreground text-2xl font-bold tracking-tight">
+            <h1 className="text-foreground text-2xl font-semibold tracking-tight">
               {t("dashboard.title")}
             </h1>
             <p className="dash-subtitle text-muted-foreground text-xs">
@@ -2937,24 +2947,12 @@ const App = () => {
             </div>
             <div id="projects-container">{projectState()}</div>
           </section>
-          {loadState === "ready" && projects.length > 0 && (
-            <Button
-              variant="ghost"
-              type="button"
-              className="dash-add-tile border-border/80 hover:border-primary/50 hover:bg-secondary/30 group my-4 flex h-auto w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-all"
-              disabled={actionBusy !== null}
-              onClick={(event) => openDialog("project", event.currentTarget)}
-            >
-              <span className="dash-add-icon bg-secondary text-primary flex size-9 items-center justify-center rounded-lg transition-transform group-hover:scale-105">
-                <Icon name="plus" />
-              </span>
-              <strong className="text-foreground text-sm font-semibold">
-                {t("dashboard.addTile.title")}
-              </strong>
-              <span className="text-muted-foreground text-xs">
-                {t("dashboard.addTile.description")}
-              </span>
-            </Button>
+          {loadState === "ready" && (
+            <HomeFolderImport
+              key={activeVaultId}
+              projects={projects}
+              onCreateProject={(trigger) => openDialog("project", trigger)}
+            />
           )}
         </div>
         <footer className="dash-footer bg-card/90 border-border text-muted-foreground fixed right-4 bottom-3 z-20 flex items-center gap-3 rounded-lg border px-3 py-1.5 text-xs shadow-sm backdrop-blur-xs">

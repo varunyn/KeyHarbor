@@ -1,40 +1,9 @@
-import {
-  Activity,
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  Clipboard,
-  Clock,
-  Download,
-  Eye,
-  FileText,
-  Folder,
-  Key,
-  LayoutGrid,
-  List,
-  Lock,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Settings,
-  SlidersHorizontal,
-  Star,
-  Upload,
-  X,
-} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 import { i18n } from "../renderer/i18n";
+import { ActionMenu } from "../renderer/ui/action-menu";
 import { Button } from "../renderer/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "../renderer/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../renderer/ui/dropdown-menu";
 import { cn } from "../renderer/ui/utils";
 import type {
   ConfigurationChanges,
@@ -45,49 +14,14 @@ import type {
   SecretHistory,
   SecretRecord,
 } from "./bridge";
+import { FolderImportSection } from "./folder-import-section";
+import type { FolderImportControls } from "./folder-import-section";
+import { Icon } from "./icon";
 
 type Status = "config" | "expired" | "rotate" | "healthy";
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  activity: Activity,
-  "arrow-left": ArrowLeft,
-  check: Check,
-  "chevron-down": ChevronDown,
-  "circle-alert": AlertCircle,
-  clipboard: Clipboard,
-  clock: Clock,
-  download: Download,
-  ellipsis: MoreHorizontal,
-  eye: Eye,
-  "file-text": FileText,
-  folder: Folder,
-  key: Key,
-  "layout-grid": LayoutGrid,
-  list: List,
-  lock: Lock,
-  plus: Plus,
-  search: Search,
-  settings: Settings,
-  "sliders-horizontal": SlidersHorizontal,
-  star: Star,
-  upload: Upload,
-  x: X,
-};
-
-export const Icon = ({
-  name,
-  className = "size-4",
-}: {
-  name: string;
-  className?: string;
-}) => {
-  const IconComponent = ICON_MAP[name];
-  if (!IconComponent) {
-    return <span className={`lk-icon lk-icon-${name}`} aria-hidden="true" />;
-  }
-  return <IconComponent className={className} aria-hidden="true" />;
-};
+export { Icon } from "./icon";
 
 const PILL_STYLES: Record<Status, string> = {
   config: "bg-muted text-muted-foreground border-border",
@@ -305,12 +239,12 @@ export const SecretTable = ({
       id="tableWrap"
     >
       <table
-        className="secrets-table w-full border-collapse text-xs"
+        className="secrets-table w-full border-collapse text-[13px]"
         id="secretsTable"
         aria-label={t("project.a11y.tableLabel")}
         style={{ display: showRows ? "" : "none" }}
       >
-        <thead className="bg-background/95 border-border sticky top-0 z-10 border-b backdrop-blur-xs">
+        <thead className="bg-background/95 border-border sticky top-0 z-10 border-b text-[11px] backdrop-blur-xs">
           <tr>
             <th
               scope="col"
@@ -394,7 +328,7 @@ export const SecretTable = ({
                         >
                           {entry.key}
                         </span>
-                        <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
+                        <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase">
                           {t(
                             entry.type === "secret"
                               ? "project.table.typeSecret"
@@ -479,56 +413,40 @@ export const SecretTable = ({
                     >
                       <Icon name="clipboard" className="size-3.5" />
                     </Button>
-                    <DropdownMenu
+                    <ActionMenu
                       open={menu === rowMenu}
-                      onOpenChange={(open) => {
-                        onMenu(entry.key, open);
-                      }}
+                      onOpenChange={(open) => onMenu(entry.key, open)}
+                      items={[
+                        {
+                          label: t("project.edit"),
+                          onSelect: () => onEdit(entry.key),
+                        },
+                        {
+                          label: t("project.viewHistory"),
+                          onSelect: () => onHistory(entry.key),
+                        },
+                        { separator: true },
+                        {
+                          destructive: true,
+                          label: t("project.deleteSecret"),
+                          onSelect: () => onDelete(entry.key),
+                        },
+                      ]}
                     >
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground size-7 rounded-md"
-                          aria-expanded={menu === rowMenu}
-                          aria-label={t("project.table.moreActions", {
-                            key: entry.key,
-                          })}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Icon name="ellipsis" className="size-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        className="bg-card border-border min-w-[140px] rounded-xl border p-1 shadow-xl"
-                        side="bottom"
-                        align="end"
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground size-7 rounded-md"
+                        aria-expanded={menu === rowMenu}
+                        aria-label={t("project.table.moreActions", {
+                          key: entry.key,
+                        })}
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        <DropdownMenuItem
-                          className="hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
-                          data-act="edit"
-                          onSelect={() => onEdit(entry.key)}
-                        >
-                          {t("project.edit")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="hover:bg-secondary flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
-                          data-act="history"
-                          onSelect={() => onHistory(entry.key)}
-                        >
-                          {t("project.viewHistory")}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="border-border my-1 border-t" />
-                        <DropdownMenuItem
-                          className="text-destructive hover:bg-destructive/10 flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
-                          data-act="delete"
-                          onSelect={() => onDelete(entry.key)}
-                        >
-                          {t("project.deleteSecret")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <Icon name="ellipsis" className="size-3.5" />
+                      </Button>
+                    </ActionMenu>
                   </div>
                 </td>
               </tr>
@@ -586,7 +504,7 @@ export const Inspector = ({
             </span>
           </div>
           <div
-            className="text-foreground bg-secondary/50 border-border/50 flex min-h-[48px] items-center rounded-lg border p-3 font-mono text-xs break-all select-text"
+            className="text-foreground bg-secondary/50 border-border/50 flex min-h-[48px] items-center rounded-lg border p-3 font-mono text-sm break-all select-text"
             id="inspectorValue"
           >
             {shown ? String(entry.value ?? "") : mask(entry.value)}
@@ -1159,18 +1077,20 @@ const ImportInputSection = ({
   onChooseFile,
   onDropFile,
   onClearFile,
+  folder,
 }: {
-  source: "text" | "file";
+  source: "text" | "file" | "folder";
   text: string;
   targetText: string;
   diagnostics: string[];
   busy: boolean;
   fileName: string | null;
-  onSource: (source: "text" | "file") => void;
+  onSource: (source: "text" | "file" | "folder") => void;
   onText: (text: string) => void;
   onChooseFile: () => void;
   onDropFile: (file: File) => void;
   onClearFile: () => void;
+  folder: FolderImportControls;
 }) => {
   const [dragActive, setDragActive] = useState(false);
   return (
@@ -1225,8 +1145,20 @@ const ImportInputSection = ({
         >
           {t("project.importReview.fileSource")}
         </Button>
+        <Button
+          variant={source === "folder" ? "secondary" : "ghost"}
+          type="button"
+          size="sm"
+          className="h-8 px-3 text-xs font-medium"
+          aria-pressed={source === "folder"}
+          disabled={busy}
+          onClick={() => onSource("folder")}
+        >
+          {t("project.folderImport.source")}
+        </Button>
       </section>
-      {source === "text" ? (
+      {source === "folder" && <FolderImportSection busy={busy} {...folder} />}
+      {source === "text" && (
         <div id="importPastePanel" className="space-y-1.5">
           <label
             className="text-foreground block text-xs font-medium"
@@ -1246,7 +1178,8 @@ const ImportInputSection = ({
             {t("project.importReview.formatHint")}
           </p>
         </div>
-      ) : (
+      )}
+      {source === "file" && (
         <div
           id="importFilePanel"
           className={cn(
@@ -1585,7 +1518,7 @@ const ImportReviewSection = ({
               {row.key}
             </code>
             {row.duplicate && (
-              <span className="font-mono text-[10px] text-amber-400">
+              <span className="text-warning font-mono text-[10px]">
                 {t("project.importReview.duplicateOccurrences", {
                   count: row.occurrences.length,
                 })}
@@ -1669,13 +1602,14 @@ export const ImportReviewDialog = ({
   onChooseFile,
   onDropFile,
   onClearFile,
+  folder,
   onBack,
   onCommit,
   onReveal,
   onChoose,
   onAction,
 }: {
-  source: "text" | "file";
+  source: "text" | "file" | "folder";
   text: string;
   rows: ImportRow[];
   handle: string | null;
@@ -1688,12 +1622,13 @@ export const ImportReviewDialog = ({
   reveals: Record<string, ImportReveal>;
   fileName: string | null;
   onClose: () => void;
-  onSource: (source: "text" | "file") => void;
+  onSource: (source: "text" | "file" | "folder") => void;
   onText: (text: string) => void;
   onPreview: () => void;
   onChooseFile: () => void;
   onDropFile: (file: File) => void;
   onClearFile: () => void;
+  folder: FolderImportControls;
   onBack: () => void;
   onCommit: () => void;
   onReveal: (entry: ImportRow, occurrence: ImportOccurrence) => void;
@@ -1715,7 +1650,11 @@ export const ImportReviewDialog = ({
     previousHandle.current = handle;
   }, [handle]);
 
-  const inputFocusId = source === "text" ? "importText" : "importChooseFileBtn";
+  const inputFocusId = {
+    file: "importChooseFileBtn",
+    folder: "importChooseFolderBtn",
+    text: "importText",
+  }[source];
   const initialFocusId = handle ? "importBackBtn" : inputFocusId;
   const busyCancelLabel = committing
     ? "project.importReview.closeDuringCommit"
@@ -1733,6 +1672,11 @@ export const ImportReviewDialog = ({
         <p className="text-muted-foreground mt-1 text-xs" id="importSub">
           {t("project.importReview.subtitle")}
         </p>
+        {handle && source === "folder" && fileName && (
+          <p className="text-foreground mt-2 font-mono text-xs break-all">
+            {t("project.folderImport.reviewing", { path: fileName })}
+          </p>
+        )}
       </div>
       {!handle && (
         <ImportInputSection
@@ -1747,6 +1691,7 @@ export const ImportReviewDialog = ({
           onChooseFile={onChooseFile}
           onDropFile={onDropFile}
           onClearFile={onClearFile}
+          folder={folder}
         />
       )}
       {handle && (
@@ -1772,7 +1717,7 @@ export const ImportReviewDialog = ({
         >
           {t(busy ? busyCancelLabel : "common.cancel")}
         </Button>
-        {handle ? (
+        {handle && (
           <>
             <Button
               variant="secondary"
@@ -1795,7 +1740,8 @@ export const ImportReviewDialog = ({
               })}
             </Button>
           </>
-        ) : (
+        )}
+        {!handle && source !== "folder" && (
           <Button
             variant="secondary"
             type="button"

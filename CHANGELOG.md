@@ -7,20 +7,33 @@
 - macOS now uses a unified native title bar and translucent navigation, with Apple Liquid Glass on macOS 26 or later, native vibrancy on older versions, and solid materials when accessibility settings require them.
 
 - Import from a project folder with bounded .env discovery, Git-ignore and tracked-file warnings, nearby-template missing-key checks, and masked per-file review into an explicitly selected environment.
+- Drop project folders on Home, choose an existing project or create one, and continue into the folder scan and masked import review.
 
 ### Changed
 
 - Collapsed sidebar icons now stay clear of overlapping count bubbles; counts remain beside expanded labels and in navigation tooltips.
 
+- Expanded sidebars use a compact shared width, reducing empty navigation space and leaving more room for project and log content.
+
+- Access Logs now uses the shared workspace navigation, saved sidebar preference, and readable typography, with compact log rows, a shared category dropdown, and clear actions behind confirmation.
+
 - Sidebar controls now sit beside the top navigation breadcrumbs on the Projects and secrets screens, with distinct expand and collapse icons.
+
+- macOS secret row and inspector actions now use system menus; searchable project switching continues to use the shared command picker.
+
+- Project switching now uses a compact searchable picker with the current project marked and every project available.
 
 ### Fixed
 
 - Zoom In, Zoom Out, and Actual Size now keep one scale across Home, projects, Access Logs, and Settings instead of restoring different page zoom levels.
 
-- macOS can display the unlock screen without opening Keychain merely to check Touch ID availability; credential operations still require biometric approval and Keychain encryption.
+- Home and project screens now share a consistent interface icon scale; project icons retain their size when color classes are added, and secret rows use readable 13px text.
 
 - Sidebar expansion now stays consistent between Home and project pages, including Back, Forward, and reload; Command/Ctrl+B toggles the shared saved preference.
+
+- Navigation and content now use a consistent readable type scale, matching sidebar widths and selection styles, and a simpler project header with the active vault name.
+
+- macOS can display the unlock screen without opening Keychain merely to check Touch ID availability; credential operations still require biometric approval and Keychain encryption.
 
 ## [2.2.0](https://github.com/varunyn/KeyHarbor/compare/v2.1.1...v2.2.0) - 2026-10-21
 

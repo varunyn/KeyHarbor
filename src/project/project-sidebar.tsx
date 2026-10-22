@@ -32,11 +32,12 @@ const viewItems = [
 const railButtonClass = (indexOpen: boolean, selected: boolean) =>
   cn(
     "flex transition-colors",
+    selected && nativeWindowStyles.selectedNavigation,
     selected
       ? "bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
       : "text-muted-foreground hover:text-foreground hover:bg-secondary font-medium",
     indexOpen
-      ? "h-9 w-full items-center justify-start gap-2.5 rounded-lg px-2.5 text-xs"
+      ? "h-9 w-full items-center justify-start gap-2.5 rounded-lg px-2.5 text-sm"
       : "relative size-10 items-center justify-center rounded-xl p-0"
   );
 
@@ -65,7 +66,7 @@ const RailButton = ({
     type="button"
     className={railButtonClass(indexOpen, selected)}
     id={id}
-    aria-current={current ? "page" : undefined}
+    aria-current={current ? "location" : undefined}
     aria-pressed={current ? undefined : selected || undefined}
     title={label}
     aria-label={label}
@@ -112,7 +113,7 @@ const ViewButton = ({
         {count !== null && (
           <span
             className={cn(
-              "rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+              "rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold",
               selected
                 ? "bg-primary/15 text-primary"
                 : "bg-secondary text-muted-foreground"
@@ -151,7 +152,7 @@ export const ProjectSidebar = ({
         nativeWindowStyles.sidebar,
         "bg-card border-border relative z-50 flex h-full shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
         indexOpen
-          ? "w-[232px] p-3 max-[860px]:translate-x-0"
+          ? "w-[var(--ui-sidebar-width)] p-3 max-[860px]:translate-x-0"
           : "items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
       )}
       id="indexPanel"
@@ -186,8 +187,9 @@ export const ProjectSidebar = ({
         <RailButton
           indexOpen={indexOpen}
           selected
-          icon="key"
-          label={t("project.sidebar.navSecrets")}
+          icon="folder"
+          label={t("dashboard.sidebar.navProjects")}
+          onClick={() => nav("dashboard.html")}
           current
         />
         <RailButton
@@ -206,7 +208,7 @@ export const ProjectSidebar = ({
         />
       </nav>
       {indexOpen ? (
-        <p className="text-muted-foreground mb-1.5 px-2.5 text-[10px] font-semibold tracking-wider uppercase">
+        <p className="text-muted-foreground mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider uppercase">
           {t("project.sidebar.viewsLabel")}
         </p>
       ) : (
