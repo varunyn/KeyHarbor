@@ -1140,7 +1140,7 @@ input:focus {
 }
 
 .secret-value {
-  font-family: "Courier New", monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 14px;
   color: var(--text-secondary);
   background-color: var(--bg-tertiary);

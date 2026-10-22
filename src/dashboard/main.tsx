@@ -465,13 +465,13 @@ const ProjectCard = ({
         </span>
       </div>
       {typeof access === "number" && (
-        <p className="dash-card-sub access-line text-muted-foreground mb-2 truncate text-[11px]">
+        <p className="dash-card-sub access-line text-muted-foreground mb-2 truncate text-xs tabular-nums">
           {t("dashboard.card.lastAccessed", {
             time: formatAccessTime(access, now),
           })}
         </p>
       )}
-      <div className="dash-card-foot border-border text-muted-foreground mt-auto flex items-center justify-between border-t pt-3 font-mono text-xs">
+      <div className="dash-card-foot border-border text-muted-foreground mt-auto flex items-center justify-between border-t pt-3 text-xs tabular-nums">
         <span>
           {t("dashboard.updated", {
             time: formatDate(project.updatedAt, now),
@@ -539,13 +539,13 @@ const ProjectRow = ({
         <div className="row-name text-foreground truncate text-sm font-semibold">
           {project.name}
         </div>
-        <div className="row-sub text-muted-foreground truncate font-mono text-xs">
+        <div className="row-sub text-muted-foreground truncate text-xs tabular-nums">
           {t("dashboard.updated", {
             time: formatDate(project.updatedAt, now),
           })}
         </div>
       </div>
-      <div className="row-meta text-muted-foreground px-2 font-mono text-xs">
+      <div className="row-meta text-muted-foreground px-2 text-xs tabular-nums">
         {t(
           project.secretCount === 1
             ? "dashboard.secretCountOne"
@@ -642,7 +642,7 @@ const StatisticsStrip = ({ statistics }: { statistics: ProjectStatistics }) => {
           </div>
         ))}
       </section>
-      <p className="dash-stat-note text-muted-foreground mt-2 text-right text-[11px]">
+      <p className="dash-stat-note text-muted-foreground mt-2 text-right text-xs">
         {t("dashboard.statistics.scopeLabel")}
       </p>
     </div>
@@ -1308,7 +1308,7 @@ const DashboardSidebar = ({
           </>
         )}
         {!sidebarOpen && projectsCount > 0 && (
-          <span className="bg-primary text-primary-foreground ring-card absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full font-mono text-[9px] font-bold ring-2">
+          <span className="bg-primary text-primary-foreground ring-card absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full font-mono text-[10px] font-bold ring-2">
             {projectsCount}
           </span>
         )}
@@ -1379,7 +1379,7 @@ const DashboardSidebar = ({
           {t("dashboard.sidebar.unlocked")}
           <small
             id="syncLabel"
-            className="text-muted-foreground/80 block text-[10px]"
+            className="text-muted-foreground/80 block text-xs"
           >
             {t("dashboard.sidebar.synced", {
               time: formatAccessTime(syncAt, now),
@@ -2994,7 +2994,7 @@ const App = () => {
             </Button>
           )}
         </div>
-        <footer className="dash-footer bg-card/90 border-border text-muted-foreground fixed right-4 bottom-3 z-20 flex items-center gap-3 rounded-lg border px-3 py-1.5 text-[11px] shadow-sm backdrop-blur-xs">
+        <footer className="dash-footer bg-card/90 border-border text-muted-foreground fixed right-4 bottom-3 z-20 flex items-center gap-3 rounded-lg border px-3 py-1.5 text-xs shadow-sm backdrop-blur-xs">
           <span>
             <kbd className="bg-secondary/80 border-border rounded border px-1 py-0.5 font-mono text-[10px]">
               Enter

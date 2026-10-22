@@ -469,7 +469,7 @@ const ConfigurationPanel = ({
           </output>
           {checklist && statusCounts && (
             <p
-              className="text-muted-foreground configuration-breakdown font-mono text-[11px]"
+              className="text-muted-foreground configuration-breakdown text-xs"
               id="configurationBreakdown"
             >
               {t("project.configuration.breakdown", {
@@ -3178,7 +3178,7 @@ const ProjectApp = () => {
                 onStructureChanged={onEnvironmentStructureChanged}
               />
               <span
-                className="text-muted-foreground secrets-vault-tag font-mono text-xs"
+                className="text-muted-foreground secrets-vault-tag text-xs"
                 id="vaultTag"
               >
                 {vaultSubtitleFor(vaultName)}
@@ -3287,7 +3287,7 @@ const ProjectApp = () => {
               });
             }}
           />
-          <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-[11px]">
+          <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-xs">
             {t("project.footerHint")}
           </div>
         </main>

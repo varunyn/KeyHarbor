@@ -1907,7 +1907,7 @@ export const LogsScreen = () => {
           >
             <div className="flex items-center justify-between">
               <time
-                className="text-muted-foreground font-mono text-[12px] tabular-nums"
+                className="text-muted-foreground text-[12px] tabular-nums"
                 dateTime={log.timestamp}
                 title={new Date(log.timestamp).toLocaleString()}
               >

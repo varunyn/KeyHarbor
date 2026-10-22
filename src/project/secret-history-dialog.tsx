@@ -74,7 +74,7 @@ const SecretHistoryList = ({
         >
           <div className="flex items-center justify-between font-medium">
             <strong className="text-foreground">{row.label}</strong>
-            <time className="text-muted-foreground font-mono">
+            <time className="text-muted-foreground text-xs tabular-nums">
               {relative(row.changedAt)}
             </time>
           </div>

@@ -396,7 +396,7 @@ export const SecretTable = ({
                         >
                           {entry.key}
                         </span>
-                        <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px] uppercase">
+                        <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
                           {t(
                             entry.type === "secret"
                               ? "project.table.typeSecret"
@@ -412,7 +412,7 @@ export const SecretTable = ({
                           {entry.tags?.map((tag) => (
                             <span
                               key={tag}
-                              className="text-primary/80 text-[10px]"
+                              className="text-primary/80 text-[11px]"
                             >
                               #{tag}
                             </span>
@@ -460,7 +460,7 @@ export const SecretTable = ({
                   <Pill status={entry.status} />
                 </td>
                 <td
-                  className="text-muted-foreground px-3 py-3 font-mono whitespace-nowrap"
+                  className="text-muted-foreground px-3 py-3 whitespace-nowrap tabular-nums"
                   title={fmtDate(entry.updatedAt)}
                 >
                   {relative(entry.updatedAt)}
@@ -701,7 +701,7 @@ export const Inspector = ({
           <div className="flex flex-wrap gap-1.5">
             {entry.tags.map((tag) => (
               <span
-                className="bg-secondary border-border text-primary rounded-full border px-2 py-0.5 font-mono text-[11px]"
+                className="bg-secondary border-border text-primary rounded-full border px-2 py-0.5 text-[11px]"
                 key={tag}
               >
                 #{tag}
@@ -953,7 +953,7 @@ const ConfigurationReviewStep = ({
             {entry.key}
           </code>
           <span
-            className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 font-mono text-[11px]"
+            className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 text-[11px]"
             data-status={entry.status}
           >
             {t(`project.configuration.status.${entry.status.toLowerCase()}`)}
@@ -1292,7 +1292,7 @@ const ImportInputSection = ({
                 variant="ghost"
                 size="sm"
                 type="button"
-                className="h-6 shrink-0 px-2 text-[11px]"
+                className="h-6 shrink-0 px-2 text-xs"
                 disabled={busy}
                 onClick={onClearFile}
                 aria-label={t("project.importReview.removeFile", {
@@ -1359,7 +1359,7 @@ const ImportActionPicker = ({
 }) => {
   if (actions.length <= 1) {
     return (
-      <span className="text-muted-foreground px-1 text-[11px]">
+      <span className="text-muted-foreground px-1 text-xs">
         {t("project.importReview.action.skip")}
       </span>
     );
@@ -1382,7 +1382,7 @@ const ImportActionPicker = ({
               onAction(rowKey, occurrenceId, value as ImportChoice["action"])
             }
             className={cn(
-              "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+              "rounded px-2 py-0.5 text-xs font-medium transition-colors",
               current === value
                 ? "bg-secondary text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -1492,7 +1492,7 @@ const ImportOccurrenceRow = ({
         variant="ghost"
         size="sm"
         type="button"
-        className="h-6 px-2 text-[11px]"
+        className="h-6 px-2 text-xs"
         disabled={busy}
         aria-label={t(
           reveal
