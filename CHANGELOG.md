@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Agent MCP tools now report malformed desktop session responses as errors instead of returning empty successful results.
+
 - Reject malformed Vault metadata when unlocking or restoring encrypted data, keeping invalid records out of the active Vault.
 
 - Zoom In, Zoom Out, and Actual Size now keep one scale across Home, projects, Access Logs, and Settings instead of restoring different page zoom levels.

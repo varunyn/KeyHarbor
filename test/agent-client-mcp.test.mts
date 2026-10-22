@@ -46,3 +46,45 @@ test("secretless MCP mode retains metadata and agent tools without direct secret
     );
   }
 });
+
+test("agent MCP tools report malformed desktop payloads as tool errors", async (t) => {
+  await Promise.all(
+    [[], 17, "unexpected"].map(async (data) => {
+      const reply = Promise.resolve({ data, success: true });
+      const server = createKeyHarborMcpServer(() => reply, {
+        secretless: true,
+      });
+      const client = new Client({
+        name: "agent-response-test",
+        version: "1.0.0",
+      });
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+      t.after(async () => {
+        await client.close();
+        await server.close();
+      });
+      await Promise.all([
+        server.connect(serverTransport),
+        client.connect(clientTransport),
+      ]);
+
+      const created = await client.callTool({
+        arguments: {
+          key: "API_KEY",
+          origin: "https://api.example.test",
+          projectName: "demo",
+        },
+        name: "create_agent_session",
+      });
+      const closed = await client.callTool({
+        arguments: { sessionId: "test-session" },
+        name: "close_agent_session",
+      });
+      for (const result of [created, closed]) {
+        assert.equal(result.isError, true);
+        assert.equal(result.structuredContent, undefined);
+      }
+    })
+  );
+});

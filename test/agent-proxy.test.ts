@@ -514,7 +514,7 @@ test("mutable create input cannot add private-network or custom-CA trust after a
   let releaseConnection:
     | ((decision: { approved: boolean }) => void)
     | undefined;
-  let connectRequest: Record<string, unknown> | undefined;
+  let connectRequest: Parameters<AgentProxyApprover>[0] | undefined;
   let upstreamRequests = 0;
   const fixture = await createFixture(
     t,
@@ -523,7 +523,7 @@ test("mutable create input cannot add private-network or custom-CA trust after a
     },
     (request) => {
       if (request.action === "connect") {
-        connectRequest = request as unknown as Record<string, unknown>;
+        connectRequest = request;
         const approval = deferred<{ approved: boolean }>();
         releaseConnection = approval.resolve;
         return approval.promise;

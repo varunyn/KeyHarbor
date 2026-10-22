@@ -4,19 +4,23 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/server";
-import type { CallToolResult } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import * as z from "zod/v4";
 
-import {
-  closeAgentSession,
-  createAgentSession,
-  getAgentRequestPathname,
-  requestThroughAgentProxy,
-} from "./agent-proxy-client.js";
 // Node ESM imports the default from this TypeScript export= CommonJS client.
 // eslint-disable-next-line import/default
 import keyHarborClient from "./keyharbor-client.js";
+import { registerAgentTools } from "./keyharbor-mcp-agent-tools.mjs";
+import {
+  isToolError,
+  optionalEnvironment,
+  optionalVault,
+  projectName,
+  secretKey,
+  toolError,
+  toolResult,
+} from "./keyharbor-mcp-protocol.mjs";
+import type { ToolCall } from "./keyharbor-mcp-protocol.mjs";
 
 const { sendRequest } = keyHarborClient;
 const { version: APP_VERSION } = createRequire(import.meta.url)(
@@ -24,26 +28,6 @@ const { version: APP_VERSION } = createRequire(import.meta.url)(
 ) as {
   version: string;
 };
-
-type ToolCall = (
-  action: string,
-  data: Record<string, unknown>
-) => Promise<unknown>;
-
-const optionalVault = z
-  .string()
-  .min(1)
-  .optional()
-  .describe("Vault name. Omit to use the System vault.");
-const optionalEnvironment = z
-  .string()
-  .regex(/^[a-z][a-z0-9_-]{0,63}$/u)
-  .optional()
-  .describe(
-    "Environment name. Omit to use the Project's fixed default Environment. Never inferred from the desktop selection or NODE_ENV."
-  );
-const projectName = z.string().min(1).describe("KeyHarbor project name.");
-const secretKey = z.string().min(1).describe("Secret key.");
 
 const secretSchema = z.object({
   createdAt: z.string().nullable().optional(),
@@ -82,11 +66,6 @@ const requestData = (
   ...(environmentName === undefined ? {} : { environmentName }),
 });
 
-const toolError = (message: string): CallToolResult => ({
-  content: [{ text: message, type: "text" }],
-  isError: true,
-});
-
 const callKeyHarbor = async (
   client: ToolCall,
   action: string,
@@ -104,18 +83,6 @@ const callKeyHarbor = async (
     return toolError(error instanceof Error ? error.message : String(error));
   }
 };
-
-const toolResult = (data: Record<string, unknown>): CallToolResult => ({
-  content: [{ text: JSON.stringify(data), type: "text" }],
-  structuredContent: data,
-});
-
-const isToolError = (value: unknown): value is CallToolResult =>
-  Boolean(
-    value &&
-    typeof value === "object" &&
-    (value as { isError?: unknown }).isError === true
-  );
 
 export const createKeyHarborMcpServer = (
   client: ToolCall = sendRequest as ToolCall,
@@ -453,160 +420,7 @@ export const createKeyHarborMcpServer = (
     );
   }
 
-  server.registerTool(
-    "create_agent_session",
-    {
-      annotations: {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-      description:
-        "Create a short-lived HTTPS proxy session for one project secret. Requires explicit approval in KeyHarbor. The returned proxy endpoint is a scoped credential; keep it private and close the session when finished.",
-      inputSchema: z.object({
-        allowPrivateNetwork: z.boolean().optional(),
-        authHeader: z.string().optional(),
-        authPrefix: z.string().optional(),
-        environmentName: optionalEnvironment,
-        key: secretKey,
-        methods: z.array(z.string()).optional(),
-        origin: z.string().url(),
-        pathPrefixes: z.array(z.string()).optional(),
-        projectName,
-        ttlSeconds: z.number().int().positive().optional(),
-        upstreamCaCertificate: z.string().optional(),
-        vaultName: optionalVault,
-      }),
-      title: "Create an approved agent session",
-    },
-    async (input) => {
-      try {
-        const result = (await client(
-          "createAgentSession",
-          input as unknown as Record<string, unknown>
-        )) as { success?: boolean; data?: unknown };
-        if (!result?.success) {
-          return toolError(
-            "KeyHarbor could not create an approved agent session."
-          );
-        }
-        return toolResult((result.data ?? {}) as Record<string, unknown>);
-      } catch {
-        return toolError(
-          "KeyHarbor could not create an approved agent session."
-        );
-      }
-    }
-  );
-
-  server.registerTool(
-    "close_agent_session",
-    {
-      annotations: {
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-      description: "Revoke an agent proxy session immediately.",
-      inputSchema: z.object({ sessionId: z.string().min(1) }),
-      title: "Close an agent session",
-    },
-    async ({ sessionId }) => {
-      try {
-        const result = (await client("closeAgentSession", {
-          sessionId,
-        })) as { success?: boolean; data?: unknown };
-        if (!result?.success) {
-          return toolError("KeyHarbor could not close the agent session.");
-        }
-        return toolResult((result.data ?? {}) as Record<string, unknown>);
-      } catch {
-        return toolError("KeyHarbor could not close the agent session.");
-      }
-    }
-  );
-
-  server.registerTool(
-    "authenticated_request",
-    {
-      annotations: {
-        destructiveHint: true,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-      description:
-        "Make one HTTPS request through a temporary, explicitly approved KeyHarbor agent session. Each of the connection and request approvals allows 120 seconds; configure the MCP client tool-call timeout to at least 300000 ms. Redirects are not followed; request and response bodies are bounded.",
-      inputSchema: z.object({
-        allowPrivateNetwork: z.boolean().optional(),
-        authHeader: z.string().optional(),
-        authPrefix: z.string().optional(),
-        body: z
-          .string()
-          .max(256 * 1024)
-          .optional(),
-        environmentName: optionalEnvironment,
-        key: secretKey,
-        method: z.string().regex(/^[A-Za-z]+$/u),
-        origin: z.string().url(),
-        path: z.string().startsWith("/"),
-        projectName,
-        upstreamCaCertificate: z.string().optional(),
-        vaultName: optionalVault,
-      }),
-      title: "Make an approved authenticated request",
-    },
-    async ({
-      projectName: project,
-      key,
-      origin,
-      path,
-      method,
-      environmentName: envName,
-      vaultName,
-      body,
-      allowPrivateNetwork,
-      upstreamCaCertificate,
-      authHeader,
-      authPrefix,
-    }) => {
-      let session: Awaited<ReturnType<typeof createAgentSession>> | undefined;
-      try {
-        const pathPrefix = getAgentRequestPathname(origin, path);
-        const originUrl = new URL(origin);
-        session = await createAgentSession(client, {
-          key,
-          methods: [method.toUpperCase()],
-          origin: originUrl.origin,
-          pathPrefixes: [pathPrefix],
-          projectName: project,
-          ...(envName ? { environmentName: envName } : {}),
-          ...(vaultName ? { vaultName } : {}),
-          ...(allowPrivateNetwork === undefined ? {} : { allowPrivateNetwork }),
-          ...(upstreamCaCertificate ? { upstreamCaCertificate } : {}),
-          ...(authHeader === undefined ? {} : { authHeader }),
-          ...(authPrefix === undefined ? {} : { authPrefix }),
-        });
-        const response = await requestThroughAgentProxy({
-          ...(body === undefined ? {} : { body }),
-          caCertificate: session.caCertificate,
-          method,
-          origin: originUrl.origin,
-          path,
-          proxyUrl: session.proxyUrl,
-        });
-        return toolResult(response as unknown as Record<string, unknown>);
-      } catch {
-        return toolError("The approved HTTPS request failed.");
-      } finally {
-        if (session) {
-          await closeAgentSession(client, session.sessionId);
-        }
-      }
-    }
-  );
+  registerAgentTools(server, client);
 
   return server;
 };

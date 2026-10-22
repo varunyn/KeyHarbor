@@ -20,15 +20,16 @@ This lint rule covers JavaScript and TypeScript. CSS, HTML, JSON, and native cod
 
 ## Staged anti-slop adoption
 
-The normal checks enforce these five rules as errors across the repository:
+The normal checks enforce these six rules as errors across the repository:
 
+- `no-chained-type-assertions`
 - `no-shape-in-symbol-names`
 - `no-module-mocking`
 - `no-reflect-get`
 - `no-unknown-type-aliases`
 - `no-widen-then-assert`
 
-The other ten rules have existing violations and are explicitly deferred in `oxlint.config.mts`. They cover chained assertions, conditional empty-object spreads, known-value widening, broad `object` parameters, `Reflect.apply`, runtime `typeof`, `unknown` parameters and returns, dictionary types, and safety comments for assertions.
+The other nine rules have existing violations and are explicitly deferred in `oxlint.config.mts`. They cover conditional empty-object spreads, known-value widening, broad `object` parameters, `Reflect.apply`, runtime `typeof`, `unknown` parameters and returns, dictionary types, and safety comments for assertions.
 
 Run `npm run check:anti-slop` to audit all fifteen rules. This command is read-only, returns a nonzero exit code while violations remain, and is intentionally separate from required CI. `oxlint.audit.config.mts` restores every rule from the bundled preset while retaining the normal file ceilings and CommonJS overrides.
 

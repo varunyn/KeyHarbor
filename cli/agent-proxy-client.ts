@@ -36,40 +36,33 @@ type ActionClient = (
   action: string,
   data: Record<string, unknown>
 ) => Promise<unknown>;
-interface ActionResult {
-  success?: boolean;
-  data?: unknown;
-  error?: string;
-}
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const isAgentSession = (value: unknown): value is AgentSession =>
+  isRecord(value) &&
+  typeof value.sessionId === "string" &&
+  typeof value.proxyUrl === "string" &&
+  typeof value.caCertificate === "string" &&
+  typeof value.expiresAt === "string" &&
+  typeof value.placeholder === "string" &&
+  typeof value.key === "string" &&
+  typeof value.environmentName === "string" &&
+  typeof value.projectName === "string";
 
 export const createAgentSession = async (
   client: ActionClient,
   request: AgentSessionRequest
 ): Promise<AgentSession> => {
-  const result = (await client(
-    "createAgentSession",
-    request as unknown as Record<string, unknown>
-  )) as ActionResult;
-  if (!result?.success || !isRecord(result.data)) {
+  const result = await client("createAgentSession", { ...request });
+  if (!isRecord(result) || !result.success || !isRecord(result.data)) {
     throw new Error("KeyHarbor could not create an approved agent session.");
   }
   const { data } = result;
-  if (
-    typeof data.sessionId !== "string" ||
-    typeof data.proxyUrl !== "string" ||
-    typeof data.caCertificate !== "string" ||
-    typeof data.expiresAt !== "string" ||
-    typeof data.placeholder !== "string" ||
-    typeof data.key !== "string" ||
-    typeof data.environmentName !== "string" ||
-    typeof data.projectName !== "string"
-  ) {
+  if (!isAgentSession(data)) {
     throw new TypeError("KeyHarbor returned an invalid agent session.");
   }
-  return data as unknown as AgentSession;
+  return data;
 };
 
 export const closeAgentSession = async (
