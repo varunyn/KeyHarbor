@@ -3098,7 +3098,7 @@ const ProjectApp = () => {
         />
         <button
           type="button"
-          className="secrets-index-scrim"
+          className="max-[860px]:fixed max-[860px]:inset-0 max-[860px]:z-40 max-[860px]:bg-black/50 max-[860px]:backdrop-blur-[2px] min-[861px]:hidden"
           hidden={!indexOpen}
           aria-label={t("project.sidebar.collapse")}
           onClick={() => {
@@ -3154,7 +3154,7 @@ const ProjectApp = () => {
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="secrets-index-toggle size-8"
+                className="size-8 min-[861px]:hidden"
                 id="indexToggle"
                 aria-label={sidebarToggleLabel}
                 title={sidebarToggleLabel}
