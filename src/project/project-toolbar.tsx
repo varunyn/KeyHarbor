@@ -6,12 +6,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../renderer/ui/dropdown-menu";
 import { Input } from "../renderer/ui/input";
+import { cn } from "../renderer/ui/utils";
 import { Icon } from "./components";
 
 export type ProjectExportMode = "example" | "references" | "backup" | "raw";
@@ -41,6 +40,13 @@ const statusOptions = [
   ["healthy", "project.filterMenu.statusHealthy"],
   ["attention", "project.filterMenu.statusAttention"],
 ] as const;
+const filterItemClass = (selected: boolean) =>
+  cn(
+    "flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs",
+    selected
+      ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-medium"
+      : "hover:bg-secondary"
+  );
 export const ProjectToolbar = ({
   search,
   setSearch,
@@ -63,14 +69,14 @@ export const ProjectToolbar = ({
       <Input
         type="search"
         id="searchInput"
-        className="bg-secondary/40 border-border/80 secrets-search-input h-8 pr-8 pl-9 text-xs"
+        className="bg-secondary/40 border-border/80 secrets-search-input h-10 pr-8 pl-9 text-[13px]"
         placeholder={t("project.searchPlaceholder")}
         aria-label={t("project.a11y.searchLabel")}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
       <span
-        className="text-muted-foreground border-border/80 py-0.2 secrets-search-kbd pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 font-mono text-[10px]"
+        className="text-muted-foreground border-border/80 secrets-search-kbd pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 font-mono text-[10px]"
         aria-hidden="true"
       >
         /
@@ -86,7 +92,7 @@ export const ProjectToolbar = ({
             variant="secondary"
             size="icon"
             type="button"
-            className="size-8"
+            className="size-10"
             id="filterBtn"
             aria-expanded={menu === "filter"}
             title={t("project.filter")}
@@ -103,43 +109,43 @@ export const ProjectToolbar = ({
           <p className="text-muted-foreground px-2 py-1 text-[10px] font-semibold uppercase">
             {t("project.filterMenu.typeLabel")}
           </p>
-          <DropdownMenuRadioGroup
-            value={filterType}
-            onValueChange={setFilterType}
-          >
+          <div>
             {(["all", "secret", "config"] as const).map((value) => (
-              <DropdownMenuRadioItem
-                className="hover:bg-secondary flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
+              <DropdownMenuItem
+                className={filterItemClass(filterType === value)}
                 key={value}
-                value={value}
+                aria-current={filterType === value || undefined}
+                onSelect={() => setFilterType(value)}
               >
                 <span>
                   {t(
                     `project.filterMenu.type${value.charAt(0).toUpperCase()}${value.slice(1)}`
                   )}
                 </span>
-                {filterType === value && <Icon name="check" />}
-              </DropdownMenuRadioItem>
+                {filterType === value && (
+                  <Icon name="check" className="size-4 shrink-0" />
+                )}
+              </DropdownMenuItem>
             ))}
-          </DropdownMenuRadioGroup>
+          </div>
           <p className="text-muted-foreground mt-2 px-2 py-1 text-[10px] font-semibold uppercase">
             {t("project.filterMenu.statusLabel")}
           </p>
-          <DropdownMenuRadioGroup
-            value={filterStatus}
-            onValueChange={setFilterStatus}
-          >
+          <div>
             {statusOptions.map(([value, label]) => (
-              <DropdownMenuRadioItem
-                className="hover:bg-secondary flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
+              <DropdownMenuItem
+                className={filterItemClass(filterStatus === value)}
                 key={value}
-                value={value}
+                aria-current={filterStatus === value || undefined}
+                onSelect={() => setFilterStatus(value)}
               >
                 <span>{t(label)}</span>
-                {filterStatus === value && <Icon name="check" />}
-              </DropdownMenuRadioItem>
+                {filterStatus === value && (
+                  <Icon name="check" className="size-4 shrink-0" />
+                )}
+              </DropdownMenuItem>
             ))}
-          </DropdownMenuRadioGroup>
+          </div>
           <DropdownMenuSeparator className="border-border my-1.5 border-t" />
           <DropdownMenuItem
             className="hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-2.5 py-1.5 text-xs"
@@ -158,7 +164,7 @@ export const ProjectToolbar = ({
       variant="secondary"
       size="sm"
       type="button"
-      className="h-8 gap-2 px-3 text-xs font-medium"
+      className="h-10 gap-2 px-4 text-[13px] font-medium"
       id="importBtn"
       disabled={!targetReady}
       onClick={onImport}
@@ -176,7 +182,7 @@ export const ProjectToolbar = ({
             variant="secondary"
             size="sm"
             type="button"
-            className="h-8 gap-2 px-3 text-xs font-medium"
+            className="h-10 gap-2 px-4 text-[13px] font-medium"
             id="exportBtn"
             aria-expanded={menu === "export"}
           >
@@ -207,12 +213,12 @@ export const ProjectToolbar = ({
                   <div className="flex items-center gap-1.5 font-medium">
                     <span>{t(`project.exportMenu.${mode}`)}</span>
                     {mode === "example" && (
-                      <span className="py-0.2 bg-primary/10 text-primary rounded px-1.5 font-mono text-[10px]">
+                      <span className="bg-primary/10 text-primary rounded px-1.5 text-[10px] font-semibold">
                         {t("project.exportMenu.recommended")}
                       </span>
                     )}
                   </div>
-                  <small className="text-muted-foreground mt-0.5 block text-[11px]">
+                  <small className="text-muted-foreground mt-0.5 block text-xs">
                     {t(`project.exportMenu.${mode}Desc`)}
                   </small>
                 </div>
@@ -226,7 +232,7 @@ export const ProjectToolbar = ({
       variant="default"
       size="sm"
       type="button"
-      className="h-8 gap-2 px-3 text-xs font-medium"
+      className="h-10 gap-2 px-4 text-[13px] font-medium"
       id="newBtn"
       aria-label={t("project.newSecret")}
       title={t("project.newSecret")}
