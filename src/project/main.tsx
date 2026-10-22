@@ -19,6 +19,7 @@ import { ActionMenu } from "../renderer/ui/action-menu";
 import { Button } from "../renderer/ui/button";
 import { cn } from "../renderer/ui/utils";
 import { useSidebarState } from "../renderer/use-sidebar-state";
+import { useTimedClipboard } from "../renderer/use-timed-clipboard";
 import { nativeWindowStyles } from "../renderer/window-chrome";
 import type {
   ActivityLog,
@@ -186,13 +187,6 @@ const revealSeconds = 30;
 const validKey = (name: string) =>
   /^[A-Za-z0-9._-]+$/u.test(name) && !/[=\s]/u.test(name);
 const own = (object: object, key: PropertyKey) => Object.hasOwn(object, key);
-const clearClipboard = async () => {
-  try {
-    await navigator.clipboard.writeText("");
-  } catch {
-    // Clipboard access can be unavailable after the window or session closes.
-  }
-};
 const exportProjectBackup = async (
   projectName: string,
   isFresh: () => boolean
@@ -931,7 +925,7 @@ const ProjectApp = () => {
     revealEpoch: importRevealEpochRef,
   } = importFlow;
 
-  const clipboardTimer = useRef<number | null>(null);
+  const { clearClipboard, copyWithAutoClear } = useTimedClipboard();
   const restoreTimer = useRef<number | null>(null);
   const sessionActive = useRef(true);
   const [sessionIsActive, setSessionIsActive] = useState(true);
@@ -1489,11 +1483,7 @@ const ProjectApp = () => {
       void retireConfig();
       void retireImport();
       setReveal(null);
-      if (clipboardTimer.current) {
-        window.clearTimeout(clipboardTimer.current);
-        clipboardTimer.current = null;
-        void clearClipboard();
-      }
+      void clearClipboard();
       if (restoreTimer.current) {
         window.clearTimeout(restoreTimer.current);
       }
@@ -1505,6 +1495,7 @@ const ProjectApp = () => {
     dialogEpochRef,
     importPendingRef,
     configPendingRef,
+    clearClipboard,
     retireImport,
     setReveal,
   ]);
@@ -1569,11 +1560,7 @@ const ProjectApp = () => {
     setInspectorOpen(false);
     sessionLocked();
     setLoadState("loading");
-    if (clipboardTimer.current) {
-      window.clearTimeout(clipboardTimer.current);
-      clipboardTimer.current = null;
-      void clearClipboard();
-    }
+    void clearClipboard();
     if (restoreTimer.current) {
       window.clearTimeout(restoreTimer.current);
       restoreTimer.current = null;
@@ -1807,31 +1794,22 @@ const ProjectApp = () => {
       return;
     }
     const lifecycle = sensitiveEpoch.current;
-    try {
-      await navigator.clipboard.writeText(String(entry.value ?? ""));
-      if (sensitiveEpoch.current !== lifecycle || !sessionActive.current) {
-        void clearClipboard();
-        return;
-      }
+    const copied = await copyWithAutoClear(String(entry.value ?? ""));
+    if (sensitiveEpoch.current !== lifecycle || !sessionActive.current) {
+      void clearClipboard();
+      return;
+    }
+    if (copied) {
       notificationManager.show(
         t("project.copiedToast", { key }),
         "success",
         t("project.copiedDetail")
       );
-      if (clipboardTimer.current) {
-        window.clearTimeout(clipboardTimer.current);
-      }
-      clipboardTimer.current = window.setTimeout(() => {
-        void clearClipboard();
-        clipboardTimer.current = null;
-      }, 30_000);
-    } catch {
-      if (sensitiveEpoch.current === lifecycle && sessionActive.current) {
-        notificationManager.show(
-          t("project.notifications.failedToExport"),
-          "error"
-        );
-      }
+    } else {
+      notificationManager.show(
+        t("project.notifications.failedToExport"),
+        "error"
+      );
     }
   };
   const openSecret = (mode: "new" | "edit", key = "") => {

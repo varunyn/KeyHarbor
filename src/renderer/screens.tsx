@@ -28,8 +28,10 @@ import { useRendererTranslation } from "./providers";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ModalDialog } from "./ui/modal-dialog";
+import { PasswordInput } from "./ui/password-input";
 import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
+import { useTouchId } from "./use-touch-id";
 
 const resultError = (
   result: {
@@ -143,11 +145,12 @@ export const SettingsScreen = () => {
       }),
     []
   );
-  const [touch, setTouch] = useState<TouchIdStatus>({
-    available: false,
-    enabled: false,
-  });
-  const [touchBusy, setTouchBusy] = useState(false);
+  const {
+    busy: touchBusy,
+    setEnabled: setTouchIdEnabled,
+    setTouchStatus: setTouch,
+    touchStatus: touch,
+  } = useTouchId({ autoFetch: false });
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [passwords, setPasswords] = useState({
@@ -166,7 +169,6 @@ export const SettingsScreen = () => {
   const sessionSeen = useRef(false);
   const modalEpoch = useRef(0);
   const modalBusyRef = useRef(false);
-  const touchBusyRef = useRef(false);
   const clearDrafts = useCallback(() => {
     modalEpoch.current += 1;
     modalBusyRef.current = false;
@@ -186,7 +188,6 @@ export const SettingsScreen = () => {
       writeId.current += 1;
       modalEpoch.current += 1;
       modalBusyRef.current = false;
-      touchBusyRef.current = false;
     };
     const off = window.keyharbor.vault.onSessionStateChanged((snapshot) => {
       if (snapshot.transitionId < sessionTransition.current) {
@@ -253,11 +254,10 @@ export const SettingsScreen = () => {
       writeId.current += 1;
       modalEpoch.current += 1;
       modalBusyRef.current = false;
-      touchBusyRef.current = false;
       off();
       window.removeEventListener("pagehide", onPagehide);
     };
-  }, [clearDrafts, t]);
+  }, [clearDrafts, setTouch, t]);
   const persist = useCallback(
     (next: AppSettings) => {
       setSettings(next);
@@ -313,60 +313,27 @@ export const SettingsScreen = () => {
     persist({ ...settings, autoLock: { ...settings.autoLock, [key]: value } });
   };
   const changeTouch = async (enabled: boolean) => {
-    if (touchBusyRef.current) {
+    if (touchBusy) {
       return;
     }
-    touchBusyRef.current = true;
-    setTouchBusy(true);
-    const previous = touch;
-    setTouch({ ...previous, enabled });
     const epoch = sessionEpoch.current;
-    await runWithCleanup(
-      async () => {
-        try {
-          const result = await window.keyharbor.touchId.setEnabled(enabled);
-          if (!alive.current || epoch !== sessionEpoch.current) {
-            return;
-          }
-          const status =
-            "status" in result ? (result.status as TouchIdStatus) : undefined;
-          setTouch(
-            status || {
-              ...previous,
-              enabled: result.success ? enabled : previous.enabled,
-            }
-          );
-          if (result.success) {
-            notificationManager.success(
-              t(
-                enabled
-                  ? "settings.notifications.touchIdEnabled"
-                  : "settings.notifications.touchIdDisabled"
-              )
-            );
-          } else {
-            notificationManager.error(
-              result.error || t("settings.notifications.touchIdFailed")
-            );
-          }
-        } catch (error) {
-          if (alive.current && epoch === sessionEpoch.current) {
-            setTouch(previous);
-            notificationManager.error(
-              error instanceof Error
-                ? error.message
-                : t("settings.notifications.touchIdFailed")
-            );
-          }
-        }
-      },
-      () => {
-        touchBusyRef.current = false;
-        if (alive.current) {
-          setTouchBusy(false);
-        }
-      }
-    );
+    const result = await setTouchIdEnabled(enabled);
+    if (!alive.current || epoch !== sessionEpoch.current) {
+      return;
+    }
+    if (result.success) {
+      notificationManager.success(
+        t(
+          enabled
+            ? "settings.notifications.touchIdEnabled"
+            : "settings.notifications.touchIdDisabled"
+        )
+      );
+    } else {
+      notificationManager.error(
+        result.error || t("settings.notifications.touchIdFailed")
+      );
+    }
   };
   const submitPassword = async () => {
     if (modalBusyRef.current) {
@@ -814,9 +781,8 @@ export const SettingsScreen = () => {
             >
               {t("settings.changePasswordModal.currentPassword")}
             </label>
-            <Input
+            <PasswordInput
               id="change-password-current"
-              type="password"
               placeholder={t("settings.changePasswordModal.currentPassword")}
               autoComplete="current-password"
               value={passwords.current}
@@ -829,9 +795,8 @@ export const SettingsScreen = () => {
             <label htmlFor="change-password-new" id="label-change-password-new">
               {t("settings.changePasswordModal.newPassword")}
             </label>
-            <Input
+            <PasswordInput
               id="change-password-new"
-              type="password"
               placeholder={t("settings.changePasswordModal.newPassword")}
               autoComplete="new-password"
               value={passwords.next}
@@ -847,9 +812,8 @@ export const SettingsScreen = () => {
             >
               {t("settings.changePasswordModal.confirmPassword")}
             </label>
-            <Input
+            <PasswordInput
               id="change-password-confirm"
-              type="password"
               placeholder={t("settings.changePasswordModal.confirmPassword")}
               autoComplete="new-password"
               value={passwords.confirm}
@@ -918,33 +882,20 @@ export const LockScreen = () => {
   const { t } = useRendererTranslation();
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");
-  const [touchEnabled, setTouchEnabled] = useState(false);
+  const { setTouchStatus, touchStatus, unlock: unlockTouch } = useTouchId();
+  const touchEnabled = touchStatus.enabled;
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const alive = useRef(true);
   const passwordRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     alive.current = true;
-    let live = true;
     const retire = () => {
       alive.current = false;
     };
-    (async () => {
-      try {
-        const status = await window.keyharbor.touchId.getStatus();
-        if (live) {
-          setTouchEnabled(status.enabled);
-        }
-      } catch {
-        if (live) {
-          setTouchEnabled(false);
-        }
-      }
-    })();
     passwordRef.current?.focus();
     window.addEventListener("pagehide", retire);
     return () => {
-      live = false;
       window.removeEventListener("pagehide", retire);
       alive.current = false;
     };
@@ -962,7 +913,7 @@ export const LockScreen = () => {
           const result =
             method === "password"
               ? await window.keyharbor.vault.unlock(password)
-              : await window.keyharbor.touchId.unlock();
+              : await unlockTouch();
           if (!alive.current) {
             return;
           }
@@ -973,7 +924,7 @@ export const LockScreen = () => {
             const status =
               "status" in result ? (result.status as TouchIdStatus) : undefined;
             if (method === "touch" && status?.enabled === false) {
-              setTouchEnabled(false);
+              setTouchStatus((prev) => ({ ...prev, enabled: false }));
             }
             const passwordError =
               result.error && result.error !== "Invalid password"
@@ -1293,9 +1244,8 @@ export const SetupScreen = () => {
               >
                 {t("setup.password")}
               </label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="new-password"
                 placeholder={t("setup.passwordPlaceholder")}
                 value={password}
@@ -1348,9 +1298,8 @@ export const SetupScreen = () => {
               >
                 {t("setup.confirmPassword")}
               </label>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 autoComplete="new-password"
                 placeholder={t("setup.confirmPasswordPlaceholder")}
                 value={confirm}

@@ -1,29 +1,29 @@
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
-import { Input } from "../renderer/ui/input";
+import { PasswordInput } from "../renderer/ui/password-input";
 import { Icon, ModalFrame, ModalTitle } from "./components";
 import { DialogCloseButton } from "./dialog-close-button";
 
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
 
 interface RawExportDialogProps {
-  contextLabel: string;
-  fieldErrors: Record<string, string>;
-  rawPassword: string;
   actionBusy: boolean;
   closeModal: () => void;
-  onPasswordChange: (password: string) => void;
+  contextLabel: string;
   exportRaw: () => Promise<void>;
+  fieldErrors: Record<string, string>;
+  onPasswordChange: (password: string) => void;
+  rawPassword: string;
 }
 
 export const RawExportDialog = ({
-  contextLabel,
-  fieldErrors,
-  rawPassword,
   actionBusy,
   closeModal,
-  onPasswordChange,
+  contextLabel,
   exportRaw,
+  fieldErrors,
+  onPasswordChange,
+  rawPassword,
 }: RawExportDialogProps) => (
   <ModalFrame id="rawExportModalOverlay" onClose={closeModal}>
     <div className="mb-4">
@@ -43,8 +43,7 @@ export const RawExportDialog = ({
       >
         {t("project.rawExportModal.passwordLabel")}
       </label>
-      <Input
-        type="password"
+      <PasswordInput
         id="rawPassword"
         autoComplete="current-password"
         placeholder={t("project.rawExportModal.passwordPlaceholder")}

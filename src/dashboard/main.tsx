@@ -58,6 +58,7 @@ import {
 import { Input } from "../renderer/ui/input";
 import { ModalDialog } from "../renderer/ui/modal-dialog";
 import { topBarClass } from "../renderer/ui/nav-bar";
+import { PasswordInput } from "../renderer/ui/password-input";
 import { SidebarToggle } from "../renderer/ui/sidebar-toggle";
 import { cn } from "../renderer/ui/utils";
 import {
@@ -842,9 +843,8 @@ const DashboardDialog = ({
               >
                 {t("vault.create.passwordLabel")}
               </label>
-              <Input
+              <PasswordInput
                 id="vault-create-password"
-                type="password"
                 autoComplete="new-password"
                 placeholder={t("vault.create.passwordPlaceholder")}
                 value={form.password}
@@ -861,9 +861,8 @@ const DashboardDialog = ({
               >
                 {t("vault.create.confirmLabel")}
               </label>
-              <Input
+              <PasswordInput
                 id="vault-create-confirm"
-                type="password"
                 autoComplete="new-password"
                 placeholder={t("vault.create.confirmPlaceholder")}
                 value={form.passwordConfirm}
@@ -931,9 +930,8 @@ const DashboardDialog = ({
               >
                 {t("vault.import.passwordLabel")}
               </label>
-              <Input
+              <PasswordInput
                 id="vault-import-password"
-                type="password"
                 autoComplete="current-password"
                 placeholder={t("vault.import.passwordPlaceholder")}
                 value={form.password}
