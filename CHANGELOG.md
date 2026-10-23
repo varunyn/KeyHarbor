@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.4.0](https://github.com/varunyn/KeyHarbor/compare/v2.3.0...v2.4.0) (2026-10-23)
+
+
+### Features
+
+* add shared Radix select and radio controls ([7cee655](https://github.com/varunyn/KeyHarbor/commit/7cee655c69956c8af4319c4f6b3b43f8c81d0173))
+* check for updates on startup, daily, and on demand ([6138038](https://github.com/varunyn/KeyHarbor/commit/6138038162f405d2a09c883b75523832fea15f10))
+* review multiple folder projects in one import ([be4204d](https://github.com/varunyn/KeyHarbor/commit/be4204dbec658f797917c17945dfa094e4dec440))
+
+
+### Bug Fixes
+
+* choose subfolders before creating import projects ([162c446](https://github.com/varunyn/KeyHarbor/commit/162c4469d63490231da54c1617e1900ca6a96802))
+* keep imported project folder names readable ([d2f15e1](https://github.com/varunyn/KeyHarbor/commit/d2f15e177aedfff4297b9f0c07a72373057bf832))
+* prevent secret rows showing above sticky header ([f9ffdf8](https://github.com/varunyn/KeyHarbor/commit/f9ffdf8a14adce08215f0812f844ffec258576c6))
+
 ## [2.3.0](https://github.com/varunyn/KeyHarbor/compare/v2.2.0...v2.3.0) (2026-10-22)
 
 
