@@ -35,6 +35,7 @@ Keep these documents current when their contracts change. Remove obsolete guidan
 
 ## Implementation rules
 
+- Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
 - Use React with strict TypeScript for renderer work. Keep TypeScript as the source of truth for new application, CLI, and tooling code; do not add handwritten JavaScript duplicates or rely on Node's native TypeScript stripping. Existing JavaScript modules remain until deliberately migrated.
 - Backend, CLI/MCP, and test tooling support Node.js 20.19+ and 22.12+. Keep renderer-to-main IPC typed through `src/project/bridge.ts` and `window.keyharbor`.
 - Reuse existing UI controls and workspace patterns first. If a control is missing, adapt shadcn/ui with Radix primitives and shared theme tokens. Use existing Lucide icons and cmdk patterns where applicable.
