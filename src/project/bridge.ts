@@ -1,7 +1,33 @@
 import type { CloseBehavior } from "../modules/window-close-controller";
+import type { FolderDiscovery, FolderScanSummary } from "./folder-import-types";
+import type {
+  ConfigurationClearPreviewResult,
+  ConfigurationPreviewResult,
+  ConfigurationResult,
+  ImportDecision,
+  ImportInput,
+  ImportPreviewResult,
+} from "./import-review-types";
 import type { AppTheme, ThemeBridge } from "./theme-bridge";
 import type { UpdatesBridge } from "./updates-bridge";
 
+export type {
+  ConfigurationStatus,
+  ConfigurationEntry,
+  ConfigurationCounts,
+  ConfigurationChanges,
+  ReviewDiagnostic,
+  ReviewTarget,
+  ImportOccurrence,
+  ImportPreviewEntry,
+  ConfigurationClearPreviewResult,
+  ConfigurationPreviewResult,
+  ConfigurationResult,
+  ImportDecision,
+  ImportInput,
+  ImportPreviewResult,
+} from "./import-review-types";
+export type { FolderScanFile, FolderScanSummary } from "./folder-import-types";
 export type { AppTheme, ThemeBridge, ThemeChangePayload } from "./theme-bridge";
 
 export interface BridgeFailure {
@@ -135,119 +161,6 @@ export interface ExportOptions {
 /** Whole-Project backup is a separate operation and is not an Environment export mode. */
 export type ProjectBackupMode = "backup";
 
-export type ImportInput =
-  | { source: "text"; content: string }
-  | { source: "file" };
-
-export interface FolderScanFile {
-  id: string;
-  path: string;
-  keyCount: number;
-  gitStatus: "ignored" | "tracked" | "unignored" | "unknown";
-  missingKeys: string[] | null;
-  templatePath: string | null;
-  valid: boolean;
-  suggestedEnvironment: string | null;
-}
-
-export interface FolderScanSummary {
-  scanId: string;
-  folderName: string;
-  files: FolderScanFile[];
-  templates: string[];
-  warnings: {
-    path: string;
-    code: "unreadable" | "symlink" | "invalidTemplate";
-  }[];
-  limited: boolean;
-}
-
-export interface ReviewDiagnostic {
-  line: number;
-  code: string;
-  message: string;
-}
-
-export interface ReviewTarget {
-  vaultName: string;
-  projectName: string;
-  environmentId: string;
-  environmentName: string;
-}
-
-export interface ImportOccurrence {
-  id: string;
-  line: number;
-  empty: boolean;
-  status: "new" | "identical" | "changed";
-  defaultAction: "add" | "skip";
-}
-
-export interface ImportPreviewEntry {
-  key: string;
-  occurrences: ImportOccurrence[];
-  duplicate: boolean;
-}
-
-export type ImportPreviewResult = BridgeResult<{
-  handle: string | null;
-  target: ReviewTarget | null;
-  entries: ImportPreviewEntry[];
-  diagnostics: ReviewDiagnostic[];
-}>;
-
-export interface ImportDecision {
-  key: string;
-  occurrenceId: string | null;
-  action: "add" | "replace" | "skip";
-}
-
-export type ConfigurationStatus = "Ready" | "Missing" | "Empty" | "Expired";
-export interface ConfigurationEntry {
-  key: string;
-  status: ConfigurationStatus;
-}
-export interface ConfigurationCounts {
-  required: number;
-  ready: number;
-  missing: number;
-  empty: number;
-  expired: number;
-}
-
-export interface ConfigurationChanges {
-  added: string[];
-  removed: string[];
-  unchanged: string[];
-}
-
-export type ConfigurationResult =
-  | BridgeResult<{ configured: false; target: ReviewTarget }>
-  | BridgeResult<{
-      configured: true;
-      target: ReviewTarget;
-      counts: ConfigurationCounts;
-      entries: ConfigurationEntry[];
-      evaluatedAt: string;
-      nextExpiry: string | null;
-    }>;
-
-export type ConfigurationPreviewResult = BridgeResult<{
-  handle: string | null;
-  target: ReviewTarget | null;
-  entries: ConfigurationEntry[];
-  changes: ConfigurationChanges | null;
-  duplicateNames: number;
-  diagnostics: ReviewDiagnostic[];
-}>;
-
-export type ConfigurationClearPreviewResult = BridgeResult<{
-  handle: string;
-  target: ReviewTarget;
-  removed: string[];
-  secretsRemain: true;
-}>;
-
 export interface ProjectBridge {
   secrets: {
     get: (
@@ -283,6 +196,13 @@ export interface ProjectBridge {
       mode?: ExportMode,
       options?: ExportOptions
     ) => Promise<BridgeResult<{ path: string }>>;
+    importFolderDiscover: (
+      folder: File
+    ) => Promise<BridgeResult<{ discovery: FolderDiscovery }>>;
+    importFolderStageChoice: (
+      target: EnvironmentTarget,
+      choiceId: string
+    ) => Promise<BridgeResult>;
     importFolderScan: (
       target: EnvironmentTarget,
       folder?: File

@@ -1,3 +1,4 @@
+import type { FolderScanSummary } from "../project/folder-import-types";
 /** Shared domain types for env text import reviews. */
 import type { ReviewSession } from "./review-contracts";
 
@@ -143,7 +144,13 @@ export interface FolderScanState {
   contents: Map<string, string>;
 }
 
+export interface FolderScanResult {
+  summary: Omit<FolderScanSummary, "scanId">;
+  contents: Map<string, string>;
+}
+
 export interface FolderHandoff {
+  scan?: FolderScanResult;
   directory: string;
   target: TargetBinding;
   expiresAt: number;

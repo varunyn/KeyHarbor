@@ -1,0 +1,34 @@
+export interface FolderScanFile {
+  id: string;
+  path: string;
+  keyCount: number;
+  gitStatus: "ignored" | "tracked" | "unignored" | "unknown";
+  missingKeys: string[] | null;
+  templatePath: string | null;
+  valid: boolean;
+  suggestedEnvironment: string | null;
+}
+
+export interface FolderScanSummary {
+  scanId: string;
+  folderName: string;
+  files: FolderScanFile[];
+  templates: string[];
+  warnings: {
+    path: string;
+    code: "unreadable" | "symlink" | "invalidTemplate";
+  }[];
+  limited: boolean;
+}
+
+export interface FolderImportChoice {
+  id: string;
+  path: string;
+  suggestedName: string;
+  fileCount: number;
+}
+
+export interface FolderDiscovery {
+  folders: FolderImportChoice[];
+  limited: boolean;
+}

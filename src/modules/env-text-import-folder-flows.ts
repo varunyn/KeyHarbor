@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   captureTargetBinding,
   describeTarget,
@@ -9,6 +11,7 @@ import {
   sameTarget,
 } from "./env-text-import-support";
 import type {
+  FolderScanResult,
   ImportCoordinatorState,
   ImportHandleInput,
   ImportTargetInput,
@@ -18,12 +21,90 @@ import { scanProjectFolder } from "./project-folder-scan";
 
 export class FolderImportFlows {
   _state: ImportCoordinatorState;
+  choices = new Map<string, FolderScanResult>();
 
   constructor(state: ImportCoordinatorState) {
     this._state = state;
   }
 
-  async stageFolder(target: ImportTargetInput, directory: string) {
+  async discoverFolder(directory: string) {
+    const state = this._state;
+    this.choices.clear();
+    const { generation } = state;
+    try {
+      const snapshot = state.session.snapshot();
+      const available = await state.session.withActiveSession(
+        ({ activeVault }) => Boolean(activeVault && !activeVault.isLocked)
+      );
+      if (!available) {
+        return failure("IMPORT_STALE", "Unlock a Vault before importing.");
+      }
+      const result = await scanProjectFolder(directory);
+      return await state.session.withActiveSession(({ activeVault }) => {
+        if (
+          !activeVault ||
+          activeVault.isLocked ||
+          generation !== state.generation ||
+          snapshot.transitionId !== state.session.snapshot().transitionId
+        ) {
+          return failure("IMPORT_STALE", "Choose the folder again.");
+        }
+        const directories = [
+          ...new Set(
+            result.summary.files.map((file) => path.posix.dirname(file.path))
+          ),
+        ];
+        directories.sort((a, b) => a.localeCompare(b));
+        const folders = directories.map((folder) => {
+          const files = result.summary.files.filter(
+            (file) => path.posix.dirname(file.path) === folder
+          );
+          const id = randomHandle();
+          const suggestedName = [
+            result.summary.folderName,
+            ...(folder === "." ? [] : folder.split("/")),
+          ].join(" → ");
+          this.choices.set(id, {
+            contents: new Map(
+              files.flatMap((file) => {
+                const content = result.contents.get(file.id);
+                return content === undefined ? [] : [[file.id, content]];
+              })
+            ),
+            summary: { ...result.summary, files, folderName: suggestedName },
+          });
+          return { fileCount: files.length, id, path: folder, suggestedName };
+        });
+        return {
+          discovery: { folders, limited: result.summary.limited },
+          success: true as const,
+        };
+      });
+    } catch {
+      return failure(
+        "IMPORT_FOLDER_UNAVAILABLE",
+        "The selected folder could not be scanned."
+      );
+    }
+  }
+
+  async stageChoice(target: ImportTargetInput, choiceId: ImportHandleInput) {
+    const scan = isStringValue(choiceId)
+      ? this.choices.get(choiceId)
+      : undefined;
+    if (!scan) {
+      return failure("IMPORT_STALE", "Choose the folder again.");
+    }
+    const result = await this.stageFolder(target, "", scan);
+    this.choices.clear();
+    return result;
+  }
+
+  async stageFolder(
+    target: ImportTargetInput,
+    directory: string,
+    scan?: FolderScanResult
+  ) {
     const state = this._state;
     state.folderHandoff = null;
     const captured = await captureTargetBinding(state, target);
@@ -38,6 +119,7 @@ export class FolderImportFlows {
     state.folderHandoff = {
       directory,
       expiresAt: Date.now() + 120_000,
+      scan,
       target: binding,
     };
     return { success: true as const };
@@ -62,13 +144,19 @@ export class FolderImportFlows {
         "Target changed. Choose the folder again."
       );
     }
-    return this.scanFolder(target, handoff.directory, captured.binding);
+    return this.scanFolder(
+      target,
+      handoff.directory,
+      captured.binding,
+      handoff.scan
+    );
   }
 
   async scanFolder(
     target: ImportTargetInput,
     directory: string,
-    capturedBinding: string
+    capturedBinding: string,
+    scanned?: FolderScanResult
   ) {
     const state = this._state;
     const { generation } = state;
@@ -79,7 +167,7 @@ export class FolderImportFlows {
       return failure("IMPORT_STALE", "Choose the folder again.");
     }
     try {
-      const result = await scanProjectFolder(directory);
+      const result = scanned ?? (await scanProjectFolder(directory));
       return await state.session.withActiveSession(({ activeVault }) => {
         const current = describeTargetOrNull(
           state.session,

@@ -49,6 +49,14 @@ class EnvTextImportCoordinator {
     return captureTargetBinding(this._state, target);
   }
 
+  discoverFolder(directory: string) {
+    return this._folders.discoverFolder(directory);
+  }
+
+  stageFolderChoice(target: ImportTargetInput, choiceId: ImportHandleInput) {
+    return this._folders.stageChoice(target, choiceId);
+  }
+
   stageFolder(target: ImportTargetInput, directory: string) {
     return this._folders.stageFolder(target, directory);
   }
@@ -121,6 +129,7 @@ class EnvTextImportCoordinator {
     if (!preserveFolderHandoff) {
       state.folderHandoff = null;
     }
+    this._folders.choices.clear();
     state.generation += 1;
     state.previews.clear();
     state.targetBindings.clear();

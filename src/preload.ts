@@ -97,6 +97,11 @@ const api = {
       ipcRenderer.invoke("secrets:importCommit", handle, decisions),
     importDiscard: (handle) =>
       ipcRenderer.invoke("secrets:importDiscard", handle),
+    importFolderDiscover: (folder) =>
+      ipcRenderer.invoke(
+        "secrets:importFolderDiscover",
+        webUtils.getPathForFile(folder)
+      ),
     importFolderPreview: (target, scanId, fileId) =>
       ipcRenderer.invoke("secrets:importFolderPreview", target, scanId, fileId),
     importFolderResume: (target) =>
@@ -120,6 +125,8 @@ const api = {
         target,
         webUtils.getPathForFile(folder)
       ),
+    importFolderStageChoice: (target, choiceId) =>
+      ipcRenderer.invoke("secrets:importFolderStageChoice", target, choiceId),
     importPreview: (target, input) =>
       ipcRenderer.invoke("secrets:importPreview", target, input),
     importReveal: (handle, key, occurrenceId) =>

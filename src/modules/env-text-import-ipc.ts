@@ -1,3 +1,4 @@
+import { isStringValue } from "./env-text-import-validation";
 import {
   isFileInput,
   isTextInput,
@@ -72,6 +73,34 @@ const registerEnvImportIpc = ({
       event?.sender?.id === window.webContents?.id
     );
   };
+
+  ipcMain.handle("secrets:importFolderDiscover", (event, directory) => {
+    if (
+      !admitted(event) ||
+      event.senderFrame !== getWindow()?.webContents.mainFrame ||
+      !isStringValue(directory) ||
+      !directory ||
+      directory.length > 32_768 ||
+      directory.includes("\0")
+    ) {
+      return failure("IMPORT_INVALID_INPUT", "Choose a project folder.");
+    }
+    return coordinator.discoverFolder(directory);
+  });
+  ipcMain.handle(
+    "secrets:importFolderStageChoice",
+    (event, target, choiceId) => {
+      if (
+        !admitted(event) ||
+        event.senderFrame !== getWindow()?.webContents.mainFrame ||
+        !validTarget(target) ||
+        !isStringValue(choiceId)
+      ) {
+        return failure("IMPORT_INVALID_INPUT", "Choose a project folder.");
+      }
+      return coordinator.stageFolderChoice(target, choiceId);
+    }
+  );
 
   ipcMain.handle("secrets:importFolderStage", (event, target, directory) => {
     if (
