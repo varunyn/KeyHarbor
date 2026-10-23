@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../renderer/ui/dropdown-menu";
+import { ProjectName } from "../renderer/ui/project-name";
 import { cn } from "../renderer/ui/utils";
 import {
   formatAccessTime,
@@ -117,6 +118,7 @@ export const ProjectCard = ({
         className="absolute inset-0 z-0 rounded-[inherit]"
         href={`project.html?name=${encodeURIComponent(project.name)}`}
         aria-label={t("dashboard.card.openProject", { name: project.name })}
+        title={project.name}
         onKeyDown={(event) => {
           if (event.key === " ") {
             event.preventDefault();
@@ -138,9 +140,11 @@ export const ProjectCard = ({
         >
           {mark.initials}
         </span>
-        <span className="dash-card-name text-foreground min-w-0 flex-1 truncate text-base font-semibold">
-          {project.name}
-        </span>
+        <ProjectName
+          name={project.name}
+          wrap
+          className="dash-card-name text-foreground flex-1 text-base font-semibold"
+        />
         <ProjectActions
           project={project}
           favorite={favorite}
@@ -238,6 +242,7 @@ export const ProjectRow = ({
         className="absolute inset-0 z-0 rounded-[inherit]"
         href={`project.html?name=${encodeURIComponent(project.name)}`}
         aria-label={t("dashboard.card.openProject", { name: project.name })}
+        title={project.name}
         onKeyDown={(event) => {
           if (event.key === " ") {
             event.preventDefault();
@@ -259,9 +264,11 @@ export const ProjectRow = ({
         {mark.initials}
       </span>
       <div className="row-main min-w-0 flex-1">
-        <div className="row-name text-foreground truncate text-sm font-semibold">
-          {project.name}
-        </div>
+        <ProjectName
+          name={project.name}
+          wrap
+          className="row-name text-foreground text-sm font-semibold"
+        />
         <div className="row-sub text-muted-foreground truncate text-xs tabular-nums">
           {t("dashboard.updated", {
             time: formatDate(project.updatedAt, now),

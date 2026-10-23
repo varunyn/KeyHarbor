@@ -14,6 +14,8 @@ KeyHarbor is a local secrets workspace. Keep the interface compact, consistent a
 
 Home, Project, and Access Logs share navigation, sidebar sizing, typography, and icon sizes. Page headings use 24px, controls and navigation 13px, secondary text 12px, and interface icons default to 16px. Reuse shared classes instead of inventing a scale for each page.
 
+Folder-derived Project names show the parent path above the final folder name on Project cards, list rows, and the Project switcher so long parent names do not hide the folder being identified. Full names remain available in hover titles and accessible navigation labels.
+
 Sidebar expansion is one saved preference. Navigation, reload, history, and resizing preserve it; the toggle, Command/Ctrl+B, or explicit drawer dismissal changes it. Counts sit beside expanded labels and stay in tooltips when collapsed. Native zoom applies consistently across main workspace pages.
 
 macOS uses the system interface font and native materials with accessibility fallbacks. Other platforms use bundled Geist and the shared theme. JetBrains Mono is available for credential material. Support both light and dark mode using semantic theme classes rather than hard-coded colors.

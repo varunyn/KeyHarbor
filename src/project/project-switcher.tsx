@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../renderer/ui/popover";
+import { ProjectName } from "../renderer/ui/project-name";
 import type { ProjectRecord } from "./bridge";
 
 export const ProjectSwitcher = ({
@@ -42,7 +43,7 @@ export const ProjectSwitcher = ({
         <Button
           variant="ghost"
           size="sm"
-          className="min-w-0 gap-2 px-2"
+          className="h-auto min-w-0 gap-2 px-2 py-1"
           id="switcherBtn"
           aria-label={t("project.sidebar.switchProject", { name: projectName })}
           title={projectName}
@@ -51,9 +52,10 @@ export const ProjectSwitcher = ({
             aria-hidden="true"
             className="text-muted-foreground size-4 shrink-0"
           />
-          <span className="max-w-[min(220px,40vw)] truncate text-[13px] font-semibold">
-            {projectName}
-          </span>
+          <ProjectName
+            name={projectName}
+            className="max-w-[min(220px,40vw)] text-[13px] font-semibold"
+          />
           <ChevronsUpDown
             aria-hidden="true"
             className="text-muted-foreground size-3.5 shrink-0"
@@ -89,7 +91,7 @@ export const ProjectSwitcher = ({
                   aria-hidden="true"
                   className="text-muted-foreground size-3.5 shrink-0"
                 />
-                <span className="flex-1 truncate">{project.name}</span>
+                <ProjectName name={project.name} wrap className="flex-1" />
                 {project.name === projectName && (
                   <Check
                     aria-hidden="true"
