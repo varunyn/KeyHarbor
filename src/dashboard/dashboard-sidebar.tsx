@@ -68,7 +68,7 @@ const VaultSwitcher = ({
           variant="ghost"
           type="button"
           className={cn(
-            "dash-vault-btn border-border/70 border transition-colors",
+            "dash-vault-btn border-transparent transition-colors",
             sidebarOpen
               ? "bg-secondary/50 hover:bg-secondary flex h-auto min-h-[46px] w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left"
               : "bg-secondary/60 hover:bg-secondary text-foreground relative flex size-10 items-center justify-center rounded-xl p-0"
@@ -281,7 +281,7 @@ export const DashboardSidebar = ({
   <aside
     className={cn(
       nativeWindowStyles.sidebar,
-      "dash-index bg-card border-border relative z-50 flex shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
+      "dash-index bg-secondary/30 border-border/60 relative z-50 flex shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
       sidebarOpen
         ? "w-[var(--ui-sidebar-width)] p-3 max-[860px]:w-[var(--ui-sidebar-width)] max-[860px]:translate-x-0"
         : "is-collapsed items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
@@ -292,7 +292,7 @@ export const DashboardSidebar = ({
     <div
       className={cn(
         "dash-brand flex items-center gap-2",
-        sidebarOpen ? "mb-3 px-1 py-0.5" : "mb-1 flex-col px-0 py-0.5"
+        sidebarOpen ? "mb-6 px-1 py-2" : "mb-1 flex-col px-0 py-0.5"
       )}
     >
       <img src={logoUrl} alt="" className="size-8 shrink-0 rounded-lg" />
@@ -399,7 +399,7 @@ export const DashboardSidebar = ({
     </nav>
     <div
       className={cn(
-        "dash-sync border-border/50 bg-secondary/30 text-muted-foreground mt-auto flex items-center rounded-xl border transition-colors",
+        "dash-sync text-muted-foreground mt-auto flex items-center transition-colors",
         sidebarOpen ? "gap-2.5 p-2 text-xs" : "size-8 justify-center p-0"
       )}
       title={`${t("dashboard.sidebar.unlocked")} — ${t(
@@ -410,7 +410,7 @@ export const DashboardSidebar = ({
       )}`}
     >
       <span
-        className="dash-sync-dot bg-success size-2 shrink-0 animate-pulse rounded-full"
+        className="dash-sync-dot bg-success size-2 shrink-0 rounded-full"
         aria-hidden="true"
       />
       {sidebarOpen ? (

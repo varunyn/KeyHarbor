@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
+import { Select } from "../renderer/ui/select";
 import { cn } from "../renderer/ui/utils";
 import type { EnvironmentSummary, EnvironmentTarget } from "./bridge";
 import { ModalFrame, ModalTitle } from "./components";
@@ -267,7 +268,7 @@ export const EnvironmentControls = ({
               className={cn(
                 "h-7 rounded-md px-3 text-xs font-medium transition-all",
                 isActive
-                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  ? "bg-primary/10 text-primary font-semibold shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
               aria-pressed={isActive}
@@ -287,23 +288,17 @@ export const EnvironmentControls = ({
         <span className="text-muted-foreground">
           {t("project.environments.label")}
         </span>
-        <select
+        <Select
           id="environmentPicker"
-          className="bg-card border-border text-foreground focus:ring-primary rounded-lg border px-2.5 py-1 text-xs focus:ring-1 focus:outline-hidden"
           aria-label={t("project.environments.selectorLabel")}
           value={target?.environmentId ?? ""}
           disabled={!environments.length || disabled || busy}
-          onChange={(event) => onSelect(event.target.value)}
-        >
-          {environments.map((environment) => (
-            <option key={environment.id} value={environment.id}>
-              {environment.name}
-              {environment.isDefault
-                ? ` · ${t("project.environments.default")}`
-                : ""}
-            </option>
-          ))}
-        </select>
+          onValueChange={onSelect}
+          options={environments.map((environment) => ({
+            label: `${environment.name}${environment.isDefault ? ` · ${t("project.environments.default")}` : ""}`,
+            value: environment.id,
+          }))}
+        />
       </label>
       <EnvironmentManager
         key={scopeKey}

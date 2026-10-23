@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { UpdateCheckResult } from "../project/updates-bridge";
 import { useRendererTranslation } from "./providers";
+import { SettingsRow } from "./settings-layout";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 
@@ -72,33 +73,28 @@ export const UpdateSettingsRow = ({
 
   const text = statusText(status, t);
   return (
-    <div
-      className="border-border flex items-center justify-between border-b px-4 py-3.5 last:border-b-0"
-      id="check-updates-item"
-    >
-      <div className="flex flex-col gap-0.5">
-        <span
-          className="text-foreground text-[14px] font-medium"
-          id="label-check-updates"
-        >
-          {t("settings.checkForUpdates")}
-        </span>
-        <span
-          className="text-muted-foreground text-[12px]"
-          id="desc-check-updates"
-        >
+    <SettingsRow
+      label={t("settings.checkForUpdates")}
+      description={
+        <>
           {t("settings.checkForUpdatesDesc")}
-        </span>
-        {text && (
-          <span
-            aria-live="polite"
-            className="text-muted-foreground text-[12px]"
-            id="check-updates-status"
-          >
-            {text}
-          </span>
-        )}
-      </div>
+          {text && (
+            <span
+              aria-live="polite"
+              className="mt-1 block"
+              id="check-updates-status"
+            >
+              {text}
+            </span>
+          )}
+        </>
+      }
+      ids={{
+        description: "desc-check-updates",
+        label: "label-check-updates",
+        row: "check-updates-item",
+      }}
+    >
       <div className="flex items-center gap-2">
         <Switch
           id="check-updates-toggle"
@@ -120,6 +116,6 @@ export const UpdateSettingsRow = ({
           {t("settings.updateCheckNow")}
         </Button>
       </div>
-    </div>
+    </SettingsRow>
   );
 };

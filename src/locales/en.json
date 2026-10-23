@@ -274,6 +274,7 @@
       "localVault": "Local encrypted vault",
       "breadcrumbSecrets": "Secrets",
       "title": "Secrets",
+      "description": "Credentials and configuration for this Project.",
       "vaultSubtitle": "{{vault}} vault"
     },
     "summary": {
@@ -727,6 +728,25 @@
     "newWindow": "New Window"
   },
   "settings": {
+    "description": "Manage your workspace, app behavior, and Vault.",
+    "sections": {
+      "appearance": {
+        "title": "Appearance",
+        "description": "Language and display."
+      },
+      "behavior": {
+        "title": "App behavior",
+        "description": "Preferences for your workflow."
+      },
+      "security": {
+        "title": "Privacy and security",
+        "description": "Control locking and screen protection."
+      },
+      "vault": {
+        "title": "Vault",
+        "description": "Unlocking and Vault management."
+      }
+    },
     "closeBehavior": "When closing the window",
     "closeBehaviorDesc": "Keep CLI and MCP available in the background, or quit KeyHarbor. Auto-lock still applies.",
     "closeBehaviorAsk": "Ask each time",

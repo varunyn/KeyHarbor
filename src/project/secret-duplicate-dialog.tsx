@@ -1,5 +1,6 @@
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
+import { Select } from "../renderer/ui/select";
 import type { ProjectRecord, EnvironmentSummary } from "./bridge";
 import { ModalFrame, ModalTitle } from "./components";
 import { DialogCloseButton } from "./dialog-close-button";
@@ -51,18 +52,16 @@ export const SecretDuplicateDialog = ({
         >
           {t("project.duplicateModal.targetLabel")}
         </label>
-        <select
+        <Select
           id="duplicateTarget"
-          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden"
+          className="w-full"
           value={duplicateTarget}
-          onChange={(event) => onProjectChange(event.target.value)}
-        >
-          {otherProjects.map((project) => (
-            <option key={project.name} value={project.name}>
-              {project.name}
-            </option>
-          ))}
-        </select>
+          onValueChange={onProjectChange}
+          options={otherProjects.map((project) => ({
+            label: project.name,
+            value: project.name,
+          }))}
+        />
       </div>
       <div className="space-y-1.5" id="fieldDuplicateEnvironment">
         <label
@@ -71,22 +70,17 @@ export const SecretDuplicateDialog = ({
         >
           {t("project.duplicateModal.environmentLabel")}
         </label>
-        <select
+        <Select
           id="duplicateEnvironment"
-          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden disabled:opacity-50"
+          className="w-full"
           value={duplicateEnvironmentId}
           disabled={!duplicateEnvironments.length || actionBusy}
-          onChange={(event) => setDuplicateEnvironmentId(event.target.value)}
-        >
-          {duplicateEnvironments.map((environment) => (
-            <option key={environment.id} value={environment.id}>
-              {environment.name}
-              {environment.isDefault
-                ? ` · ${t("project.environments.default")}`
-                : ""}
-            </option>
-          ))}
-        </select>
+          onValueChange={setDuplicateEnvironmentId}
+          options={duplicateEnvironments.map((environment) => ({
+            label: `${environment.name}${environment.isDefault ? ` · ${t("project.environments.default")}` : ""}`,
+            value: environment.id,
+          }))}
+        />
       </div>
       {fieldErrors.duplicate && (
         <p className="text-destructive mt-1 text-xs" id="duplicateError">

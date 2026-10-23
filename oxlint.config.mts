@@ -8,10 +8,10 @@ import react from "ultracite/oxlint/react";
 const existingFileLineLimits = {
   "src/main.ts": 2478,
   "src/modules/agent-proxy-coordinator.ts": 988,
-  "src/project/components.tsx": 1703,
-  "src/project/main.tsx": 3565,
+  "src/project/components.tsx": 1358,
+  "src/project/main.tsx": 3345,
   "src/renderer/reconciliation.tsx": 525,
-  "src/renderer/screens.tsx": 1668,
+  "src/renderer/screens.tsx": 1552,
   "test/agent-proxy.test.ts": 741,
   "test/env-text-import-coordinator.test.ts": 1159,
   "test/vault-reconciliation.test.ts": 775,

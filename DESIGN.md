@@ -8,11 +8,14 @@ KeyHarbor is a local secrets workspace. Keep the interface compact, consistent a
 - If a control is missing, adapt shadcn/ui with Radix primitives and the app's theme tokens. Use cmdk for searchable command lists.
 - Use Tailwind utilities for layout and styling. Use custom CSS only when existing utilities and components cannot express the requirement clearly; explain the reason when introducing it.
 - Add reusable controls to the shared library. Do not create page-specific copies of buttons, menus, dialogs, or navigation.
+- Use the shared Radix Select for compact option pickers and Radio Group for mutually exclusive import decisions. Preserve explicit selections and Environment IDs when changing controls.
 - Use the existing native macOS action menus and window framing where supported.
 
 ## Keep pages consistent
 
 Home, Project, and Access Logs share navigation, sidebar sizing, typography, and icon sizes. Page headings use 24px, controls and navigation 13px, secondary text 12px, and interface icons default to 16px. Reuse shared classes instead of inventing a scale for each page.
+
+Use open page layouts with a clear heading and restrained dividers rather than nested cards around every section. The Project heading identifies the Project, keeps primary actions beside it, and groups Environment selection with the real summary. Search and filters precede the table; required configuration follows it. The Project heading, toolbar, table, and configuration section fill the available workspace width with consistent edge padding; only forms such as Settings use a bounded content width. Settings uses the shared workspace navigation and separate Appearance, App behavior, Privacy and security, and Vault sections. Use theme colors for identity, active selection, and section icons; status colors must continue to reflect real data.
 
 Folder-derived Project names show the parent path above the final folder name on Project cards, list rows, and the Project switcher so long parent names do not hide the folder being identified. Full names remain available in hover titles and accessible navigation labels.
 

@@ -1,12 +1,4 @@
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Key,
-  Loader2,
-  Lock,
-  X,
-} from "lucide-react";
+import { ArrowRight, Check, Key, Loader2, Lock, X } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -18,13 +10,19 @@ import React, {
 import { AGENT_APPROVAL_TIMEOUT_MS } from "../modules/agent-proxy-timeouts";
 import type {
   AppSettings,
-  AppTheme,
   ApprovalRequest,
   TouchIdStatus,
 } from "../project/bridge";
 import { runWithCleanup } from "./async-operation";
 import { notificationManager } from "./notifications";
 import { useRendererTranslation } from "./providers";
+import { SettingsPage, SettingsRow, SettingsSection } from "./settings-layout";
+import {
+  CloseBehaviorSelect,
+  LanguageSelect,
+  ThemeSelect,
+  VaultSyncIntervalSelect,
+} from "./settings-selects";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ModalDialog } from "./ui/modal-dialog";
@@ -69,10 +67,6 @@ const Modal = ({
     {children}
   </ModalDialog>
 );
-const EMPTY_SETTING_IDS = { description: "", label: "" };
-const SETTINGS_SELECT_CLASS =
-  "bg-secondary text-foreground border-border focus-visible:ring-primary h-8 min-w-[100px] rounded-lg border px-2.5 text-[13px] font-sans shadow-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none";
-
 const SettingsToggle = ({
   label,
   checked,
@@ -95,45 +89,6 @@ const SettingsToggle = ({
   />
 );
 
-const SettingsRow = ({
-  label,
-  description,
-  children,
-  ids = EMPTY_SETTING_IDS,
-}: {
-  label: string;
-  description: string;
-  children: React.ReactNode;
-  ids?: {
-    row?: string;
-    label: string;
-    description: string;
-    hidden?: boolean;
-  };
-}) => (
-  <div
-    className={cn(
-      "border-border flex items-center justify-between border-b px-4 py-3.5 last:border-b-0",
-      ids.hidden && "hidden"
-    )}
-    id={ids.row}
-  >
-    <div className="flex flex-col gap-0.5">
-      <span className="text-foreground text-[14px] font-medium" id={ids.label}>
-        {label}
-      </span>
-      {description && (
-        <span
-          className="text-muted-foreground text-[12px]"
-          id={ids.description}
-        >
-          {description}
-        </span>
-      )}
-    </div>
-    {children}
-  </div>
-);
 export const SettingsScreen = () => {
   const { t } = useRendererTranslation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -450,112 +405,36 @@ export const SettingsScreen = () => {
     }
   };
   if (!settings) {
-    return (
-      <main className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto p-5">
-        <div className="border-border mb-5 flex shrink-0 items-center justify-between border-b pb-5">
-          <div className="text-foreground text-[28px] font-semibold">
-            {t("settings.title")}
-          </div>
-        </div>
-      </main>
-    );
+    return <SettingsPage />;
   }
   return (
-    <main className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto p-5">
-      <div className="border-border mb-5 flex shrink-0 items-center justify-between border-b pb-5">
-        <div className="text-foreground flex items-center gap-2.5 text-[28px] font-semibold">
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            id="back-btn"
-            aria-label="Back to dashboard"
-            onClick={() => {
-              clearDrafts();
-              window.location.href = "dashboard.html";
-            }}
-          >
-            <ArrowLeft className="size-5" aria-hidden="true" />
-          </Button>
-          <span id="title">{t("settings.title")}</span>
-        </div>
-      </div>
+    <SettingsPage
+      onBack={() => {
+        clearDrafts();
+        window.location.href = "dashboard.html";
+      }}
+    >
       <div id="settings-container">
-        <div className="border-border bg-card rounded-lg border">
+        <SettingsSection section="appearance">
           <SettingsRow
             label={t("settings.language")}
             description={t("settings.languageDesc")}
             ids={{ description: "desc-language", label: "label-language" }}
           >
-            <select
-              id="language-select"
-              aria-labelledby="label-language"
-              className={SETTINGS_SELECT_CLASS}
+            <LanguageSelect
               value={settings.locale || "system"}
-              onChange={(e) => patch("locale", e.target.value)}
-            >
-              <option id="lang-opt-system" value="system">
-                {t("settings.languageOptions.system")}
-              </option>
-              <option id="lang-opt-en" value="en">
-                {t("settings.languageOptions.en")}
-              </option>
-            </select>
+              onValueChange={(value) => patch("locale", value)}
+            />
           </SettingsRow>
           <SettingsRow
             label={t("settings.theme")}
             description={t("settings.themeDesc")}
             ids={{ description: "desc-theme", label: "label-theme" }}
           >
-            <select
-              id="theme-select"
-              aria-labelledby="label-theme"
-              className={SETTINGS_SELECT_CLASS}
+            <ThemeSelect
               value={settings.theme || "system"}
-              onChange={(e) => patch("theme", e.target.value as AppTheme)}
-            >
-              <option id="theme-opt-system" value="system">
-                {t("settings.themeOptions.system")}
-              </option>
-              <option id="theme-opt-dark" value="dark">
-                {t("settings.themeOptions.dark")}
-              </option>
-              <option id="theme-opt-light" value="light">
-                {t("settings.themeOptions.light")}
-              </option>
-            </select>
-          </SettingsRow>
-          <UpdateSettingsRow
-            checked={settings.checkForUpdates}
-            onToggle={(value) => patch("checkForUpdates", value)}
-          />
-          <SettingsRow
-            label={t("settings.closeBehavior")}
-            description={t("settings.closeBehaviorDesc")}
-            ids={{
-              description: "desc-close-behavior",
-              label: "label-close-behavior",
-            }}
-          >
-            <select
-              aria-describedby="desc-close-behavior"
-              aria-labelledby="label-close-behavior"
-              className={SETTINGS_SELECT_CLASS}
-              id="close-behavior-select"
-              onChange={(event) =>
-                patch(
-                  "closeBehavior",
-                  event.target.value as AppSettings["closeBehavior"]
-                )
-              }
-              value={settings.closeBehavior}
-            >
-              <option value="ask">{t("settings.closeBehaviorAsk")}</option>
-              <option value="background">
-                {t("settings.closeBehaviorBackground")}
-              </option>
-              <option value="quit">{t("settings.closeBehaviorQuit")}</option>
-            </select>
+              onValueChange={(value) => patch("theme", value)}
+            />
           </SettingsRow>
           <SettingsRow
             label={t("settings.showStatistics")}
@@ -573,6 +452,42 @@ export const SettingsScreen = () => {
               id="show-statistics-toggle"
             />
           </SettingsRow>
+        </SettingsSection>
+        <SettingsSection section="behavior">
+          <SettingsRow
+            label={t("settings.closeBehavior")}
+            description={t("settings.closeBehaviorDesc")}
+            ids={{
+              description: "desc-close-behavior",
+              label: "label-close-behavior",
+            }}
+          >
+            <CloseBehaviorSelect
+              value={settings.closeBehavior}
+              onValueChange={(value) => patch("closeBehavior", value)}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label={t("settings.vaultDiskSyncInterval")}
+            description={t("settings.vaultDiskSyncIntervalDesc")}
+            ids={{
+              description: "desc-vault-sync-interval",
+              label: "label-vault-sync-interval",
+            }}
+          >
+            <VaultSyncIntervalSelect
+              value={settings.vaultDiskSyncIntervalSeconds === 60 ? 60 : 5}
+              onValueChange={(value) =>
+                patch("vaultDiskSyncIntervalSeconds", value)
+              }
+            />
+          </SettingsRow>
+          <UpdateSettingsRow
+            checked={settings.checkForUpdates}
+            onToggle={(value) => patch("checkForUpdates", value)}
+          />
+        </SettingsSection>
+        <SettingsSection section="security">
           <SettingsRow
             label={t("settings.autoLock")}
             description={t("settings.autoLockDesc")}
@@ -588,12 +503,12 @@ export const SettingsScreen = () => {
           </SettingsRow>
           {settings.autoLock.enabled && (
             <div
-              className="border-border flex items-center justify-between border-b px-4 py-3.5 last:border-b-0"
+              className="border-border/60 flex flex-wrap items-center justify-between gap-4 border-b py-5 last:border-b-0"
               id="auto-lock-timeout-item"
             >
               <div className="flex flex-col gap-0.5">
                 <span
-                  className="text-foreground text-[14px] font-medium"
+                  className="text-foreground text-sm font-medium"
                   id="label-auto-lock-timeout"
                 >
                   {t("settings.autoLockTimeout")}
@@ -635,106 +550,75 @@ export const SettingsScreen = () => {
               id="screen-capture-toggle"
             />
           </SettingsRow>
+        </SettingsSection>
+        <SettingsSection section="vault" headingId="vault-section-title">
           <SettingsRow
-            label={t("settings.vaultDiskSyncInterval")}
-            description={t("settings.vaultDiskSyncIntervalDesc")}
+            label={t("settings.touchIdUnlock")}
+            description={t("settings.touchIdUnlockDesc")}
             ids={{
-              description: "desc-vault-sync-interval",
-              label: "label-vault-sync-interval",
+              description: "desc-touch-id",
+              hidden: !touch.available,
+              label: "label-touch-id",
+              row: "touch-id-setting-item",
             }}
           >
-            <select
-              id="vault-sync-interval-select"
-              aria-labelledby="label-vault-sync-interval"
-              className={SETTINGS_SELECT_CLASS}
-              value={settings.vaultDiskSyncIntervalSeconds === 60 ? "60" : "5"}
-              onChange={(e) =>
-                patch("vaultDiskSyncIntervalSeconds", Number(e.target.value))
-              }
-            >
-              <option id="vault-sync-opt-5" value="5">
-                {t("settings.vaultDiskSync5s")}
-              </option>
-              <option id="vault-sync-opt-60" value="60">
-                {t("settings.vaultDiskSync1m")}
-              </option>
-            </select>
-          </SettingsRow>
-          <section className="settings-vault-section">
-            <h3
-              className="text-foreground border-border border-t px-4 pt-4 pb-2 text-[16px] font-semibold"
-              id="vault-section-title"
-            >
-              {t("settings.vaultSection")}
-            </h3>
-            <SettingsRow
+            <SettingsToggle
               label={t("settings.touchIdUnlock")}
-              description={t("settings.touchIdUnlockDesc")}
-              ids={{
-                description: "desc-touch-id",
-                hidden: !touch.available,
-                label: "label-touch-id",
-                row: "touch-id-setting-item",
+              checked={touch.enabled}
+              onChange={(value) => {
+                void changeTouch(value);
+              }}
+              disabled={touchBusy}
+              id="touch-id-toggle"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label={t("settings.changePassword")}
+            description={t("settings.changePasswordDesc")}
+            ids={{
+              description: "desc-change-password",
+              label: "label-change-password",
+            }}
+          >
+            <Button
+              variant="secondary"
+              type="button"
+              id="change-password-btn"
+              onClick={() => {
+                modalEpoch.current += 1;
+                modalBusyRef.current = false;
+                setModalBusy(false);
+                setPasswords({ confirm: "", current: "", next: "" });
+                setPasswordOpen(true);
               }}
             >
-              <SettingsToggle
-                label={t("settings.touchIdUnlock")}
-                checked={touch.enabled}
-                onChange={(value) => {
-                  void changeTouch(value);
-                }}
-                disabled={touchBusy}
-                id="touch-id-toggle"
-              />
-            </SettingsRow>
-            <SettingsRow
-              label={t("settings.changePassword")}
-              description={t("settings.changePasswordDesc")}
-              ids={{
-                description: "desc-change-password",
-                label: "label-change-password",
+              {t("settings.changePassword")}
+            </Button>
+          </SettingsRow>
+          <SettingsRow
+            label={t("settings.deleteVault")}
+            description={t("settings.deleteVaultDesc")}
+            ids={{
+              description: "desc-delete-vault",
+              label: "label-delete-vault",
+            }}
+          >
+            <Button
+              variant="destructive"
+              type="button"
+              id="delete-vault-btn"
+              onClick={() => {
+                modalEpoch.current += 1;
+                modalBusyRef.current = false;
+                setModalBusy(false);
+                setDeleteText("");
+                setDeleteOpen(true);
               }}
             >
-              <Button
-                variant="secondary"
-                type="button"
-                id="change-password-btn"
-                onClick={() => {
-                  modalEpoch.current += 1;
-                  modalBusyRef.current = false;
-                  setModalBusy(false);
-                  setPasswords({ confirm: "", current: "", next: "" });
-                  setPasswordOpen(true);
-                }}
-              >
-                {t("settings.changePassword")}
-              </Button>
-            </SettingsRow>
-            <SettingsRow
-              label={t("settings.deleteVault")}
-              description={t("settings.deleteVaultDesc")}
-              ids={{
-                description: "desc-delete-vault",
-                label: "label-delete-vault",
-              }}
-            >
-              <Button
-                variant="destructive"
-                type="button"
-                id="delete-vault-btn"
-                onClick={() => {
-                  modalEpoch.current += 1;
-                  modalBusyRef.current = false;
-                  setModalBusy(false);
-                  setDeleteText("");
-                  setDeleteOpen(true);
-                }}
-              >
-                {t("settings.deleteVault")}
-              </Button>
-            </SettingsRow>
-          </section>
-        </div>
+              {t("settings.deleteVault")}
+            </Button>
+          </SettingsRow>
+        </SettingsSection>
       </div>
       {passwordOpen && (
         <Modal
@@ -864,7 +748,7 @@ export const SettingsScreen = () => {
           </div>
         </Modal>
       )}
-    </main>
+    </SettingsPage>
   );
 };
 export const LockScreen = () => {

@@ -4,7 +4,7 @@ import { nativeWindowStyles } from "../window-chrome";
 import { cn } from "./utils";
 
 export const topBarClass = cn(
-  "border-border bg-card/50 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-6 backdrop-blur-xs",
+  "border-border/60 bg-background/80 flex h-16 shrink-0 items-center justify-between gap-3 border-b px-6 backdrop-blur-xs",
   nativeWindowStyles.toolbar
 );
 

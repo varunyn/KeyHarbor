@@ -114,9 +114,7 @@ const ViewButton = ({
           <span
             className={cn(
               "rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold",
-              selected
-                ? "bg-primary/15 text-primary"
-                : "bg-secondary text-muted-foreground"
+              selected ? "text-primary" : "text-muted-foreground"
             )}
           >
             {count}
@@ -150,7 +148,7 @@ export const ProjectSidebar = ({
     <aside
       className={cn(
         nativeWindowStyles.sidebar,
-        "bg-card border-border relative z-50 flex h-full shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
+        "bg-secondary/30 border-border/60 relative z-50 flex h-full shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:z-50 max-[860px]:shadow-2xl",
         indexOpen
           ? "w-[var(--ui-sidebar-width)] p-3 max-[860px]:translate-x-0"
           : "items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
@@ -161,7 +159,7 @@ export const ProjectSidebar = ({
       <div
         className={cn(
           "flex items-center gap-2",
-          indexOpen ? "mb-3 w-full px-1 py-0.5" : "mb-1 flex-col px-0 py-0.5"
+          indexOpen ? "mb-6 w-full px-1 py-2" : "mb-1 flex-col px-0 py-0.5"
         )}
       >
         <img src={logoUrl} alt="" className="size-8 shrink-0 rounded-lg" />
@@ -208,7 +206,7 @@ export const ProjectSidebar = ({
         />
       </nav>
       {indexOpen ? (
-        <p className="text-muted-foreground mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider uppercase">
+        <p className="text-muted-foreground mt-6 mb-2 px-2.5 text-[11px] font-semibold tracking-wider uppercase">
           {t("project.sidebar.viewsLabel")}
         </p>
       ) : (
@@ -244,13 +242,13 @@ export const ProjectSidebar = ({
       </section>
       <div
         className={cn(
-          "border-border/50 bg-secondary/30 text-muted-foreground mt-auto flex items-center rounded-xl border transition-colors",
+          "text-muted-foreground mt-auto flex items-center transition-colors",
           indexOpen ? "gap-2.5 p-2 text-xs" : "size-8 justify-center p-0"
         )}
         title={syncedText}
       >
         <span
-          className="bg-success size-2 shrink-0 animate-pulse rounded-full"
+          className="bg-success size-2 shrink-0 rounded-full"
           aria-hidden="true"
         />
         {indexOpen ? (

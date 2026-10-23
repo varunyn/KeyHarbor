@@ -8,6 +8,8 @@
 @source "../renderer/workspace-shell.tsx";
 @source "../renderer/reconciliation.tsx";
 @source "../renderer/screens.tsx";
+@source "../renderer/settings-layout.tsx";
+@source "../renderer/update-settings-row.tsx";
 @source "../renderer/window-chrome.tsx";
 
 /* Pixel-based type tokens keep the UI readable with the legacy 13px root.

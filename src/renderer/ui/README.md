@@ -8,6 +8,8 @@ The shared Checkbox follows the current [shadcn/ui Radix Checkbox](https://ui.sh
 
 `ModalDialog` standardizes Radix Dialog chrome, autofocus, focus restoration, accessible title/descriptions, and footer actions across renderer screens.
 
+The shared Select and Radio Group follow the shadcn/ui Radix patterns, adapted on October 23, 2026 with `@radix-ui/react-select` 2.4.1 and `@radix-ui/react-radio-group` 1.5.1. Select accepts typed string options and preserves controlled values; empty option lists are disabled. Settings and Project destination pickers share it. Duplicate import decisions use one Radio Group per key, with explicit occurrence or Skip Key selection.
+
 `ActionMenu` uses Electron system menus on macOS for standard action lists, with the shared Radix dropdown elsewhere and as a fallback. Rich and searchable pickers use Popover and Command. Native menu IPC carries only bounded labels, action IDs, and a window-relative anchor; actions run through the original renderer handlers after selection.
 
 Shared workspace navigation uses `nav-bar.tsx`, `sidebar-toggle.tsx`, and `../use-sidebar-state.ts`. Home, Project, and Access Logs share a 208px expanded sidebar, a 64px rail, and the saved expansion preference. Counts stay beside expanded labels and in tooltips rather than overlaying collapsed icons. `../workspace-shell.tsx` composes the Access Logs shell; `../window-chrome.tsx` handles native macOS framing.

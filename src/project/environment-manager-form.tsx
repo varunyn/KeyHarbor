@@ -1,6 +1,7 @@
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
 import { Input } from "../renderer/ui/input";
+import { Select } from "../renderer/ui/select";
 import type { EnvironmentSummary } from "./bridge";
 
 const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
@@ -86,18 +87,16 @@ export const ManagerForm = ({
         >
           {t("project.environments.replacementLabel")}
         </label>
-        <select
+        <Select
           id="replacementEnvironment"
-          className="bg-card border-border text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-1 focus:outline-hidden"
+          className="w-full"
           value={replacementId}
-          onChange={(event) => onReplacementChange(event.target.value)}
-        >
-          {alternatives.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </select>
+          onValueChange={onReplacementChange}
+          options={alternatives.map((entry) => ({
+            label: entry.name,
+            value: entry.id,
+          }))}
+        />
         <p className="border-warning/20 bg-warning/10 text-warning mt-1 rounded-lg border p-2.5 text-xs">
           {t("project.environments.replacementWarning", {
             name:

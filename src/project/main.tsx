@@ -42,12 +42,14 @@ import {
   SecretTable,
 } from "./components";
 import type { ConfigDraft, ImportRow } from "./components";
+import { ConfigurationPanel } from "./configuration-panel";
 import { EnvironmentControls } from "./environment-controls";
 import { useEnvironmentLifetime } from "./environment-lifetime";
 import { environmentUsageFor } from "./environment-usage";
+import { ProjectHeader, ProjectSummary } from "./project-header";
 import type { Modal } from "./project-screen-reducer";
 import { ProjectSidebar } from "./project-sidebar";
-import { ProjectToolbar } from "./project-toolbar";
+import { ProjectActions, ProjectToolbar } from "./project-toolbar";
 import { ProjectTopbar } from "./project-topbar";
 import { RawExportDialog } from "./raw-export-dialog";
 import {
@@ -127,10 +129,6 @@ const projectStateEnvironmentFor = (environmentName?: string) =>
   environmentName || t("project.environments.unknown");
 const vaultSubtitleFor = (vaultName: string) =>
   vaultName ? t("project.header.vaultSubtitle", { vault: vaultName }) : "";
-const secretCountLabelFor = (count: number) =>
-  count === 1
-    ? t("project.summary.secretsOne")
-    : t("project.summary.secrets", { count });
 const fetchImportPreview = (
   target: EnvironmentTarget,
   input: {
@@ -354,232 +352,6 @@ const ProjectState = ({
     <div className="text-muted-foreground secrets-state flex flex-col items-center justify-center gap-3 p-12 text-center text-xs">
       {content}
     </div>
-  );
-};
-
-const ProjectSummary = ({
-  entryCount,
-  attention,
-  updatedAt,
-}: {
-  entryCount: number;
-  attention: number;
-  updatedAt: string | null;
-}) => (
-  <div
-    className="border-border/30 text-muted-foreground secrets-footing flex items-center gap-3 border-b px-6 py-2 text-xs"
-    id="footing"
-    aria-live="polite"
-  >
-    <span>{secretCountLabelFor(entryCount)}</span>
-    <span
-      className={cn(
-        "font-medium",
-        attention > 0 ? "text-warning" : "text-muted-foreground"
-      )}
-    >
-      {t("project.summary.needsAttention", { count: attention })}
-    </span>
-    {updatedAt && (
-      <>
-        <span className="opacity-40" aria-hidden="true">
-          ·
-        </span>
-        <span>
-          {t("project.summary.updated", { time: relative(updatedAt) })}
-        </span>
-      </>
-    )}
-  </div>
-);
-
-interface ConfigurationPanelProps {
-  result: ConfigurationResult | { state: "loading" | "unavailable" } | null;
-  checklist: ConfigurationChecklist | null;
-  targetAvailable: boolean;
-  open: boolean;
-  onOpen: () => void;
-  onToggle: () => void;
-  onSecret: (key: string, mode: "new" | "edit") => void;
-}
-
-const configurationSummaryFor = (
-  result: ConfigurationPanelProps["result"],
-  checklist: ConfigurationChecklist | null
-) => {
-  if (!result || ("state" in result && result.state === "loading")) {
-    return t("project.configuration.loading");
-  }
-  if (
-    ("state" in result && result.state === "unavailable") ||
-    ("success" in result && !result.success)
-  ) {
-    return t("project.configuration.unavailable");
-  }
-  if (checklist) {
-    return t("project.configuration.readySummary", {
-      ready: checklist.counts.ready,
-      required: checklist.counts.required,
-    });
-  }
-  return t("project.configuration.notConfigured");
-};
-
-const configurationActionFor = (
-  result: ConfigurationPanelProps["result"],
-  checklist: ConfigurationChecklist | null
-) => {
-  if (result && "state" in result && result.state === "unavailable") {
-    return t("project.retry");
-  }
-  return checklist
-    ? t("project.configuration.updateAction")
-    : t("project.configuration.setAction");
-};
-
-const ConfigurationPanel = ({
-  result,
-  checklist,
-  targetAvailable,
-  open,
-  onOpen,
-  onToggle,
-  onSecret,
-}: ConfigurationPanelProps) => {
-  const statusCounts = checklist?.counts;
-  const configurationSummaryText = configurationSummaryFor(result, checklist);
-  const configurationActionText = configurationActionFor(result, checklist);
-  const showUnavailableHint =
-    result && "state" in result && result.state === "unavailable";
-  return (
-    <section
-      className="bg-card border-border configuration-panel mx-6 mt-4 rounded-xl border p-4 shadow-xs"
-      id="configurationPanel"
-      aria-labelledby="configurationHeading"
-    >
-      <div className="configuration-panel-head flex flex-wrap items-center justify-between gap-4">
-        <div className="configuration-overview space-y-1">
-          <h2
-            id="configurationHeading"
-            className="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
-          >
-            {t("project.configuration.heading")}
-          </h2>
-          <output
-            id="configurationSummaryText"
-            className="text-foreground block text-xs font-medium"
-            aria-live="polite"
-          >
-            {configurationSummaryText}
-          </output>
-          {checklist && statusCounts && (
-            <p
-              className="text-muted-foreground configuration-breakdown text-xs"
-              id="configurationBreakdown"
-            >
-              {t("project.configuration.breakdown", {
-                empty: statusCounts.empty,
-                expired: statusCounts.expired,
-                missing: statusCounts.missing,
-              })}
-            </p>
-          )}
-        </div>
-        <div className="configuration-panel-actions flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            className="h-8 px-3 text-xs font-medium"
-            id="configurationAction"
-            disabled={!targetAvailable}
-            onClick={onOpen}
-          >
-            {configurationActionText}
-          </Button>
-          {checklist && (
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="size-8"
-              id="configurationToggle"
-              aria-expanded={open}
-              aria-controls="configurationChecklist"
-              aria-label={t(
-                `project.configuration.${open ? "hideChecklist" : "showChecklist"}`
-              )}
-              title={t(
-                `project.configuration.${open ? "hideChecklist" : "showChecklist"}`
-              )}
-              onClick={onToggle}
-            >
-              <Icon name="chevron-down" />
-            </Button>
-          )}
-        </div>
-      </div>
-      {showUnavailableHint && (
-        <p className="text-destructive mt-2 text-xs" id="configurationError">
-          {t("project.configuration.retryHint")}
-        </p>
-      )}
-      {checklist && (
-        <ul
-          className="border-border/40 divide-border/30 configuration-checklist mt-3 divide-y border-t pt-3"
-          id="configurationChecklist"
-          aria-label={t("project.configuration.heading")}
-          hidden={!open}
-        >
-          {checklist.entries.map((entry) => (
-            <li
-              className="flex items-center justify-between py-2 text-xs"
-              key={entry.key}
-            >
-              <code className="text-foreground font-mono font-medium">
-                {entry.key}
-              </code>
-              <span
-                className="bg-secondary text-muted-foreground rounded-md px-2 py-0.5 text-[11px]"
-                data-status={entry.status}
-              >
-                {t(
-                  `project.configuration.status.${entry.status.toLowerCase()}`
-                )}
-              </span>
-              {entry.status === "Ready" ? (
-                <span />
-              ) : (
-                <Button
-                  variant="link"
-                  size="sm"
-                  type="button"
-                  className="text-primary h-auto p-0 text-xs hover:underline"
-                  aria-label={t(
-                    entry.status === "Missing"
-                      ? "project.configuration.addKey"
-                      : "project.configuration.editKey",
-                    { key: entry.key }
-                  )}
-                  onClick={() =>
-                    onSecret(
-                      entry.key,
-                      entry.status === "Missing" ? "new" : "edit"
-                    )
-                  }
-                >
-                  {t(
-                    entry.status === "Missing"
-                      ? "project.configuration.addSecret"
-                      : "project.configuration.editSecret"
-                  )}
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 };
 
@@ -3067,9 +2839,13 @@ const ProjectApp = () => {
       }
     };
     const onKey = (event: KeyboardEvent) => {
-      const field = /^(?:INPUT|TEXTAREA|SELECT)$/u.test(
-        (document.activeElement as HTMLElement | null)?.tagName || ""
-      );
+      if (event.defaultPrevented) {
+        return;
+      }
+      const field =
+        /^(?:INPUT|TEXTAREA|SELECT)$/u.test(
+          (document.activeElement as HTMLElement | null)?.tagName || ""
+        ) || document.activeElement?.id === "configurationChecklistScroll";
       if (event.key === "Escape") {
         dismissTopLayer(event);
         return;
@@ -3195,58 +2971,54 @@ const ProjectApp = () => {
             nav={nav}
             vaultLabel={vaultSubtitleFor(vaultName)}
           />
-          <div className="border-border/40 flex shrink-0 flex-col border-b">
-            <div className="secrets-title-row flex flex-wrap items-center gap-4 px-6 py-3">
-              <h1 className="text-foreground truncate text-2xl font-semibold tracking-tight">
-                {t("project.header.title")}
-              </h1>
-              <EnvironmentControls
-                projectName={projectName}
-                vaultInstanceId={vaultInstanceId}
-                lifetimeRevision={environmentLifetimeRevision}
-                target={target}
-                environments={environmentSummaries}
-                disabled={!sessionIsActive}
-                onSelect={selectEnvironment}
-                onStructureChanged={onEnvironmentStructureChanged}
+          <ProjectHeader
+            projectName={projectName}
+            actions={
+              <ProjectActions
+                targetReady={Boolean(target)}
+                onImport={openImport}
+                onNewSecret={() => openSecret("new")}
               />
-            </div>
-            <ProjectToolbar
-              search={search}
-              setSearch={setSearch}
-              menu={menu}
-              setMenu={setMenu}
-              filterType={filterType}
-              setFilterType={setFilterType}
-              filterStatus={filterStatus}
-              setFilterStatus={setFilterStatus}
-              targetReady={Boolean(target)}
-              onImport={openImport}
-              onNewSecret={() => openSecret("new")}
-              onExport={(mode) => {
-                if (mode === "raw") {
-                  setRawPassword("");
-                  setModal("raw");
-                } else {
-                  void runExport(mode);
-                }
-              }}
+            }
+            summary={
+              <ProjectSummary
+                entryCount={entries.length}
+                attention={attention}
+                updatedAt={projectUpdated}
+              />
+            }
+          >
+            <EnvironmentControls
+              projectName={projectName}
+              vaultInstanceId={vaultInstanceId}
+              lifetimeRevision={environmentLifetimeRevision}
+              target={target}
+              environments={environmentSummaries}
+              disabled={!sessionIsActive}
+              onSelect={selectEnvironment}
+              onStructureChanged={onEnvironmentStructureChanged}
             />
-          </div>
-          <ProjectSummary
-            entryCount={entries.length}
-            attention={attention}
-            updatedAt={projectUpdated}
+          </ProjectHeader>
+          <ProjectToolbar
+            search={search}
+            setSearch={setSearch}
+            menu={menu}
+            setMenu={setMenu}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            targetReady={Boolean(target)}
+            onExport={(mode) => {
+              if (mode === "raw") {
+                setRawPassword("");
+                setModal("raw");
+              } else {
+                void runExport(mode);
+              }
+            }}
           />
-          <ConfigurationPanel
-            result={configResult}
-            checklist={checklist}
-            targetAvailable={Boolean(target)}
-            open={checklistOpen}
-            onOpen={openConfiguration}
-            onToggle={toggleChecklist}
-            onSecret={(key, mode) => openSecret(mode, key)}
-          />
+
           <SecretTable
             entries={visible.map(({ key, secret, type, status }) => ({
               description: secret.description,
@@ -3306,6 +3078,15 @@ const ProjectApp = () => {
               setModal("delete");
             }}
             onMenu={setRowMenu}
+          />
+          <ConfigurationPanel
+            result={configResult}
+            checklist={checklist}
+            targetAvailable={Boolean(target)}
+            open={checklistOpen}
+            onOpen={openConfiguration}
+            onToggle={toggleChecklist}
+            onSecret={(key, mode) => openSecret(mode, key)}
           />
           <div className="border-border/30 text-muted-foreground secrets-hint border-t px-6 py-2 text-xs">
             {t("project.footerHint")}

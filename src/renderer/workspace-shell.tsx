@@ -83,7 +83,7 @@ export const WorkspaceShell = ({
         aria-label={t("dashboard.a11y.indexLabel")}
         className={cn(
           nativeWindowStyles.sidebar,
-          "bg-card border-border relative z-50 flex h-full shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:shadow-2xl",
+          "bg-secondary/30 border-border/60 relative z-50 flex h-full shrink-0 flex-col border-r transition-[width,transform] duration-200 ease-out max-[860px]:fixed max-[860px]:inset-y-0 max-[860px]:left-0 max-[860px]:shadow-2xl",
           open
             ? "w-[var(--ui-sidebar-width)] p-3 max-[860px]:translate-x-0"
             : "items-center p-2 max-[860px]:-translate-x-full min-[861px]:w-[64px]"
@@ -92,7 +92,7 @@ export const WorkspaceShell = ({
         <div
           className={cn(
             "flex items-center gap-2",
-            open ? "mb-3 w-full px-1 py-0.5" : "mb-1 flex-col px-0 py-0.5"
+            open ? "mb-6 w-full px-1 py-2" : "mb-1 flex-col px-0 py-0.5"
           )}
         >
           <img src={logoUrl} alt="" className="size-8 shrink-0 rounded-lg" />

@@ -24,8 +24,6 @@ interface ProjectToolbarProps {
   filterStatus: string;
   setFilterStatus: (status: string) => void;
   targetReady: boolean;
-  onImport: () => void;
-  onNewSecret: () => void;
   onExport: (mode: ProjectExportMode) => void;
 }
 const t = (key: string) => i18n.t(key);
@@ -57,11 +55,9 @@ export const ProjectToolbar = ({
   filterStatus,
   setFilterStatus,
   targetReady,
-  onImport,
-  onNewSecret,
   onExport,
 }: ProjectToolbarProps) => (
-  <div className="border-border/40 secrets-toolbar flex flex-wrap items-center gap-2 border-b px-6 py-3">
+  <div className="secrets-toolbar flex w-full shrink-0 flex-wrap items-center gap-2 px-6 pt-5 pb-2">
     <div className="secrets-search relative max-w-[340px] min-w-[200px] flex-1">
       <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2">
         <Icon name="search" />
@@ -69,7 +65,7 @@ export const ProjectToolbar = ({
       <Input
         type="search"
         id="searchInput"
-        className="bg-secondary/40 border-border/80 secrets-search-input h-10 pr-8 pl-9 text-[13px]"
+        className="bg-secondary/30 secrets-search-input h-9 border-transparent pr-8 pl-9 text-[13px] shadow-none"
         placeholder={t("project.searchPlaceholder")}
         aria-label={t("project.a11y.searchLabel")}
         value={search}
@@ -89,10 +85,10 @@ export const ProjectToolbar = ({
       <div className="dropdown relative" id="filterDropdown">
         <DropdownMenuTrigger asChild>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon"
             type="button"
-            className="size-10"
+            className="size-9"
             id="filterBtn"
             aria-expanded={menu === "filter"}
             title={t("project.filter")}
@@ -160,18 +156,6 @@ export const ProjectToolbar = ({
       </div>
     </DropdownMenu>
     <span className="flex-1" />
-    <Button
-      variant="secondary"
-      size="sm"
-      type="button"
-      className="h-10 gap-2 px-4 text-[13px] font-medium"
-      id="importBtn"
-      disabled={!targetReady}
-      onClick={onImport}
-    >
-      <Icon name="upload" />
-      <span>{t("project.importEnv")}</span>
-    </Button>
     <DropdownMenu
       open={menu === "export"}
       onOpenChange={(open) => setMenu(open ? "export" : null)}
@@ -179,10 +163,10 @@ export const ProjectToolbar = ({
       <div className="dropdown relative" id="exportDropdown">
         <DropdownMenuTrigger asChild>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
             type="button"
-            className="h-10 gap-2 px-4 text-[13px] font-medium"
+            className="h-9 gap-2 px-3 text-[13px] font-medium"
             id="exportBtn"
             aria-expanded={menu === "export"}
           >
@@ -228,11 +212,36 @@ export const ProjectToolbar = ({
         </DropdownMenuContent>
       </div>
     </DropdownMenu>
+  </div>
+);
+
+export const ProjectActions = ({
+  targetReady,
+  onImport,
+  onNewSecret,
+}: {
+  targetReady: boolean;
+  onImport: () => void;
+  onNewSecret: () => void;
+}) => (
+  <>
+    <Button
+      variant="outline"
+      size="sm"
+      type="button"
+      className="h-9 gap-2 px-3 text-[13px] font-medium"
+      id="importBtn"
+      disabled={!targetReady}
+      onClick={onImport}
+    >
+      <Icon name="upload" />
+      <span>{t("project.importEnv")}</span>
+    </Button>
     <Button
       variant="default"
       size="sm"
       type="button"
-      className="h-10 gap-2 px-4 text-[13px] font-medium"
+      className="h-9 gap-2 px-3 text-[13px] font-medium"
       id="newBtn"
       aria-label={t("project.newSecret")}
       title={t("project.newSecret")}
@@ -242,5 +251,5 @@ export const ProjectToolbar = ({
       <Icon name="plus" />
       <span className="btn-label-collapsible">{t("project.newSecret")}</span>
     </Button>
-  </div>
+  </>
 );
