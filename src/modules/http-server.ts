@@ -144,11 +144,13 @@ class HttpServer {
   ): ReturnType<typeof httpParseRequestBody> {
     return httpParseRequestBody(req);
   }
+  // Keep the existing instance API for callers and subclasses.
+  // eslint-disable-next-line class-methods-use-this
   async _getVault(
     sessionContext: HttpSessionContext,
     vaultName: string | null
   ): Promise<HttpVault | null> {
-    return await httpGetVault(this, sessionContext, vaultName);
+    return await httpGetVault(sessionContext, vaultName);
   }
   async handleAction(
     action: unknown,

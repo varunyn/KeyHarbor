@@ -133,7 +133,48 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   assert.equal(deniedResult.success, false);
   assert.equal(deniedResult.error, "Access denied");
 
-  // 8. Update secret (rename + value)
+  // 8. Update secret validation (reject non-string or empty keys)
+  const invalidFromKey = await invoke<{ error: string; success: boolean }>(
+    "secret:update",
+    target,
+    null,
+    "VALID_KEY",
+    "val"
+  );
+  assert.equal(invalidFromKey.success, false);
+  assert.equal(invalidFromKey.error, "Invalid secret key");
+
+  const emptyFromKey = await invoke<{ error: string; success: boolean }>(
+    "secret:update",
+    target,
+    "   ",
+    "VALID_KEY",
+    "val"
+  );
+  assert.equal(emptyFromKey.success, false);
+  assert.equal(emptyFromKey.error, "Secret key cannot be empty");
+
+  const invalidToKey = await invoke<{ error: string; success: boolean }>(
+    "secret:update",
+    target,
+    "VALID_KEY",
+    123,
+    "val"
+  );
+  assert.equal(invalidToKey.success, false);
+  assert.equal(invalidToKey.error, "Invalid secret key");
+
+  const emptyToKey = await invoke<{ error: string; success: boolean }>(
+    "secret:update",
+    target,
+    "VALID_KEY",
+    "",
+    "val"
+  );
+  assert.equal(emptyToKey.success, false);
+  assert.equal(emptyToKey.error, "Secret key cannot be empty");
+
+  // 9. Update secret (rename + value)
   const updateResult = await invoke<{ success: boolean }>(
     "secret:update",
     target,
@@ -143,7 +184,7 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   );
   assert.equal(updateResult.success, true);
 
-  // 9. Verify renamed secret
+  // 10. Verify renamed secret
   const postUpdate = await invoke<{
     data: Record<string, { value: string }>;
     success: boolean;
@@ -151,7 +192,22 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   assert.equal(postUpdate.data.NEW_KEY.value, "updated-val");
   assert.equal(postUpdate.data.API_KEY, undefined);
 
-  // 10. Favorites toggle
+  // 11. Update secret in place without rename
+  const inPlaceUpdate = await invoke<{ success: boolean }>(
+    "secret:update",
+    target,
+    "NEW_KEY",
+    "NEW_KEY",
+    "in-place-val"
+  );
+  assert.equal(inPlaceUpdate.success, true);
+  const postInPlaceUpdate = await invoke<{
+    data: Record<string, { value: string }>;
+    success: boolean;
+  }>("secrets:get", target);
+  assert.equal(postInPlaceUpdate.data.NEW_KEY.value, "in-place-val");
+
+  // 12. Favorites toggle
   const favProject = await invoke<{ added: boolean; success: boolean }>(
     "favorite:toggleProject",
     "alpha"
@@ -174,7 +230,7 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   assert.equal(getFavorites.success, true);
   assert.ok(getFavorites.data.projects.includes("alpha"));
 
-  // 11. Statistics
+  // 13. Statistics
   const stats = await invoke<{
     data: { recentAccessCount: number };
     success: boolean;
@@ -182,7 +238,7 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   assert.equal(stats.success, true);
   assert.equal(stats.data.recentAccessCount, 5);
 
-  // 12. Delete secret
+  // 14. Delete secret
   const deleteSecretResult = await invoke<{ success: boolean }>(
     "secret:delete",
     target,
@@ -190,7 +246,7 @@ test("Project and Secret IPC handlers manage projects, secrets, and favorites co
   );
   assert.equal(deleteSecretResult.success, true);
 
-  // 13. Delete project
+  // 15. Delete project
   const deleteProjectResult = await invoke<{ success: boolean }>(
     "project:delete",
     "alpha"

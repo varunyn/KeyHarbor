@@ -1,4 +1,5 @@
 import type { EnvironmentTarget } from "../project/bridge";
+import { sessionErrorResponse } from "./project-bridge-support";
 
 interface EnvironmentSummary {
   id: string;
@@ -41,11 +42,6 @@ interface IpcMainLike {
   ) => void;
 }
 
-const fail = (error: unknown) => ({
-  error: error instanceof Error ? error.message : String(error),
-  success: false as const,
-});
-
 const validTarget = (value: unknown): value is EnvironmentTarget => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
@@ -80,7 +76,7 @@ export const registerEnvironmentManagementIpc = ({
       );
       return { data, success: true };
     } catch (error) {
-      return fail(error);
+      return sessionErrorResponse(error);
     }
   });
 
@@ -103,7 +99,7 @@ export const registerEnvironmentManagementIpc = ({
         );
         return { environment, success: true };
       } catch (error) {
-        return fail(error);
+        return sessionErrorResponse(error);
       }
     }
   );
@@ -131,7 +127,7 @@ export const registerEnvironmentManagementIpc = ({
       }
       return { environment, success: true };
     } catch (error) {
-      return fail(error);
+      return sessionErrorResponse(error);
     }
   });
 
@@ -160,7 +156,7 @@ export const registerEnvironmentManagementIpc = ({
         );
         return { ...data, success: true };
       } catch (error) {
-        return fail(error);
+        return sessionErrorResponse(error);
       }
     }
   );

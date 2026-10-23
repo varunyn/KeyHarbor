@@ -25,27 +25,15 @@ const SENSITIVE_ACTIONS = new Set<string>([
 ]);
 
 export const httpGetVault = async (
-  bridge: HttpServer,
   sessionContext: HttpSessionContext,
   vaultName: string | null
 ): Promise<HttpVault | null> => {
   const vaults = sessionContext?.vaults;
   let vault: HttpVault | null = null;
-  if (vaults && typeof vaults.getByName === "function") {
+  if (typeof vaults?.getByName === "function") {
     vault = await vaults.getByName(vaultName || null);
-  } else if (vaults && typeof vaults.lookup === "function") {
-    vault = await vaults.lookup({ name: vaultName || null });
-  } else if (
-    vaultName &&
-    typeof bridge.vaultManager?.getVaultByName === "function"
-  ) {
-    // Compatibility bridge until VaultManager's scoped facade exposes
-    // named lookup. Admission still happens before this call.
-    vault = await bridge.vaultManager.getVaultByName(vaultName);
-  } else if (!vaultName && bridge.vaultManager?.vaults instanceof Map) {
-    vault = bridge.vaultManager.vaults.get("system") || null;
   } else if (!vaultName) {
-    vault = sessionContext?.activeVault || null;
+    vault = sessionContext?.activeVault ?? null;
   }
   if (!vault || vault.isLocked) {
     return null;

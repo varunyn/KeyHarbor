@@ -4,6 +4,7 @@ import type {
   DataResult,
   EnvironmentTarget,
 } from "../project/bridge";
+import { sessionErrorResponse } from "./project-bridge-support";
 
 export interface ApprovalTarget {
   vaultId: string | null;
@@ -113,15 +114,6 @@ const TARGET_REQUIRED_FAILURE: BridgeFailure = Object.freeze({
   error: "A Project and Environment are required",
   success: false,
 });
-
-export const sessionErrorResponse = (value: unknown): BridgeFailure => {
-  const error = value as { message?: string; code?: string } | null;
-  return {
-    error: error?.message || String(value),
-    success: false,
-    ...(error?.code ? { code: error.code } : {}),
-  };
-};
 
 /** Desktop Secret operations require an explicit Project and Environment ID. */
 export const validEnvironmentTarget = (
@@ -267,23 +259,20 @@ export const registerProjectSecretsIpc = ({
     (_event, target, fromKey, toKey, value, expiresAt = null, meta = {}) =>
       withTarget(target, (validTarget) =>
         withActiveVault((activeVault) => {
-          const didRename =
-            typeof fromKey === "string" &&
-            typeof toKey === "string" &&
-            fromKey !== toKey;
+          if (typeof fromKey !== "string" || typeof toKey !== "string") {
+            throw new TypeError("Invalid secret key");
+          }
+          if (!fromKey.trim() || !toKey.trim()) {
+            throw new Error("Secret key cannot be empty");
+          }
+          const didRename = fromKey !== toKey;
           let renameSucceeded = false;
           try {
             if (didRename) {
               activeVault.renameSecret(validTarget, fromKey, toKey);
               renameSucceeded = true;
             }
-            activeVault.setSecret(
-              validTarget,
-              didRename ? toKey : fromKey,
-              value,
-              expiresAt,
-              meta
-            );
+            activeVault.setSecret(validTarget, toKey, value, expiresAt, meta);
           } catch (error) {
             if (renameSucceeded) {
               try {

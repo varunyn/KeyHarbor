@@ -97,9 +97,6 @@ export interface HttpSessionContext {
     getByName?: (
       name: string | null
     ) => HttpVault | null | Promise<HttpVault | null>;
-    lookup?: (selector: {
-      name: string | null;
-    }) => HttpVault | null | Promise<HttpVault | null>;
     list?: () => unknown | Promise<unknown>;
   };
 }

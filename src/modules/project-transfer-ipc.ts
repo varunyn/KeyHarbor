@@ -2,10 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 
 import type { BridgeFailure } from "../project/bridge";
+import { sessionErrorResponse } from "./project-bridge-support";
 import {
   captureApprovalTarget,
   sameApprovalTarget,
-  sessionErrorResponse,
   validEnvironmentTarget,
 } from "./project-secrets-ipc";
 import type {

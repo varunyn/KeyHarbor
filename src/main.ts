@@ -9,6 +9,7 @@ import {
   getMacWindowMaterial,
   updateMacWindowMaterial,
 } from "./modules/mac-window";
+import { sessionErrorResponse } from "./modules/project-bridge-support";
 import { WindowCloseController } from "./modules/window-close-controller";
 import type {
   CloseBehavior,
@@ -95,13 +96,6 @@ interface SessionSnapshot {
   activeVaultId?: string | null;
   recovery: unknown[];
   warnings: unknown[];
-}
-
-interface BridgeFailure {
-  success: false;
-  error?: string;
-  code?: string;
-  [key: string]: unknown;
 }
 
 let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
@@ -203,15 +197,6 @@ const getTouchIdStatus = (): { available: boolean; enabled: boolean } => {
 
 const isVaultSessionActive = (): boolean =>
   vaultSession?.snapshot().state === "active";
-
-const sessionErrorResponse = (value: unknown): BridgeFailure => {
-  const error = value as { message?: string; code?: string } | null;
-  return {
-    error: error?.message || String(value),
-    success: false,
-    ...(error?.code ? { code: error.code } : {}),
-  };
-};
 
 const completePendingRecovery = async (
   openResult: SessionSnapshot & Record<string, unknown>

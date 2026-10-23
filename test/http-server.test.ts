@@ -485,3 +485,14 @@ test("unapproved HTTP secret access returns no values and never changes the Vaul
   });
   assert.equal(vault.getSecret(devTarget, "TOKEN").value, "synthetic-dev");
 });
+
+test("httpGetVault resolves via vaults.getByName and activeVault fallback", async (t) => {
+  const { server } = await setup(t);
+  const unknown: ActionResult = await server.handleAction("listProjects", {
+    vaultName: "does-not-exist",
+  });
+  assert.equal(unknown.success, false);
+  assert.equal(unknown.error, "Vault is locked");
+  const fallback: ActionResult = await server.handleAction("listProjects", {});
+  assert.equal(fallback.success, true);
+});
