@@ -178,7 +178,7 @@ export const SecretTable = ({
   const showRows = loadState === "ready" && entries.length > 0;
   return (
     <div
-      className="secrets-table-wrap min-h-0 flex-1 overflow-y-auto px-6 py-4"
+      className="secrets-table-wrap mt-4 min-h-0 flex-1 overflow-y-auto px-6 pb-4"
       id="tableWrap"
     >
       <table
