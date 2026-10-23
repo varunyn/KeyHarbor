@@ -4,6 +4,8 @@ Editable shadcn/ui New York components, adapted from the official registry on Oc
 
 The homepage, project secrets screen, Settings, Access Logs, and Vault reconciliation share these controls. The confirmation hook replaces blocking browser prompts with translated in-app decisions, starts focus on Cancel, and cancels pending requests when the Vault session changes or the page retires. Tailwind utilities omit Preflight so existing renderer defaults remain intact. Global shared styles live in `src/styles/common.css`, platform-aware light/dark theme tokens in `theme.css`, and Tailwind theme mappings and utilities in `ui.css`. Load them in that order, followed by page composition in `dashboard.css` or `project.css`. Import individual components rather than a barrel.
 
+The shared Checkbox follows the current [shadcn/ui Radix Checkbox](https://ui.shadcn.com/docs/components/radix/checkbox) pattern, adapted on October 23, 2026 with `@radix-ui/react-checkbox` 1.4.1 and local theme tokens.
+
 `ModalDialog` standardizes Radix Dialog chrome, autofocus, focus restoration, accessible title/descriptions, and footer actions across renderer screens.
 
 `ActionMenu` uses Electron system menus on macOS for standard action lists, with the shared Radix dropdown elsewhere and as a fallback. Rich and searchable pickers use Popover and Command. Native menu IPC carries only bounded labels, action IDs, and a window-relative anchor; actions run through the original renderer handlers after selection.

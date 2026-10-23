@@ -27,7 +27,7 @@ macOS uses the system interface font and native materials with accessibility fal
 - Label icon controls, preserve keyboard navigation and visible focus, and respect reduced motion and transparency preferences.
 - Use shared dialogs and menus for focus management. Confirmations initially focus Cancel.
 - Route user-facing text through `i18n.t()`. Keep fonts and assets local.
-- Folder imports require explicit Environment selection and masked review; never change source files or Git ignore rules.
+- Folder imports use one multi-select dialog with editable Project destinations, followed by a separate masked review for each Project. A sole discovered folder is preselected. Show progress and a Next Project action; closing review abandons the remaining sequence. Keep Environment selection explicit and never change source files or Git ignore rules.
 
 ## Where the details live
 

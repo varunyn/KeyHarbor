@@ -1,5 +1,5 @@
 import type { CloseBehavior } from "../modules/window-close-controller";
-import type { FolderDiscovery, FolderScanSummary } from "./folder-import-types";
+import type { FolderImportBridge } from "./folder-import-types";
 import type {
   ConfigurationClearPreviewResult,
   ConfigurationPreviewResult,
@@ -162,7 +162,7 @@ export interface ExportOptions {
 export type ProjectBackupMode = "backup";
 
 export interface ProjectBridge {
-  secrets: {
+  secrets: FolderImportBridge & {
     get: (
       target: EnvironmentTarget,
       key: string
@@ -196,29 +196,6 @@ export interface ProjectBridge {
       mode?: ExportMode,
       options?: ExportOptions
     ) => Promise<BridgeResult<{ path: string }>>;
-    importFolderDiscover: (
-      folder: File
-    ) => Promise<BridgeResult<{ discovery: FolderDiscovery }>>;
-    importFolderStageChoice: (
-      target: EnvironmentTarget,
-      choiceId: string
-    ) => Promise<BridgeResult>;
-    importFolderScan: (
-      target: EnvironmentTarget,
-      folder?: File
-    ) => Promise<BridgeResult<{ scan: FolderScanSummary }>>;
-    importFolderStage: (
-      target: EnvironmentTarget,
-      folder: File
-    ) => Promise<BridgeResult>;
-    importFolderResume: (
-      target: EnvironmentTarget
-    ) => Promise<BridgeResult<{ scan: FolderScanSummary }>>;
-    importFolderPreview: (
-      target: EnvironmentTarget,
-      scanId: string,
-      fileId: string
-    ) => Promise<ImportPreviewResult>;
     importPreview: (
       target: EnvironmentTarget,
       input: ImportInput

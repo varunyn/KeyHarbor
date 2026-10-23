@@ -147,3 +147,141 @@ test("Home choices reject forged handles, rescans, cleared sessions and changed 
   );
   assert.equal(cleared.success, false);
 });
+
+test("multiple selected folders retain separate guarded reviews across navigation", async (t) => {
+  const { coordinator, root, session, target } = await fixture(t);
+  const found = await coordinator.discoverFolder(root);
+  assert.ok(found.success);
+  const b = found.discovery.folders.find((folder) => folder.path === "B");
+  const c = found.discovery.folders.find((folder) => folder.path === "C");
+  assert.ok(b && c);
+  const first = await target(b.suggestedName);
+  const second = await target(c.suggestedName);
+  const staged = await coordinator.stageFolderChoices([
+    { choiceId: b.id, target: first },
+    { choiceId: c.id, target: second },
+  ]);
+  assert.ok(staged.success);
+  coordinator.clear({ preserveFolderHandoff: true });
+  const firstScan = await coordinator.resumeFolder(first);
+  assert.ok(firstScan.success);
+  assert.equal(firstScan.scan.remainingProjects, 1);
+  assert.deepEqual(
+    firstScan.scan.files.map((file) => file.path),
+    ["B/.env", "B/.env.test"]
+  );
+  const preview = await coordinator.previewFolderFile(
+    first,
+    firstScan.scan.scanId,
+    firstScan.scan.files[0].id
+  );
+  assert.ok(preview.success && preview.handle);
+  const committed = await coordinator.commit(
+    preview.handle,
+    preview.entries.map((entry) => ({
+      action: "add",
+      key: entry.key,
+      occurrenceId: entry.occurrences[0].id,
+    }))
+  );
+  assert.ok(committed.success);
+  const untouched = await session.withActiveSession(({ activeVault }) =>
+    activeVault.getImportProjectSnapshot(second, ["TOKEN"])
+  );
+  assert.equal(untouched.secrets.TOKEN, null);
+  // Reviewing the first Project may take longer than a navigation handoff's two-minute lifetime.
+  const now = Date.now();
+  t.mock.method(Date, "now", () => now + 120_001);
+  const advanced = await coordinator.nextFolder(firstScan.scan.scanId);
+  assert.ok(advanced.success);
+  assert.deepEqual(advanced.target, {
+    environmentId: second.environmentId,
+    projectName: second.projectName,
+  });
+  coordinator.clear({ preserveFolderHandoff: true });
+  const secondScan = await coordinator.resumeFolder(second);
+  assert.ok(secondScan.success);
+  assert.equal(secondScan.scan.remainingProjects, 0);
+  assert.deepEqual(
+    secondScan.scan.files.map((file) => file.path),
+    ["C/.env"]
+  );
+  const finished = await coordinator.nextFolder(secondScan.scan.scanId);
+  assert.equal(finished.success, false);
+});
+
+test("batch staging rejects invalid or repeated selections without leaving a partial handoff", async (t) => {
+  const { coordinator, root, target } = await fixture(t);
+  const first = await target("first");
+  const second = await target("second");
+  const found = await coordinator.discoverFolder(root);
+  assert.ok(found.success);
+  const b = found.discovery.folders.find((folder) => folder.path === "B");
+  const c = found.discovery.folders.find((folder) => folder.path === "C");
+  assert.ok(b && c);
+  for (const selections of [
+    [],
+    [
+      { choiceId: b.id, target: first },
+      { choiceId: "forged", target: second },
+    ],
+    [
+      { choiceId: b.id, target: first },
+      { choiceId: b.id, target: second },
+    ],
+    [
+      { choiceId: b.id, target: first },
+      { choiceId: c.id, target: first },
+    ],
+  ]) {
+    // eslint-disable-next-line no-await-in-loop
+    const result = await coordinator.stageFolderChoices(selections);
+    assert.equal(result.success, false);
+    // eslint-disable-next-line no-await-in-loop
+    const partial = await coordinator.resumeFolder(first);
+    assert.equal(partial.success, false);
+  }
+});
+
+test("closing a folder review discards the rest of the batch", async (t) => {
+  const { coordinator, root, target } = await fixture(t);
+  const first = await target("first");
+  const second = await target("second");
+  const found = await coordinator.discoverFolder(root);
+  assert.ok(found.success);
+  const staged = await coordinator.stageFolderChoices([
+    { choiceId: found.discovery.folders[0].id, target: first },
+    { choiceId: found.discovery.folders[1].id, target: second },
+  ]);
+  assert.ok(staged.success);
+  coordinator.clear({ preserveFolderHandoff: true });
+  const current = await coordinator.resumeFolder(first);
+  assert.ok(current.success);
+  await coordinator.discard(current.scan.scanId);
+  const advanced = await coordinator.nextFolder(current.scan.scanId);
+  assert.equal(advanced.success, false);
+  assert.equal(coordinator._folders.queue.length, 0);
+});
+
+test("the next Project is rejected if its captured identity was replaced", async (t) => {
+  const { coordinator, root, session, target } = await fixture(t);
+  const first = await target("first");
+  const second = await target("second");
+  const found = await coordinator.discoverFolder(root);
+  assert.ok(found.success);
+  const staged = await coordinator.stageFolderChoices([
+    { choiceId: found.discovery.folders[0].id, target: first },
+    { choiceId: found.discovery.folders[1].id, target: second },
+  ]);
+  assert.ok(staged.success);
+  coordinator.clear({ preserveFolderHandoff: true });
+  const current = await coordinator.resumeFolder(first);
+  assert.ok(current.success);
+  await session.withActiveSession(({ activeVault }) => {
+    activeVault.deleteProject("second");
+    activeVault.createProject("second");
+  });
+  const advanced = await coordinator.nextFolder(current.scan.scanId);
+  assert.equal(advanced.success, false);
+  assert.equal(coordinator._folders.queue.length, 0);
+});

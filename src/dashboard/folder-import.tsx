@@ -5,20 +5,14 @@ import type { ProjectRecord } from "../project/bridge";
 import type {
   FolderDiscovery,
   FolderImportChoice,
+  FolderImportSelection,
 } from "../project/folder-import-types";
 import { runWithCleanup } from "../renderer/async-operation";
 import { i18n } from "../renderer/i18n";
 import { Button } from "../renderer/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../renderer/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "../renderer/ui/dialog";
-import { Input } from "../renderer/ui/input";
 import { cn } from "../renderer/ui/utils";
+import { FolderProjectChoices } from "./folder-project-choices";
 
 const t = (key: string, vars?: Record<string, string | number>) =>
   i18n.t(`dashboard.folderImport.${key}`, vars);
@@ -32,8 +26,7 @@ export const HomeFolderImport = ({
 }) => {
   const [folder, setFolder] = useState<File | null>(null);
   const [discovery, setDiscovery] = useState<FolderDiscovery | null>(null);
-  const [choice, setChoice] = useState<FolderImportChoice | null>(null);
-  const [name, setName] = useState("");
+  const [names, setNames] = useState<Record<string, string>>({});
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +46,7 @@ export const HomeFolderImport = ({
     pending.current = true;
     setFolder(dropped);
     setDiscovery(null);
-    setChoice(null);
+    setNames({});
     setError("");
     setBusy(true);
     await runWithCleanup(
@@ -64,6 +57,10 @@ export const HomeFolderImport = ({
           if (live.current) {
             if (result.success) {
               setDiscovery(result.discovery);
+              const [only] = result.discovery.folders;
+              if (result.discovery.folders.length === 1 && only) {
+                setNames({ [only.id]: only.suggestedName });
+              }
             } else {
               setError(t("failed"));
             }
@@ -83,14 +80,33 @@ export const HomeFolderImport = ({
     );
   };
 
-  const matchingProject = projects.find(
-    (project) => project.name === name.trim()
-  );
+  const selected =
+    discovery?.folders.filter((entry) => Object.hasOwn(names, entry.id)) ?? [];
+  const toggleFolder = (entry: FolderImportChoice) => {
+    setNames((current) => {
+      if (Object.hasOwn(current, entry.id)) {
+        return Object.fromEntries(
+          Object.entries(current).filter(([id]) => id !== entry.id)
+        );
+      }
+      return { ...current, [entry.id]: entry.suggestedName };
+    });
+    setError("");
+  };
 
-  const submitLabel = matchingProject ? "reviewExisting" : "create";
-
-  const start = async (project?: ProjectRecord) => {
-    if (!choice || pending.current || (!project && !name.trim())) {
+  const start = async () => {
+    if (
+      !selected.length ||
+      pending.current ||
+      selected.some((entry) => !names[entry.id]?.trim())
+    ) {
+      return;
+    }
+    if (
+      new Set(selected.map((entry) => (names[entry.id] ?? "").trim())).size !==
+      selected.length
+    ) {
+      setError(t("distinctProjects"));
       return;
     }
     pending.current = true;
@@ -99,35 +115,58 @@ export const HomeFolderImport = ({
     await runWithCleanup(
       async () => {
         try {
-          let destination = project;
-          if (!destination) {
-            const created = await window.keyharbor.projects.create(name.trim());
-            if (!created.success) {
-              setError(t("createFailed"));
-              return;
-            }
-            if (!live.current) {
-              return;
-            }
-            const refreshed = await window.keyharbor.projects.get();
-            destination = refreshed.success
-              ? refreshed.data.find((entry) => entry.name === name.trim())
-              : undefined;
-          }
+          const refreshed = await window.keyharbor.projects.get();
           if (!live.current) {
             return;
           }
-          if (!destination) {
-            setError(t("createFailed"));
+          if (!refreshed.success) {
+            setError(t("failed"));
             return;
           }
-          const result = await window.keyharbor.secrets.importFolderStageChoice(
-            {
-              environmentId: destination.defaultEnvironmentId,
-              projectName: destination.name,
-            },
-            choice.id
-          );
+          let available = refreshed.data;
+          const selections: FolderImportSelection[] = [];
+          for (const entry of selected) {
+            const name = (names[entry.id] ?? "").trim();
+            let destination = available.find(
+              (project) => project.name === name
+            );
+            if (!destination) {
+              // Projects are created serially so a retry can reuse any completed creation.
+              // eslint-disable-next-line no-await-in-loop
+              const created = await window.keyharbor.projects.create(name);
+              if (!live.current) {
+                return;
+              }
+              if (!created.success) {
+                setError(t("createFailed"));
+                return;
+              }
+              // eslint-disable-next-line no-await-in-loop
+              const updated = await window.keyharbor.projects.get();
+              if (!live.current) {
+                return;
+              }
+              if (!updated.success) {
+                setError(t("createFailed"));
+                return;
+              }
+              available = updated.data;
+              destination = available.find((project) => project.name === name);
+            }
+            if (!destination) {
+              setError(t("createFailed"));
+              return;
+            }
+            selections.push({
+              choiceId: entry.id,
+              target: {
+                environmentId: destination.defaultEnvironmentId,
+                projectName: destination.name,
+              },
+            });
+          }
+          const result =
+            await window.keyharbor.secrets.importFolderStageChoices(selections);
           if (!live.current) {
             return;
           }
@@ -135,9 +174,12 @@ export const HomeFolderImport = ({
             setError(t("failed"));
             return;
           }
-          window.location.assign(
-            `project.html?name=${encodeURIComponent(destination.name)}&importFolder=1`
-          );
+          const [first] = selections;
+          if (first) {
+            window.location.assign(
+              `project.html?name=${encodeURIComponent(first.target.projectName)}&importFolder=1`
+            );
+          }
         } catch {
           if (live.current) {
             setError(t("failed"));
@@ -216,131 +258,68 @@ export const HomeFolderImport = ({
           className="max-w-[440px]"
           closeLabel={i18n.t("common.close")}
         >
-          <DialogTitle>
-            {t(choice ? "destination" : "chooseFolder")}
-          </DialogTitle>
-          <p className="text-muted-foreground truncate text-sm">
+          <DialogTitle>{t("dialogTitle")}</DialogTitle>
+          <p className="text-muted-foreground text-sm break-all">
             {folder?.name}
           </p>
-          {!choice && (
-            <div className="space-y-3">
-              <p className="text-muted-foreground text-xs">
-                {t(busy ? "scanning" : "folderHint")}
-              </p>
-              {discovery?.limited && (
-                <output className="text-warning block text-xs">
-                  {t("limited")}
-                </output>
-              )}
-              {discovery?.folders.length === 0 && (
-                <p className="text-muted-foreground text-sm">
-                  {t("noFolders")}
-                </p>
-              )}
-              <div className="space-y-2">
-                {discovery?.folders.map((entry) => (
-                  <Button
-                    key={entry.id}
-                    type="button"
-                    variant="secondary"
-                    className="h-auto w-full justify-start gap-3 py-3 text-left"
-                    disabled={busy}
-                    onClick={() => {
-                      setChoice(entry);
-                      setName(entry.suggestedName);
-                      setError("");
-                    }}
-                  >
-                    <Folder aria-hidden="true" className="size-4 shrink-0" />
-                    <span className="min-w-0 space-y-1">
-                      <span className="block break-all whitespace-normal">
-                        {entry.suggestedName}
-                      </span>
-                      <span className="text-muted-foreground block text-xs">
-                        {t("fileCount", { count: entry.fileCount })}
-                        {projects.some(
-                          (project) => project.name === entry.suggestedName
-                        )
-                          ? ` · ${t("existing")}`
-                          : ""}
-                      </span>
-                    </span>
-                  </Button>
-                ))}
+          <p className="text-muted-foreground text-xs">
+            {t(busy && !discovery ? "scanning" : "folderHint")}
+          </p>
+          {discovery?.limited && (
+            <output className="text-warning block text-xs">
+              {t("limited")}
+            </output>
+          )}
+          {discovery?.folders.length === 0 && (
+            <p className="text-muted-foreground text-sm">{t("noFolders")}</p>
+          )}
+          <form
+            className="min-w-0 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void start();
+            }}
+          >
+            {discovery && discovery.folders.length > 0 && (
+              <div className="max-h-[50dvh] overflow-y-auto overscroll-contain pr-1">
+                <FolderProjectChoices
+                  folders={discovery.folders}
+                  names={names}
+                  projects={projects}
+                  busy={busy}
+                  onToggle={toggleFolder}
+                  onName={(id, name) =>
+                    setNames((current) => ({ ...current, [id]: name }))
+                  }
+                />
+              </div>
+            )}
+            <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+              <span className="text-muted-foreground text-xs">
+                {t("selected", { count: selected.length })}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setFolder(null)}
+                >
+                  {i18n.t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    busy ||
+                    !selected.length ||
+                    selected.some((entry) => !names[entry.id]?.trim())
+                  }
+                >
+                  {t(busy ? "opening" : "continue")}
+                </Button>
               </div>
             </div>
-          )}
-          {choice && (
-            <>
-              <p className="text-foreground text-sm break-all">
-                {choice.suggestedName}
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => {
-                  setChoice(null);
-                  setError("");
-                }}
-              >
-                {i18n.t("common.back")}
-              </Button>
-              <p className="text-muted-foreground text-xs">{t("reviewHint")}</p>
-              <Command className="border-border overflow-hidden rounded-lg border">
-                <CommandInput placeholder={t("search")} disabled={busy} />
-                <CommandList>
-                  <CommandEmpty>{t("empty")}</CommandEmpty>
-                  {projects.map((project) => (
-                    <CommandItem
-                      key={project.name}
-                      value={project.name}
-                      disabled={busy}
-                      onSelect={() => {
-                        void start(project);
-                      }}
-                    >
-                      <Folder aria-hidden="true" className="size-4 shrink-0" />
-                      <span className="truncate">{project.name}</span>
-                    </CommandItem>
-                  ))}
-                </CommandList>
-              </Command>
-              <form
-                className="border-border space-y-2 border-t pt-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void start(matchingProject);
-                }}
-              >
-                <label
-                  htmlFor="folder-project-name"
-                  className="text-foreground text-xs font-medium"
-                >
-                  {t(matchingProject ? "projectName" : "newName")}
-                </label>
-                <Input
-                  id="folder-project-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  disabled={busy}
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => setFolder(null)}
-                  >
-                    {i18n.t("common.cancel")}
-                  </Button>
-                  <Button type="submit" disabled={busy || !name.trim()}>
-                    {t(busy ? "opening" : submitLabel)}
-                  </Button>
-                </div>
-              </form>
-            </>
-          )}
+          </form>
           {error && (
             <p role="alert" className="text-destructive text-xs">
               {error}

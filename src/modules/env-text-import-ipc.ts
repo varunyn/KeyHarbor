@@ -102,6 +102,26 @@ const registerEnvImportIpc = ({
     }
   );
 
+  ipcMain.handle("secrets:importFolderStageChoices", (event, selections) => {
+    if (
+      !admitted(event) ||
+      event.senderFrame !== getWindow()?.webContents.mainFrame
+    ) {
+      return failure("IMPORT_INVALID_SENDER", "Import could not be completed.");
+    }
+    return coordinator.stageFolderChoices(selections);
+  });
+  ipcMain.handle("secrets:importFolderNext", (event, scanId) => {
+    if (
+      !admitted(event) ||
+      event.senderFrame !== getWindow()?.webContents.mainFrame ||
+      !isStringValue(scanId)
+    ) {
+      return failure("IMPORT_INVALID_INPUT", "Choose folders to import.");
+    }
+    return coordinator.nextFolder(scanId);
+  });
+
   ipcMain.handle("secrets:importFolderStage", (event, target, directory) => {
     if (
       !admitted(event) ||

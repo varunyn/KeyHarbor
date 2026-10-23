@@ -102,6 +102,8 @@ const api = {
         "secrets:importFolderDiscover",
         webUtils.getPathForFile(folder)
       ),
+    importFolderNext: (scanId) =>
+      ipcRenderer.invoke("secrets:importFolderNext", scanId),
     importFolderPreview: (target, scanId, fileId) =>
       ipcRenderer.invoke("secrets:importFolderPreview", target, scanId, fileId),
     importFolderResume: (target) =>
@@ -127,6 +129,8 @@ const api = {
       ),
     importFolderStageChoice: (target, choiceId) =>
       ipcRenderer.invoke("secrets:importFolderStageChoice", target, choiceId),
+    importFolderStageChoices: (selections) =>
+      ipcRenderer.invoke("secrets:importFolderStageChoices", selections),
     importPreview: (target, input) =>
       ipcRenderer.invoke("secrets:importPreview", target, input),
     importReveal: (handle, key, occurrenceId) =>

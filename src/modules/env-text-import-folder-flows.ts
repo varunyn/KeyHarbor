@@ -11,17 +11,24 @@ import {
   sameTarget,
 } from "./env-text-import-support";
 import type {
+  BoundaryValue,
+  FolderHandoff,
   FolderScanResult,
   ImportCoordinatorState,
   ImportHandleInput,
   ImportTargetInput,
 } from "./env-text-import-types";
-import { isStringValue, validTarget } from "./env-text-import-validation";
+import {
+  isRecordValue,
+  isStringValue,
+  validTarget,
+} from "./env-text-import-validation";
 import { scanProjectFolder } from "./project-folder-scan";
 
 export class FolderImportFlows {
   _state: ImportCoordinatorState;
   choices = new Map<string, FolderScanResult>();
+  queue: FolderHandoff[] = [];
 
   constructor(state: ImportCoordinatorState) {
     this._state = state;
@@ -30,6 +37,8 @@ export class FolderImportFlows {
   async discoverFolder(directory: string) {
     const state = this._state;
     this.choices.clear();
+    this.queue = [];
+    state.folderHandoff = null;
     const { generation } = state;
     try {
       const snapshot = state.session.snapshot();
@@ -88,16 +97,103 @@ export class FolderImportFlows {
     }
   }
 
-  async stageChoice(target: ImportTargetInput, choiceId: ImportHandleInput) {
-    const scan = isStringValue(choiceId)
-      ? this.choices.get(choiceId)
+  stageChoice(target: ImportTargetInput, choiceId: ImportHandleInput) {
+    return this.stageChoices([{ choiceId, target }]);
+  }
+
+  async stageChoices(selections: BoundaryValue) {
+    const state = this._state;
+    state.folderHandoff = null;
+    this.queue = [];
+    if (
+      !Array.isArray(selections) ||
+      !selections.length ||
+      selections.length > 64
+    ) {
+      return failure("IMPORT_INVALID_INPUT", "Choose folders to import.");
+    }
+    const handoffs: FolderHandoff[] = [];
+    const seen = new Set<string>();
+    const projects = new Set<string>();
+    for (const selection of selections) {
+      if (
+        !isRecordValue(selection) ||
+        !isStringValue(selection.choiceId) ||
+        !validTarget(selection.target) ||
+        seen.has(selection.choiceId) ||
+        projects.has(selection.target.projectName)
+      ) {
+        return failure(
+          "IMPORT_INVALID_INPUT",
+          "Choose distinct folders and Projects."
+        );
+      }
+      const scan = this.choices.get(selection.choiceId);
+      if (!scan) {
+        return failure("IMPORT_STALE", "Choose the folder again.");
+      }
+      seen.add(selection.choiceId);
+      projects.add(selection.target.projectName);
+      // Each target is bound through the same guarded capture used by single-folder imports.
+      // eslint-disable-next-line no-await-in-loop
+      const result = await this.stageFolder(selection.target, "", scan);
+      if (!result.success) {
+        return result;
+      }
+      const handoff = state.folderHandoff;
+      state.folderHandoff = null;
+      if (!handoff) {
+        return failure("IMPORT_STALE", "Choose the folder again.");
+      }
+      handoffs.push(handoff);
+    }
+    [state.folderHandoff] = handoffs;
+    this.queue = handoffs.slice(1);
+    this.choices.clear();
+    return { success: true as const };
+  }
+
+  async nextFolder(scanId: ImportHandleInput) {
+    const state = this._state;
+    const current = isStringValue(scanId)
+      ? state.folderScans.get(scanId)
       : undefined;
-    if (!scan) {
+    const [next] = this.queue;
+    if (!current || !next) {
       return failure("IMPORT_STALE", "Choose the folder again.");
     }
-    const result = await this.stageFolder(target, "", scan);
-    this.choices.clear();
-    return result;
+    return await state.session.withActiveSession(({ activeVault }) => {
+      const target = {
+        environmentId: next.target.environmentId,
+        projectName: next.target.projectName,
+      };
+      const currentBinding = describeTargetOrNull(
+        state.session,
+        activeVault,
+        current.selector
+      );
+      const nextBinding = describeTargetOrNull(
+        state.session,
+        activeVault,
+        target
+      );
+      if (
+        !currentBinding ||
+        !nextBinding ||
+        !sameTarget(current.target, currentBinding) ||
+        !sameTarget(next.target, nextBinding)
+      ) {
+        this.queue = [];
+        return failure(
+          "IMPORT_STALE",
+          "Target changed. Choose the folder again."
+        );
+      }
+      this.queue.shift();
+      state.folderScans.clear();
+      state.folderHandoff = { ...next, expiresAt: Date.now() + 120_000 };
+      return { success: true as const, target };
+    });
   }
 
   async stageFolder(
@@ -191,7 +287,11 @@ export class FolderImportFlows {
           target: binding,
         });
         return {
-          scan: { ...result.summary, scanId },
+          scan: {
+            ...result.summary,
+            remainingProjects: this.queue.length,
+            scanId,
+          },
           success: true as const,
         };
       });

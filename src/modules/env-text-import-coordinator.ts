@@ -13,7 +13,7 @@ import type {
   ImportTargetInput,
   ReviewTarget as ReviewTargetType,
 } from "./env-text-import-types";
-import { isFunctionValue } from "./env-text-import-validation";
+import { isFunctionValue, isStringValue } from "./env-text-import-validation";
 import type { ReviewSession } from "./review-contracts";
 
 // Class and type-only namespace intentionally share the exported name.
@@ -57,7 +57,16 @@ class EnvTextImportCoordinator {
     return this._folders.stageChoice(target, choiceId);
   }
 
+  stageFolderChoices(selections: BoundaryValue) {
+    return this._folders.stageChoices(selections);
+  }
+
+  nextFolder(scanId: ImportHandleInput) {
+    return this._folders.nextFolder(scanId);
+  }
+
   stageFolder(target: ImportTargetInput, directory: string) {
+    this._folders.queue = [];
     return this._folders.stageFolder(target, directory);
   }
 
@@ -70,6 +79,7 @@ class EnvTextImportCoordinator {
     directory: string,
     capturedBinding: string
   ) {
+    this._folders.queue = [];
     return this._folders.scanFolder(target, directory, capturedBinding);
   }
 
@@ -120,6 +130,9 @@ class EnvTextImportCoordinator {
   // Keep the public Promise API, including rejection of synchronous failures.
   // eslint-disable-next-line require-await
   async discard(handle: ImportHandleInput): Promise<{ success: true }> {
+    if (isStringValue(handle) && this._state.folderScans.has(handle)) {
+      this._folders.queue = [];
+    }
     expireHandle(this._state, handle);
     return { success: true };
   }
@@ -128,6 +141,7 @@ class EnvTextImportCoordinator {
     const state = this._state;
     if (!preserveFolderHandoff) {
       state.folderHandoff = null;
+      this._folders.queue = [];
     }
     this._folders.choices.clear();
     state.generation += 1;
