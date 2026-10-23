@@ -13,6 +13,16 @@ const CryptoUtil = require("../src/modules/crypto");
 
 const PASSWORD = "environment-core-test-password";
 
+interface LegacyMigrationFixture {
+  favorites: { projects: string[]; secrets: Record<string, string[]> };
+  futureFormat?: string;
+  projects: Record<
+    string,
+    { futureFormat?: string; name: string; secrets: Record<string, string> }
+  >;
+  version: string;
+}
+
 const temporaryDirectory = (t: TestContext, prefix: string): string => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   t.after(() => fs.rmSync(directory, { force: true, recursive: true }));
@@ -163,7 +173,7 @@ test("unsupported fields in legacy Vault schemas reject migration without publis
     const key = CryptoUtil.deriveKey(PASSWORD, salt);
     /* Preserve the legacy encrypted fixture field order used by migration and backup contracts. */
     /* eslint-disable sort-keys */
-    const legacyData: Record<string, unknown> = {
+    const legacyData: LegacyMigrationFixture = {
       version: "1.0.0",
       projects: {
         application: {
@@ -177,9 +187,7 @@ test("unsupported fields in legacy Vault schemas reject migration without publis
     if (location === "root") {
       legacyData.futureFormat = "unknown root field";
     } else {
-      (
-        legacyData.projects as Record<string, Record<string, unknown>>
-      ).application.futureFormat = "unknown project field";
+      legacyData.projects.application.futureFormat = "unknown project field";
     }
     const oldVaultBytes = CryptoUtil.encryptJson(legacyData, key);
     const oldSaltBytes = Buffer.from(salt.toString("hex"));

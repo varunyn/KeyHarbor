@@ -46,10 +46,14 @@ export const RECOVERY_DECISIONS = new Set([
   "defer",
 ]);
 
+export interface SanitizedSessionDetails {
+  [key: string]: unknown;
+}
+
 export const sanitizeDetails = (
   details: Record<string, unknown>
-): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
+): SanitizedSessionDetails => {
+  const result: SanitizedSessionDetails = {};
   for (const [key, value] of Object.entries(details)) {
     if (SENSITIVE_KEY_PATTERN.test(key)) {
       continue;

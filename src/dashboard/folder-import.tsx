@@ -119,7 +119,8 @@ export const HomeFolderImport = ({
         }}
         onDragLeave={(event) => {
           if (
-            !event.currentTarget.contains(event.relatedTarget as Node | null)
+            !(event.relatedTarget instanceof Node) ||
+            !event.currentTarget.contains(event.relatedTarget)
           ) {
             setDragging(false);
           }

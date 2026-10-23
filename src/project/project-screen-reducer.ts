@@ -179,12 +179,7 @@ const handleCloseModal = (state: ProjectScreenState): ProjectScreenState => {
   return next;
 };
 
-const reducers: {
-  [K in ProjectScreenAction["type"]]: (
-    state: ProjectScreenState,
-    action: Extract<ProjectScreenAction, { type: K }>
-  ) => ProjectScreenState;
-} = {
+const reducers = {
   CLEAR_RESTORE_ARMED: (state, action) => ({
     ...state,
     restoreArmed:
@@ -363,6 +358,11 @@ const reducers: {
     ...state,
     secretDraft: { ...state.secretDraft, ...action.patch },
   }),
+} satisfies {
+  [K in ProjectScreenAction["type"]]: (
+    state: ProjectScreenState,
+    action: Extract<ProjectScreenAction, { type: K }>
+  ) => ProjectScreenState;
 };
 
 export const projectScreenReducer = (

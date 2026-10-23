@@ -2,18 +2,22 @@ import type { AgentProxyApprovalRequest } from "./modules/agent-proxy-contracts"
 import { AGENT_APPROVAL_TIMEOUT_MS } from "./modules/agent-proxy-timeouts";
 import { notifyApproval } from "./modules/approval-notification";
 import {
+  createSettingsStore,
+  normalizeSettings,
+} from "./modules/desktop-settings";
+import {
   getMacWindowMaterial,
   updateMacWindowMaterial,
 } from "./modules/mac-window";
-import {
-  normalizeCloseBehavior,
-  WindowCloseController,
-} from "./modules/window-close-controller";
+import { WindowCloseController } from "./modules/window-close-controller";
 import type {
   CloseBehavior,
   CloseChoice,
 } from "./modules/window-close-controller";
 import { configureWorkspaceNavigation } from "./modules/workspace-navigation";
+import type { AppTheme } from "./project/bridge";
+
+export type { AppTheme } from "./project/bridge";
 
 const {
   app,
@@ -143,176 +147,10 @@ const loadRendererPage = (window, page) => {
 };
 
 const KEYHARBOR_DIR = getAppDataPath();
-const SETTINGS_FILE = path.join(KEYHARBOR_DIR, "settings.json");
+const { load: loadSettings, save: saveSettings } =
+  createSettingsStore(KEYHARBOR_DIR);
 const TOUCH_ID_CREDENTIAL_FILE = path.join(KEYHARBOR_DIR, "touch-id-key.enc");
 const RECOVERY_DIR = path.join(KEYHARBOR_DIR, "recovery");
-
-export type AppTheme = "system" | "light" | "dark";
-
-const DEFAULT_SETTINGS = {
-  autoLock: {
-    enabled: true,
-    timeout: 30,
-  },
-  checkForUpdates: true,
-  closeBehavior: "ask" as CloseBehavior,
-  locale: "system",
-  screenCaptureProtection: true,
-  showStatistics: true,
-  theme: "system" as AppTheme,
-  touchIdUnlockEnabled: false,
-  vaultDiskSyncIntervalSeconds: 5,
-};
-
-interface AppSettings {
-  closeBehavior: CloseBehavior;
-  checkForUpdates: boolean;
-  locale: string;
-  showStatistics: boolean;
-  theme: AppTheme;
-  autoLock: { enabled: boolean; timeout: number };
-  screenCaptureProtection: boolean;
-  vaultDiskSyncIntervalSeconds: number;
-  touchIdUnlockEnabled: boolean;
-}
-
-type LoadedSettings = AppSettings & {
-  __loadStatus?: "ok" | "repaired" | "reset";
-  __repairs?: string[];
-};
-
-const coerceBoolean = (value: unknown, fallback: boolean): boolean =>
-  typeof value === "boolean" ? value : fallback;
-
-const coerceString = (value: unknown, fallback: string): string =>
-  typeof value === "string" && value.trim() ? value : fallback;
-
-const coerceTheme = (value: unknown): AppTheme => {
-  if (value === "light" || value === "dark" || value === "system") {
-    return value;
-  }
-  return DEFAULT_SETTINGS.theme;
-};
-
-const coerceAutoLockTimeout = (value: unknown, fallback: number): number => {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback;
-  }
-  const coerced = Math.floor(value);
-  if (coerced < 1) {
-    return 1;
-  }
-  if (coerced > 1440) {
-    return 1440;
-  }
-  return coerced;
-};
-
-const coerceVaultDiskSyncIntervalSeconds = (value: unknown): number => {
-  const n =
-    typeof value === "number" && Number.isFinite(value)
-      ? Math.floor(value)
-      : Number.NaN;
-  if (n === 60) {
-    return 60;
-  }
-  return 5;
-};
-
-const normalizeSettings = (
-  settings?: Partial<AppSettings> | null
-): {
-  normalized: AppSettings;
-  repairs: string[];
-} => {
-  const safeSettings =
-    settings && typeof settings === "object" && !Array.isArray(settings)
-      ? (settings as Record<string, unknown>)
-      : {};
-  const safeAutoLock =
-    safeSettings.autoLock &&
-    typeof safeSettings.autoLock === "object" &&
-    !Array.isArray(safeSettings.autoLock)
-      ? (safeSettings.autoLock as Record<string, unknown>)
-      : {};
-
-  const normalized: AppSettings = {
-    autoLock: {
-      enabled: coerceBoolean(
-        safeAutoLock.enabled,
-        DEFAULT_SETTINGS.autoLock.enabled
-      ),
-      timeout: coerceAutoLockTimeout(
-        safeAutoLock.timeout,
-        DEFAULT_SETTINGS.autoLock.timeout
-      ),
-    },
-    checkForUpdates: coerceBoolean(
-      safeSettings.checkForUpdates,
-      DEFAULT_SETTINGS.checkForUpdates
-    ),
-    closeBehavior: normalizeCloseBehavior(safeSettings.closeBehavior),
-    locale: coerceString(safeSettings.locale, DEFAULT_SETTINGS.locale),
-    screenCaptureProtection: coerceBoolean(
-      safeSettings.screenCaptureProtection,
-      DEFAULT_SETTINGS.screenCaptureProtection
-    ),
-    showStatistics: coerceBoolean(
-      safeSettings.showStatistics,
-      DEFAULT_SETTINGS.showStatistics
-    ),
-    theme: coerceTheme(safeSettings.theme),
-    touchIdUnlockEnabled: coerceBoolean(
-      safeSettings.touchIdUnlockEnabled,
-      DEFAULT_SETTINGS.touchIdUnlockEnabled
-    ),
-    vaultDiskSyncIntervalSeconds: coerceVaultDiskSyncIntervalSeconds(
-      safeSettings.vaultDiskSyncIntervalSeconds
-    ),
-  };
-
-  const repairs: string[] = [];
-  if (
-    safeSettings.closeBehavior !== undefined &&
-    normalized.closeBehavior !== safeSettings.closeBehavior
-  ) {
-    repairs.push("closeBehavior");
-  }
-  if (normalized.checkForUpdates !== safeSettings.checkForUpdates) {
-    repairs.push("checkForUpdates");
-  }
-  if (normalized.locale !== safeSettings.locale) {
-    repairs.push("locale");
-  }
-  if (normalized.showStatistics !== safeSettings.showStatistics) {
-    repairs.push("showStatistics");
-  }
-  if (normalized.autoLock.enabled !== safeAutoLock.enabled) {
-    repairs.push("autoLock.enabled");
-  }
-  if (normalized.autoLock.timeout !== safeAutoLock.timeout) {
-    repairs.push("autoLock.timeout");
-  }
-  if (
-    normalized.screenCaptureProtection !== safeSettings.screenCaptureProtection
-  ) {
-    repairs.push("screenCaptureProtection");
-  }
-  if (
-    normalized.vaultDiskSyncIntervalSeconds !==
-    safeSettings.vaultDiskSyncIntervalSeconds
-  ) {
-    repairs.push("vaultDiskSyncIntervalSeconds");
-  }
-  if (normalized.theme !== safeSettings.theme) {
-    repairs.push("theme");
-  }
-  if (normalized.touchIdUnlockEnabled !== safeSettings.touchIdUnlockEnabled) {
-    repairs.push("touchIdUnlockEnabled");
-  }
-
-  return { normalized, repairs };
-};
 
 const openExternalSafely = (rawUrl: string) => {
   try {
@@ -324,69 +162,6 @@ const openExternalSafely = (rawUrl: string) => {
   } catch {
     // Best-effort desktop cleanup must not replace the primary action result.
   }
-};
-
-const saveSettings = (
-  settings?: Partial<AppSettings> | null
-): {
-  success: boolean;
-  error?: string;
-} => {
-  try {
-    const { normalized } = normalizeSettings(settings);
-    try {
-      fs.mkdirSync(KEYHARBOR_DIR, { recursive: true });
-    } catch {
-      // Best-effort desktop cleanup must not replace the primary action result.
-    }
-
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(normalized, null, 2));
-    try {
-      fs.chmodSync(SETTINGS_FILE, 0o600);
-    } catch {
-      // Best-effort desktop cleanup must not replace the primary action result.
-    }
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to save settings:", error);
-    return { error: error.message, success: false };
-  }
-};
-
-const loadSettings = (): LoadedSettings => {
-  try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      const data = fs.readFileSync(SETTINGS_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      const { normalized, repairs } = normalizeSettings(parsed);
-
-      if (repairs.length > 0) {
-        try {
-          saveSettings(normalized);
-        } catch {
-          // Best-effort desktop cleanup must not replace the primary action result.
-        }
-        return { ...normalized, __loadStatus: "repaired", __repairs: repairs };
-      }
-
-      return { ...normalized, __loadStatus: "ok", __repairs: [] };
-    }
-  } catch (error) {
-    console.error("Failed to load settings:", error);
-    const { normalized } = normalizeSettings();
-    try {
-      saveSettings(normalized);
-    } catch {
-      // Best-effort desktop cleanup must not replace the primary action result.
-    }
-    return {
-      ...normalized,
-      __loadStatus: "reset",
-      __repairs: ["__invalidFile"],
-    };
-  }
-  const { normalized } = normalizeSettings();
-  return { ...normalized, __loadStatus: "ok", __repairs: [] };
 };
 
 const getThemeBackgroundColor = (shouldUseDarkColors: boolean): string =>

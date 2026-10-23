@@ -3,6 +3,10 @@ import type { VaultSessionHost } from "./vault-session-types.js";
 
 const STATE_ERROR_CODE_SET = new Set(Object.values(STATE_ERROR_CODES));
 
+interface MonitorTickPromiseHandle {
+  current: Promise<void> | null;
+}
+
 export const isStateError = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
@@ -21,7 +25,7 @@ export const runMonitorTick = (
   ) {
     return;
   }
-  const handle: { current: Promise<void> | null } = { current: null };
+  const handle: MonitorTickPromiseHandle = { current: null };
   const execute = async (): Promise<void> => {
     try {
       await operation();

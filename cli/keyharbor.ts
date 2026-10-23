@@ -16,6 +16,11 @@ const agentProxyClient = require("./agent-proxy-client");
 
 const { KEYHARBOR_DIR, getServerInfo, isElectronAppRunning, sendRequest } =
   keyHarborClient;
+interface ChildExit {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}
+
 type SecretView = { value?: string | null } | string;
 const parsed = parseArguments(process.argv.slice(2));
 const { vaultName } = parsed;
@@ -135,17 +140,11 @@ const handleAgent = async () => {
       signalHandlers.set(signal, handler);
       process.on(signal, handler);
     }
-    const exit: { code: number | null; signal: NodeJS.Signals | null } =
-      // eslint-disable-next-line promise/avoid-new -- ChildProcess exposes close/error events.
-      await new Promise((resolve, reject) => {
-        child.once("error", reject);
-        child.once("close", (code, signal) =>
-          resolve({ code, signal } as {
-            code: number | null;
-            signal: NodeJS.Signals | null;
-          })
-        );
-      });
+    // eslint-disable-next-line promise/avoid-new -- ChildProcess exposes close/error events.
+    const exit = await new Promise<ChildExit>((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", (code, signal) => resolve({ code, signal }));
+    });
     process.exitCode =
       exit.signal || typeof exit.code !== "number" ? 1 : exit.code;
   } catch (error) {

@@ -116,6 +116,11 @@ export interface LeaseEntry {
   settled: Promise<void>;
 }
 
+export interface MonitorIntervalHandles {
+  autoLock: ReturnType<typeof setInterval> | number | null;
+  diskSync: ReturnType<typeof setInterval> | number | null;
+}
+
 export interface MonitorScheduler {
   clearInterval: (handle: any) => void;
   getIdleTimeSeconds: () => number | Promise<number>;
@@ -171,7 +176,7 @@ export interface VaultSessionHost {
   _leases: Set<LeaseEntry>;
   _loggerKey: Buffer | null;
   _monitorGeneration: number;
-  _monitorHandles: { autoLock: any; diskSync: any };
+  _monitorHandles: MonitorIntervalHandles;
   _monitorTicks: Set<Promise<any>>;
   _openingController: AbortController | null;
   _policy: SessionPolicy;

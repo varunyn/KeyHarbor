@@ -6,9 +6,8 @@ import react from "ultracite/oxlint/react";
 // Temporary ceilings for existing oversized files. Lower these as modules are split;
 // never raise a ceiling or add an exception to accommodate new code.
 const existingFileLineLimits = {
-  "src/dashboard/main.tsx": 2992,
-  "src/main.ts": 2703,
-  "src/modules/agent-proxy-coordinator.ts": 990,
+  "src/main.ts": 2478,
+  "src/modules/agent-proxy-coordinator.ts": 988,
   "src/project/bridge.ts": 570,
   "src/project/components.tsx": 1703,
   "src/project/main.tsx": 3565,
@@ -16,7 +15,7 @@ const existingFileLineLimits = {
   "src/renderer/screens.tsx": 1668,
   "test/agent-proxy.test.ts": 741,
   "test/env-text-import-coordinator.test.ts": 1159,
-  "test/vault-reconciliation.test.ts": 778,
+  "test/vault-reconciliation.test.ts": 775,
   "test/vault-session-integration.test.ts": 545,
   "test/vault-session.test.js": 704,
 } satisfies Record<string, number>;
@@ -49,9 +48,7 @@ export default defineConfig({
     // Stage the remaining rules until existing callers and boundary parsers migrate.
     // `npm run check:anti-slop` audits the full preset without these exceptions.
     "anti-slop/no-conditional-empty-object-spread": "off",
-    "anti-slop/no-known-value-widening": "off",
     "anti-slop/no-object-parameters": "off",
-    "anti-slop/no-reflect-apply": "off",
     "anti-slop/no-runtime-typeof": "off",
     "anti-slop/no-unknown-parameters": "off",
     "anti-slop/no-unknown-returns": "off",

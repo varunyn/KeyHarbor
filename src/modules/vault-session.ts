@@ -49,6 +49,7 @@ import type {
   DestroyResult,
   LeaseEntry,
   MonitorScheduler,
+  MonitorIntervalHandles,
   OpenRequest,
   OpenResult,
   OperationContext,
@@ -86,7 +87,7 @@ class VaultSession implements VaultSessionHost {
   _policy: SessionPolicy;
   _policyRevision = 0;
   _monitorGeneration = 0;
-  _monitorHandles: { autoLock: any; diskSync: any } = {
+  _monitorHandles: MonitorIntervalHandles = {
     autoLock: null,
     diskSync: null,
   };

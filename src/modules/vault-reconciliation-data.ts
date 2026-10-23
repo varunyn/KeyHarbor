@@ -1,4 +1,5 @@
 import type Vault = require("./vault");
+import type { VaultFavorites } from "./vault-types";
 import ProjectConfigurationBaseline = require("./project-configuration-baseline");
 
 export const sortedValues = <T>(
@@ -81,12 +82,7 @@ export const secretCore = (secret) => {
   };
 };
 
-export const normalizeFavorites = (
-  favorites
-): {
-  projects: string[];
-  secrets: Record<string, Record<string, string[]>>;
-} => {
+export const normalizeFavorites = (favorites): VaultFavorites => {
   const source =
     favorites && typeof favorites === "object" && !Array.isArray(favorites)
       ? favorites

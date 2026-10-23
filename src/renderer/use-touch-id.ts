@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { TouchIdStatus } from "../project/bridge";
+import type { BridgeResult, TouchIdStatus } from "../project/bridge";
+
+type TouchIdOperationResult = BridgeResult<{ status?: TouchIdStatus }>;
 
 export interface UseTouchIdOptions {
   autoFetch?: boolean;
@@ -38,15 +40,10 @@ export const useTouchId = (options: UseTouchIdOptions = {}) => {
     }
     busyRef.current = true;
     setBusy(true);
-    let result: {
-      error?: string;
-      status?: TouchIdStatus;
-      success: boolean;
-    };
+    let result: TouchIdOperationResult;
     try {
       result = await window.keyharbor.touchId.setEnabled(enabled);
-      const status =
-        "status" in result ? (result.status as TouchIdStatus) : undefined;
+      const status = "status" in result ? result.status : undefined;
       if (aliveRef.current) {
         if (status) {
           setTouchStatus(status);
@@ -73,15 +70,10 @@ export const useTouchId = (options: UseTouchIdOptions = {}) => {
     }
     busyRef.current = true;
     setBusy(true);
-    let result: {
-      error?: string;
-      status?: TouchIdStatus;
-      success: boolean;
-    };
+    let result: TouchIdOperationResult;
     try {
       result = await window.keyharbor.touchId.unlock();
-      const status =
-        "status" in result ? (result.status as TouchIdStatus) : undefined;
+      const status = "status" in result ? result.status : undefined;
       if (aliveRef.current && status) {
         setTouchStatus(status);
       }

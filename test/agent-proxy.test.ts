@@ -531,7 +531,7 @@ test("mutable create input cannot add private-network or custom-CA trust after a
       return Promise.resolve({ approved: true });
     }
   );
-  const input: Record<string, unknown> = {
+  const input = {
     allowPrivateNetwork: false,
     key: "api-key",
     methods: ["GET"],
@@ -543,7 +543,7 @@ test("mutable create input cannot add private-network or custom-CA trust after a
   const creating = fixture.coordinator.createSession(input);
   await waitFor(() => releaseConnection !== undefined);
   input.allowPrivateNetwork = true;
-  input.upstreamCaCertificate = UPSTREAM_CA;
+  Object.assign(input, { upstreamCaCertificate: UPSTREAM_CA });
   releaseConnection?.({ approved: true });
   const proxySession = await creating;
   assert.ok(connectRequest);

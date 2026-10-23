@@ -11,6 +11,12 @@ import { rootCertificates } from "node:tls";
 import { fileURLToPath } from "node:url";
 
 import { requestThroughAgentProxy } from "../cli/agent-proxy-client.js";
+import type { AgentSession } from "../cli/agent-proxy-client.js";
+
+type MockDesktopResponseData =
+  | Record<string, never>
+  | { environmentProtocolVersion: number; isUnlocked: boolean }
+  | AgentSession;
 
 test("HTTPS request uses scoped CONNECT authorization and hides proxy credentials on refusal", async (t) => {
   let requestText = "";
@@ -85,7 +91,7 @@ test("agent CLI replaces the selected credential and revokes its session and cer
       action: string;
       data: Record<string, unknown>;
     };
-    let data: unknown = {};
+    let data: MockDesktopResponseData = {};
     if (payload.action === "status") {
       data = { environmentProtocolVersion: 1, isUnlocked: true };
     } else if (payload.action === "createAgentSession") {

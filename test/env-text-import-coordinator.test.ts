@@ -1,3 +1,5 @@
+import type { EnvTextImportSaveGateState } from "./env-text-import-save-gate";
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -883,9 +885,7 @@ test("a queued commit revalidates session target, clear generation, and relevant
   const coordinator = new EnvTextImportCoordinator({ session });
 
   const originalWriteFile = fs.promises.writeFile;
-  const nextGate: {
-    current: { started: () => void; block: Promise<void> } | null;
-  } = { current: null };
+  const nextGate: EnvTextImportSaveGateState = { current: null };
   fs.promises.writeFile = async (...args) => {
     if (nextGate.current && String(args[0]).includes("vault-v2.enc.")) {
       const gate = nextGate.current;

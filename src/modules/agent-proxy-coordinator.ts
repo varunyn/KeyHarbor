@@ -360,10 +360,8 @@ class AgentProxyCoordinator {
         if (!vault) {
           throw new Error("Vault is unavailable");
         }
-        const environmentSelector: { environmentName?: string } = {};
-        if (environmentName !== undefined) {
-          environmentSelector.environmentName = environmentName;
-        }
+        const environmentSelector =
+          environmentName === undefined ? {} : { environmentName };
         const resolvedTarget = vault.resolveEnvironmentTarget({
           projectName,
           ...environmentSelector,

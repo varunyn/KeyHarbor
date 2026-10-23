@@ -707,10 +707,7 @@ test("an external write during the atomic-save window is preserved", async (t) =
   const originalWriteFile = fs.promises.writeFile;
   let injected = false;
   fs.promises.writeFile = async function writeFile(file, ...args) {
-    const result = await Reflect.apply(originalWriteFile, this, [
-      file,
-      ...args,
-    ]);
+    const result = await originalWriteFile.call(this, file, ...args);
     if (
       !injected &&
       String(file).startsWith(`${vault.vaultPath}.`) &&
@@ -748,7 +745,7 @@ test("password-change failure restores the original decryptable vault", async (t
     ) {
       throw new Error("injected salt write failure");
     }
-    return Reflect.apply(originalWriteFile, this, [file, ...args]);
+    return originalWriteFile.call(this, file, ...args);
   };
 
   try {

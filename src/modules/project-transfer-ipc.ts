@@ -24,6 +24,11 @@ export interface ProjectBackupIdentity {
   fingerprint: string;
 }
 
+interface CapturedProjectBackup {
+  identity: ProjectBackupIdentity;
+  encryptedBackup: Buffer;
+}
+
 const EXPORT_MODES = ["example", "references", "raw"] as const;
 type ExportMode = (typeof EXPORT_MODES)[number];
 const isExportMode = (value: unknown): value is ExportMode =>
@@ -68,7 +73,7 @@ export const captureProjectBackupIdentity = (
   activeVault: TransferVaultLike,
   projectName: string,
   session: VaultSessionLike
-): { identity: ProjectBackupIdentity; encryptedBackup: Buffer } => {
+): CapturedProjectBackup => {
   const sessionSnapshot = session.snapshot();
   const snapshot = activeVault.captureProjectBackupSnapshot(projectName);
   return {

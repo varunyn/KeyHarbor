@@ -33,7 +33,12 @@ const handlers = new Map<
   (_event: unknown, ...args: unknown[]) => unknown
 >();
 
-let saveDialogResult: { canceled: boolean; filePath?: string } = {
+interface SaveDialogResult {
+  canceled: boolean;
+  filePath?: string;
+}
+
+let saveDialogResult: SaveDialogResult = {
   canceled: false,
   filePath: "",
 };
